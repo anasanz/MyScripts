@@ -33,7 +33,10 @@ fin@data<-fin@data[,c(1,4,10,25,26,27,30)]
 fin@data$area<-a
 fin@data$perimeter<-p
 fin@data$shape<-s #Shape: Cuánto de más perimetro tiene la finca si se compara con 
-                  #una finca circular de la misma area
+                  #una finca circular de la misma area. El mínimo de ratio es 1 porque el 
+                  #círculo es la figura más regular. A partir de 1 si s = 1.26, quiere
+                  #♠decir que una finca tiene 0.26 veces más perímetro que un círculo de la
+                  #misma area
 fin@data$simple_shape<-simple_shape #Only p/a
 fin_2014<-fin
 fin_2014@data<-fin_2014@data[,c(2,7,8,10)]
