@@ -211,6 +211,31 @@ av<-av[,which(colnames(av) %in% c("CF_A","LAI_sd","SAI_sd"))]
 
 ab<-left_join(ab,av)
 
+
+#AREA
+ar<-read.csv(file = "Allfincas_area_shape.csv",header = TRUE,sep = ",")
+ar$CF_A <- paste(ar$Codi_Finca, ar$Any, sep = "_")
+ar<-ar[,which(colnames(ar) %in% c("CF_A", "area"))]
+
+ab<-left_join(ab,ar)
+
+# CROP DIVERSITY
+
+#2015
+a<-read.csv("crop_div_15.csv", sep = ",", header=TRUE, fill = TRUE)
+colnames(a)[3] <-  "shan_200"
+colnames(a)[4] <-  "shan_500"
+a <- a[, c(3:6)]
+b<-read.csv("crop_div_16.csv", sep = ",", header=TRUE, fill = TRUE)
+colnames(b)[3] <-  "shan_200"
+colnames(b)[4] <-  "shan_500"
+b <- b[, c(3:6)]
+
+c <- rbind(a,b)
+c$Any<-as.integer(c$Any)
+
+ab<-left_join(ab,c)
+
 write.csv(ab,"Variables.csv")
 
 
