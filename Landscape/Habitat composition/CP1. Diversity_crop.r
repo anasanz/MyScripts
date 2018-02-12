@@ -605,9 +605,32 @@ colnames(shan_17_500)[1] <- "shan_17_500"
 crop_div_17 <- data.frame(shan_17_200,shan_17_500)
 #write.csv(crop_div_17,"crop_div_17.csv")
 
+# Join index with Codi_Finca and Any
+#2015
+a<-read.csv("crop_div_15.csv",sep = ",",header=TRUE,fill = TRUE)
+b<-read.csv("comp15_500.csv",sep = ",",header=TRUE,fill = TRUE) #Only to get Codi_Finca
+
+a$Codi_Finca <- b$Codi_Finca
+a$Any <- b$Any
+#write.csv(a,"crop_div_15.csv")
+
+#2016
+a<-read.csv("crop_div_16.csv",sep = ",",header=TRUE,fill = TRUE)
+b<-read.csv("comp16_500.csv",sep = ",",header=TRUE,fill = TRUE) #Only to get Codi_Finca
+
+a$Codi_Finca <- b$Codi_Finca
+a$Any <- b$Any
+#write.csv(a,"crop_div_16.csv")
+
+#2017
+a<-read.csv("crop_div_17.csv",sep = ",",header=TRUE,fill = TRUE)
+b<-read.csv("comp17_500.csv",sep = ",",header=TRUE,fill = TRUE) #Only to get Codi_Finca
+
+a$Codi_Finca <- b$Codi_Finca
+a$Any <- b$Any
+#write.csv(a,"crop_div_17.csv")
 
 
 
 
-write.csv()
 
