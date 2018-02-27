@@ -1,18 +1,20 @@
 
+#Check frequent species with 2017 INCLUDED
+
 #SCRIPT: Frecuencia de presencia de plantas en fincas
-  #1. Todos los años
-  #2. Cada año (2.1 tendencia especies al final del todo)
-  #3. Especies menos frecuentes
+#1. Todos los años
+#2. Cada año (2.1 tendencia especies al final del todo)
+#3. Especies menos frecuentes
 
 rm(list=ls())
-setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados")
-fl<-read.csv("C_Especies_flora.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
+setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Consultas")
+fl<-read.csv("C_especies_flora_FINAL.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
 
 #Combinar Codi_finca
-fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall.Codi_finca)
-fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot.Codi_finca)
+fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall_Codi_finca)
+fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot_Codi_finca)
 fl$Codi_Finca<-ifelse(!is.na(fl$Campanya_detall.Codi_finca),fl$Campanya_detall.Codi_finca,fl$Dades_especies_plot.Codi_finca)
-fl<-fl[,-c(2,3)]
+fl<-fl[,-c(2,3,7,8)]
 
 library(dplyr)
 fl$Sector <- substr(fl$Codi_Finca, 0, 2)
@@ -41,7 +43,7 @@ fl<-fl[which(fl$Secano == "OCCIDENTAL"),]
 #h<-list()
 
 #for (i in 1:length(ID)){
-  
+
 #  tmp <- fl[fl$Codi_Finca==ID[i], ]
 #  d<-distinct(tmp,Especie)
 #  h[i]<-d
@@ -63,7 +65,7 @@ for (i in 1:length(ID)) {
   tmp <- fl[fl$Codi_Finca==ID[i], ] #Select rows with the same ID
   tab <-table(tmp$Especie)          # Frequency of species of the same finca
   d <- dimnames(tab)[[1]][which(tab > 0)] #Select species with freq > 1 
-                                          #(then I get only the name of the ones present )
+  #(then I get only the name of the ones present )
   h[[i]]<-data.frame( Especie=d, IDFINCA= rep(ID[i], length(d)))
 }
 
@@ -133,12 +135,12 @@ for (i in 1:length(ID)) {
 f<-do.call(rbind, h )
 
 
-#Especies más frecuentes en fincas (Para Joan Estrada) POR BARBECHOS
+#Especies mas frecuentes en fincas (Para Joan Estrada) POR BARBECHOS
 
 f$Presence<-1
 p<-aggregate (Presence~Especie, FUN = sum , data = f)
 
-#Nº fincas muestreadas en total = ID (364 fincas todos los años)
+#Nº fincas muestreadas en total = ID (364 fincas todos los a?os)
 p$Prop<-(p$Presence/364)*100
 library(dplyr)
 p_or<-arrange(p, desc(Prop))
@@ -162,14 +164,15 @@ barplot(p,names.arg = c("P.rhoeas","A.clavatus","L.rigidum",
 
 #Frecuencia de presencia de plantas en fincas
 rm(list=ls())
-setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados")
-fl<-read.csv("C_Especies_flora.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
+setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Consultas")
+fl<-read.csv("C_especies_flora_FINAL.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
 
 #Combinar Codi_finca
-fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall.Codi_finca)
-fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot.Codi_finca)
+fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall_Codi_finca)
+fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot_Codi_finca)
 fl$Codi_Finca<-ifelse(!is.na(fl$Campanya_detall.Codi_finca),fl$Campanya_detall.Codi_finca,fl$Dades_especies_plot.Codi_finca)
-fl<-fl[,-c(2,3)]
+fl<-fl[,-c(2,3,7,8)]
+
 library(dplyr)
 
 fl$Sector <- substr(fl$Codi_Finca, 0, 2)
@@ -224,7 +227,7 @@ p14<-arrange(p, desc(Prop))
 
 #Más frecuentes en 2015
 f15<-f[which(f$Any == "2015"),]
-#Nº fincas muestreadas en 2015 
+#N? fincas muestreadas en 2015 
 length(unique(f15$Codi_Finca))# 242
 p<-aggregate (Presence~Especie, FUN = sum , data = f15)
 p$Prop<-(p$Presence/242)*100
@@ -243,19 +246,29 @@ p$Prop<-(p$Presence/248)*100
 library(dplyr)
 p16<-arrange(p, desc(Prop))
 
+#Más frecuentes en 2017
+f17<-f[which(f$Any == "2017"),]
+#Nº fincas muestreadas en 2016 
+length(unique(f17$Codi_Finca))# 285
+p<-aggregate (Presence~Especie, FUN = sum , data = f17)
+p$Prop<-(p$Presence/285)*100
+
+library(dplyr)
+p17<-arrange(p, desc(Prop))
+
 
 
 #############OCCIDENTALES POR AÑO##############
 
 #Frecuencia de presencia de plantas en fincas
 
-fl<-read.csv("C_Especies_flora.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
+fl<-read.csv("C_especies_flora_FINAL.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
 
 #Combinar Codi_finca
-fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall.Codi_finca)
-fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot.Codi_finca)
+fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall_Codi_finca)
+fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot_Codi_finca)
 fl$Codi_Finca<-ifelse(!is.na(fl$Campanya_detall.Codi_finca),fl$Campanya_detall.Codi_finca,fl$Dades_especies_plot.Codi_finca)
-fl<-fl[,-c(2,3)]
+fl<-fl[,-c(2,3,7,8)]
 library(dplyr)
 
 fl$Sector <- substr(fl$Codi_Finca, 0, 2)
@@ -270,7 +283,7 @@ fl$Secano[fl$Sector == "UT"] <- "OCCIDENTAL"
 fl$Secano[fl$Sector == "AN"] <- "ORIENTAL"
 fl<-fl[which(fl$Secano == "OCCIDENTAL"),]
 
-#Crear columna para combinación Finca-Año
+#Crear columna para combinaci?n Finca-A?o
 library(tidyr)
 library(dplyr)
 
@@ -301,27 +314,13 @@ f<-separate (f,IDFINCA,c("Codi_Finca","Any"))
 
 #Más frecuentes en 2014
 f14<-f[which(f$Any == "2014"),]
-#Nº fincas muestreadas en 2014 
+#N? fincas muestreadas en 2014 
 length(unique(f14$Codi_Finca))# 43
 p<-aggregate (Presence~Especie, FUN = sum , data = f14)
 p$Prop<-(p$Presence/43)*100
 
 library(dplyr)
 p14_oc<-arrange(p, desc(Prop))
-
-#Select 5 with higher occurrence and barplot
-p<-p[c(1:10),]#
-##Especie Presence   Prop
-#1                     Anacyclus clavatus       28 65.11628
-#2                      Bromus gr. rubens       24 55.81395
-#3                       Plantago lagopus       21 48.83721
-#4                  Asphodelus fistulosus       15 34.88372
-#5                    Salsola vermiculata       15 34.88372
-#6                     Bromus madritensis       12 27.90698
-#7                        Eruca vesicaria       11 25.58140
-#8                    Moricandia arvensis       11 25.58140
-#9  Crepis vesicaria subsp. taraxacifolia       10 23.25581
-#10                    Koeleria phleoides
 
 
 #Más frecuentes en 2015
@@ -331,24 +330,7 @@ length(unique(f15$Codi_Finca))# 94
 p<-aggregate (Presence~Especie, FUN = sum , data = f15)
 p$Prop<-(p$Presence/94)*100
 
-library(dplyr)
 p15_oc<-arrange(p, desc(Prop))
-
-#Select 5 with higher occurrence and barplot
-p<-p[c(1:10),]
-p<-as.vector(p$Prop)
-
-#Especie Presence     Prop
-#1                Anacyclus clavatus       50 53.19149
-#2                    Lolium rigidum       43 45.74468
-#3                    Papaver rhoeas       38 40.42553
-#4                   Eruca vesicaria       37 39.36170
-#5  Hordeum murinum subsp. leporinum       33 35.10638
-#6                   Bromus diandrus       31 32.97872
-#7                 Bromus gr. rubens       29 30.85106
-#8                  Plantago lagopus       29 30.85106
-#9              Onopordum corymbosum       20 21.27660
-#10                Sonchus oleraceus       19 20.21277
 
 
 #Más frecuentes en 2016
@@ -358,37 +340,32 @@ length(unique(f16$Codi_Finca))# 86
 p<-aggregate (Presence~Especie, FUN = sum , data = f16)
 p$Prop<-(p$Presence/86)*100
 
-library(dplyr)
 p16_oc<-arrange(p, desc(Prop))
 
-#Select 5 with higher occurrence and barplot
+#Más frecuentes en 2017
+f17<-f[which(f$Any == "2017"),]
+#Nº fincas muestreadas en 2017
+length(unique(f17$Codi_Finca))# 125
+p<-aggregate (Presence~Especie, FUN = sum , data = f17)
+p$Prop<-(p$Presence/125)*100
 
-p<-p[c(1:10),]
+p17_oc<-arrange(p, desc(Prop))
 
-##Especie Presence     Prop
-#1                Anacyclus clavatus       51 59.30233
-#2                   Eruca vesicaria       36 41.86047
-#3                 Sonchus oleraceus       34 39.53488
-#4                    Papaver rhoeas       34 39.53488
-#5                  Plantago lagopus       31 36.04651
-#6              Convolvulus arvensis       28 32.55814
-#7                 Bromus gr. rubens       26 30.23256
-#8              Diplotaxis erucoides       26 30.23256
-#9                   Bromus diandrus       25 29.06977
-#10 Hordeum murinum subsp. leporinum       23 26.74419
+
+
 
 #############ORIENTALES POR AÑO##############
 
 #Frecuencia de presencia de plantas en fincas
 
-fl<-read.csv("C_Especies_flora.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
+fl<-read.csv("C_especies_flora_FINAL.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
 
 #Combinar Codi_finca
-fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall.Codi_finca)
-fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot.Codi_finca)
+fl$Campanya_detall.Codi_finca<-as.character(fl$Campanya_detall_Codi_finca)
+fl$Dades_especies_plot.Codi_finca<-as.character(fl$Dades_especies_plot_Codi_finca)
 fl$Codi_Finca<-ifelse(!is.na(fl$Campanya_detall.Codi_finca),fl$Campanya_detall.Codi_finca,fl$Dades_especies_plot.Codi_finca)
-fl<-fl[,-c(2,3)]
-library(dplyr)
+fl<-fl[,-c(2,3,7,8)]
+
 
 fl$Sector <- substr(fl$Codi_Finca, 0, 2)
 
@@ -403,9 +380,6 @@ fl$Secano[fl$Sector == "AN"] <- "ORIENTAL"
 fl<-fl[which(fl$Secano == "ORIENTAL"),]
 
 #Crear columna para combinación Finca-Año
-library(tidyr)
-library(dplyr)
-
 
 fl<-arrange(fl,Codi_Finca,Any)
 fl<-unite(fl, Finca_Año, Codi_Finca, Any, sep = "_", remove = FALSE)
@@ -438,11 +412,8 @@ length(unique(f14$Codi_Finca))# 101
 p<-aggregate (Presence~Especie, FUN = sum , data = f14)
 p$Prop<-(p$Presence/101)*100
 
-library(dplyr)
 p14_or<-arrange(p, desc(Prop))
 
-#Select 5 with higher occurrence and barplot
-p<-p[c(1:10),]#
 
 #Más frecuentes en 2015
 f15<-f[which(f$Any == "2015"),]
@@ -451,7 +422,6 @@ length(unique(f15$Codi_Finca))# 148
 p<-aggregate (Presence~Especie, FUN = sum , data = f15)
 p$Prop<-(p$Presence/148)*100
 
-library(dplyr)
 p15_or<-arrange(p, desc(Prop))
 
 
@@ -462,8 +432,17 @@ length(unique(f16$Codi_Finca))# 162
 p<-aggregate (Presence~Especie, FUN = sum , data = f16)
 p$Prop<-(p$Presence/162)*100
 
-library(dplyr)
 p16_or<-arrange(p, desc(Prop))
+
+
+#Más frecuentes en 2017
+f17<-f[which(f$Any == "2017"),]
+#Nº fincas muestreadas en 2017 
+length(unique(f17$Codi_Finca))# 160
+p<-aggregate (Presence~Especie, FUN = sum , data = f16)
+p$Prop<-(p$Presence/160)*100
+
+p17_or<-arrange(p, desc(Prop))
 
 
 
@@ -480,8 +459,8 @@ p14_comb<-full_join(p14_oc_L,p14_or_L )
 p14_comb_u<-unique(p14_comb$Especie)
 
 which(p14_L$Especie %in% p14_comb_u) #Todas las especies generales están incluidas en el vector 
-                                      #que combina ambas especies comunes a los dos sectores.
-                                      #BUENO: VECTOR p14_comb_u
+                                    #que combina ambas especies comunes a los dos sectores.
+#BUENO: VECTOR p14_comb_u
 #2015
 p15_L<-p15[which(p15$Prop > 10.00),]
 
@@ -504,13 +483,24 @@ p16_comb_u<-unique(p16_comb$Especie)
 
 which(p16_L$Especie %in% p16_comb_u) # Todas incluidas. Me quedo con VECTOR p15_comb_u
 
-# Frecuencia de especies más frecuentes (>10% de fincas) combinación todos los años
-x<-c(p14_comb_u,p15_comb_u,p16_comb_u)
+#2017
+p17_L<-p17[which(p17$Prop > 10.00),]
+
+p17_oc_L<-p17_oc[which(p17_oc$Prop > 10.00),]
+p17_or_L<-p17_or[which(p17_or$Prop > 10.00),]
+
+p17_comb<-full_join(p17_oc_L,p17_or_L )
+p17_comb_u<-unique(p17_comb$Especie)
+
+which(p17_L$Especie %in% p17_comb_u) 
+
+# Frecuencia de especies más frecuentes (>10% de fincas) combinación AÑOS 
+x<-c(p14_comb_u,p15_comb_u,p16_comb_u,p17_comb_u)
 u<-unique(x)
-save(u,file = "Frequent_species.RData")
+save(u,file = "Frequent_species_FINAL.RData")
 
 #####################
-#Especies más frecuentes combinando todos los años y separando occident/orient
+#Especies más frecuentes combinando todos los años y separando occident/orient (2014-2016)
 p_oc_L<-p_oc[which(p_oc$Prop > 10.00),]
 p_or_L<-p_or[which(p_or$Prop > 10.00),]
 
@@ -520,7 +510,7 @@ p_comb_u<-unique(p_comb$Especie)
 save(p_comb_u,file = "Frequent_species_allyears.RData")
 
 #####################################################################################
-#2.1***Tendencia temporal de las especies más abundantes en los tres años OCCIDENTALES
+#2.1***Tendencia temporal de las especies más abundantes en los tres años OCCIDENTALES (2014-2016)
 
 #Anacyclus clavatus   
 an<-f[f$Especie == "Anacyclus clavatus",]
@@ -709,21 +699,21 @@ legend ( "topright",
 
 
 #####################################################################################
-#Tendencia temporal de las especies más abundantes en los tres años ORIENTALES
+#Tendencia temporal de las especies m?s abundantes en los tres años ORIENTALES (2014-2016)
 f$Presence<-1
 f<-separate (f,IDFINCA,c("Codi_Finca","Any"))
 
-#Número de fincas por año.
+#N?mero de fincas por a?o.
 f14<-f[which(f$Any == "2014"),]
 unique(f14$Codi_Finca)#???101
 
-#Número de fincas por año.
+#N?mero de fincas por a?o.
 f15<-f[which(f$Any == "2015"),]
 unique(f15$Codi_Finca)#148
 
-#Número de fincas por año.
+#N?mero de fincas por a?o.
 f16<-f[which(f$Any == "2016"),]
-#Nº fincas muestreadas en 2016 
+#N? fincas muestreadas en 2016 
 unique(f16$Codi_Finca)#162
 
 #Papaver rhoeas
@@ -908,3 +898,4 @@ legend ( "topright",
          c("2014","2015","2016"),
          fill=c("gray66","gray34","gray86"),
          border = c("black", "black", "black"), bty = "n", cex = 0.7)
+

@@ -22,7 +22,7 @@ freq <- xtabs(  ~ Tractament + Any, data = f)
 
 
 
-# APPENDIX: Vegetation 
+# APPENDIX: Vegetation- Treatments
 
 setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Variables")
 

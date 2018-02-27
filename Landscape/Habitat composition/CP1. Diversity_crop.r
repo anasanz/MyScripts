@@ -626,7 +626,7 @@ a$Any <- b$Any
 a<-read.csv("crop_div_17.csv",sep = ",",header=TRUE,fill = TRUE)
 b<-read.csv("comp17_500.csv",sep = ",",header=TRUE,fill = TRUE) #Only to get Codi_Finca
 
-a$Codi_Finca <- b$Codi_Finca
+a$Codi_Finca <- b$fin17.data...c.colnames.fin17.data...in..c..ID....Codi_Finca....
 a$Any <- b$Any
 #write.csv(a,"crop_div_17.csv")
 

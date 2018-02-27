@@ -26,3 +26,21 @@ be <- na.omit(be)
 
 be_2015 <- be[which(be$Any == "2015"), ] #46
 be_2016 <- be[which(be$Any == "2016"), ] #58
+
+af <- e[ which(e$Subzone %in% "AF"), ]
+af <- na.omit(af)
+
+af_2015 <- af[which(af$Any == "2015"), ] #50
+af_2016 <- af[which(af$Any == "2016"), ] #59
+
+
+length(which(be_2016$Codi_Finca %in% be_2015$Codi_Finca))
+selec <- be_2015[which(be_2016$Codi_Finca %in% be_2015$Codi_Finca), ]
+selec$Codi_Finca
+
+setwd("C:/Users/ana.sanz/Documents")
+
+o <- read.csv("fin_ob.csv", sep = ";", header=TRUE, fill = TRUE)
+t <- o[which(o$Temporada == "2016-2017"),]
+unique(t$Codi_finca)
+name <- as.character(unique(t$Codi_finca)) #61 AF

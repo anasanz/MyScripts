@@ -2,17 +2,27 @@
 library(dplyr)
 
 #SPECIES PLANTS: VARIABLES FOR LEAF/SEED AVAILABILITY INDEX
-setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados")
-fl<-read.csv("Cobertura_media_flora.csv",sep = ",",header=TRUE,fill = TRUE,na.strings="")
-cov<-fl[,c(1,215,216,2:214)]
+setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Consultas")
+fl<-read.csv("Cobertura_media_flora_FINAL.csv",sep = ",",header=TRUE,fill = TRUE,na.strings="")
+cov<-fl[,c(1,232,233,2:231)]
 
 #Delete species with low occurrence (Script F1)
 #Species with high occurrence in fincas (>10%) calculated for 2 sectors and each year
 
+load("Frequent_species_FINAL.RData")
+u <- data.frame(u)
+colnames(u)[1] <- "Especie"
+# Change codes to known ones plants
+cod<-read.csv("Especies_flora_CÛdigos.csv",sep = ";",header=TRUE,fill = TRUE,na.strings="")
+cod <- cod[, c(1,3)]
+colnames(cod)[1] <- "Especie"
+
+j <- left_join(u,cod)
+
 load("Frequent_species.RData")
 #Add Codi_Finca and Any
 d<-c("Codi_Finca","Any","X")
-j<-sub(" ",".",u)
+j<-sub(" ",".",j$nomCientific)
 j[2]<-"Bromus.gr..rubens"
 j[9]<-"Crepis.vesicaria.subsp..taraxacifolia"
 j[20]<-"Hordeum.murinum.subsp..leporinum"
@@ -21,7 +31,7 @@ j[54]<-"Capsella.bursa.pastoris"
 j<-c(j,d)
 
 
-#DE LAS ESPECIES MENOS COMUNES, MIRAR CU√ÅLES TIENEN COBERTURA DE M√ÅS DE 20 EN ALGUNA PARCELA
+#DE LAS ESPECIES MENOS COMUNES, MIRAR CU¡LES TIENEN COBERTURA DE M¡S DE 20 EN ALGUNA PARCELA
 no<-cov[,which(!names(cov) %in% j)]
 no<-t(no)
 
@@ -32,8 +42,8 @@ for (i in 1:150){
   h[[i]]<-s
 }
 
-h<-do.call(rbind,h) #N√∫mero de parcelas en las que tiene cada especie una cobertura mayor a 20
-x<-as.data.frame(no[which(h>2), ]) #Las especies que tienen m√°s de 20 en m√°s de dos fincas son 21 de 150 especies
+h<-do.call(rbind,h) #N˙mero de parcelas en las que tiene cada especie una cobertura mayor a 20
+x<-as.data.frame(no[which(h>2), ]) #Las especies que tienen m·s de 20 en m·s de dos fincas son 21 de 150 especies
 
 x<-rownames(x) #Juntar con la lista de especies frecuentes
 j<-c(j,x)
@@ -44,7 +54,7 @@ f<-cov[,which(names(cov) %in% j)]
 sp<-read.csv("Equivalencias especies.csv",sep = ";",header=FALSE,fill = TRUE,na.strings="") #Name species
 sp$V1<-sub(" ",".",sp$V1) # Name species equal to my data
 sp$V2<-sub("(.{3})(.*)","\\1 \\2",sp$V2) #Abbreviations equal to irene's data: 
-                                        #sub(un grupo con los 3 primeros separado de el resto, la separacion de espacio entre el 1¬∫ y 2¬∫ grupo)
+#sub(un grupo con los 3 primeros separado de el resto, la separacion de espacio entre el 1∫ y 2∫ grupo)
 colnames(sp)[2]<-"species"
 
 #Traits especies
@@ -84,7 +94,7 @@ g[73,6]<- "Galium.sp."
 g[9,6]<- "Asphodelus.fistulosus"
 g[47,6]<- "Composta.sp."
 g[68,6]<- "Frankenia.pulverulenta"
-g[75,6]<- "Gram√≠nia.sp."
+g[75,6]<- "GramÌnia.sp."
 g[81,6]<- "Herniaria.cinerea"
 g[109,6]<- "Onopordum.corymbosum"
 g[24,6]<- "Bromus.sp."
@@ -101,20 +111,22 @@ g[95,6]<-"Lygeum.spartum"
 g[145,6]<-"Spergularia.rubra"
 g[15,6]<-"Avena.sativa"
 g[87,6]<-"Hypericum.perforatum"
+g[50,6]<-"Crepis.vesicaria.subsp..taraxacifolia"
+g[29,6]<-"Camphorosma.mospeliaca"
+g[105,6]<-"Medicago.sp."
+g[102,6]<-"Medicago.minima"
+g[151,6]<-"Thymus.vulgaris"
+g[34,6]<-"Carduus.sp."
+g[60,6]<-"Erodium.ciconium"
+
 
 v<-names(f)[which(names(f) %in% g$V1)] #Vector with the columns of the species that have information
 data_av<-g[which(g$V1 %in% v), ] #SPECIES WITH DATA AVAILABLE
-l<-names(f)[!names(f) %in% v] #Look for species left when data of 2017 comes
-
-nam<-c("Vicea.peregrina", "Thymus.vulgaris","Suaeda.vera","Stipa.parviflora",
-       "Silybum.marianum","Phragmites.australis","Moricandia.arvensis","Malcolmia.africana",
-       "Mantisalca.salmantica","Linaria arvensis","Koeleria.phleoides",
-       "Koeleria.phleoides","Eruca.vesicaria","Dactylis.glomerata","Cerastium.pumilum",
-       "Bupleurum.semicompositum") #Species ask for SLA again if they match with mine
-ir<-names(f)[which(names(f) %in% nam)] #Only this match
+l<-names(f)[!names(f) %in% v] #Species left. Only 6 out of 98, Im not gonna ask for them.
 
 
-write.csv(g, file = "Species_traits_full.csv")
-write.csv(f,file = "Cover_traits.csv")
 
-  
+
+#write.csv(g, file = "Species_traits_full_FINAL.csv")
+#write.csv(f,file = "Cover_traits_FINAL.csv")
+
