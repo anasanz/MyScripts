@@ -6,17 +6,19 @@ rm(list=ls())
 library(dplyr)
 
 setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Consultas")
+setwd("~/PHD/Datos/Datos barbechos arrendados/Consultas")
 ab<-read.csv("Birddata_abundance_FINAL.csv",sep = ";",header=TRUE,fill = TRUE) #birddata_abundance es el archivo más reciente de abundancia (9/10)
 
 #FIELD SCALE#
 
 #Select target species and vegetation cover variables 2015-2016-2017 (OK)
-ab<-ab[which(ab$especieObjectiu %in% c("MECAL","TERAX","TERAX_F","TERAX_M","BUOED","PTORI","PTALC","ALRUF","COGAR")),c(1,2,3,5,6,7,11,12,13)]
+ab<-ab[which(ab$especieObjectiu %in% c("MECAL","TERAX_m","BUOED")),c(1,2,3,5,6,7,11,12,13)]
 ab<-ab[which(ab$Any != "2014"),] 
 
 ##Join variables floristic composition (Cluster ONLY 2015-2016)
 
 setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Variables")
+setwd("~/PHD/Datos/Datos barbechos arrendados/Variables")
     #tip<-read.csv("Cluster_tipo_barbecho.csv",sep = ",",header=TRUE,fill = TRUE)
     #tip<-tip[,c(3,4,5)]
     #ab<-left_join(ab,tip)
@@ -27,7 +29,7 @@ ab<-left_join(ab,sim)
 
 #Join heterogeneity index (OK)
 het<-read.csv("Fallow_heterogeneity_FINAL.csv",sep = ",",header=TRUE,fill = TRUE)
-het<-het[,c(4,6,17)]
+het<-het[,c(4,6,17,18)]
 ab<-left_join(ab,het)
 
 #Field size and shape (OK)
@@ -262,6 +264,13 @@ c <- rbind(a,b,x)
 c$Any<-as.integer(c$Any)
 
 ab<-left_join(ab,c)
+
+#Delete bad duplicates 2017
+ab <- ab[-which(ab$CF_A == "BE28A_2017" & ab$Recob_plotViu == 38.33), ]
+ab <- ab[-which(ab$CF_A == "BE73A_2017" & ab$Recob_plotViu == 96.67), ]
+ab <- ab[-which(ab$CF_A == "BE74A_2017" & ab$Recob_plotViu == 0.00), ]
+
+
 
 #write.csv(ab,"Variables.csv")
 
