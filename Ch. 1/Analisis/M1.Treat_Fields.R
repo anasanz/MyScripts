@@ -22,13 +22,13 @@ freq <- xtabs(  ~ Tractament + Any, data = f)
 
 # APPENDIX: Vegetation- Treatments
 
-setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Variables")
+setwd("C:/Users/ana.sanz/Documents/First chapter/Datos/Datos barbechos arrendados/Variables")
 
 f <- read.csv("Data_path_manuscript.csv", sep = ",", header=TRUE, fill = TRUE)
 f <- f[which(f$EspecieObj == "BUOED"), ]
 
 #Select 
-f <- f[ , which(colnames(f) %in% c("Tractament", "PromigAltura1Plot", "Recob_plotViu", "Recob_plotMort"))]
+f <- f[ , which(colnames(f) %in% c("CF_A", "Tractament", "PromigAltura1Plot", "Recob_plotViu", "Recob_plotMort"))]
 
 #Values mean + se
 m <- aggregate(f[ ,c(1:3)], list(f$Tractament), mean)
@@ -67,3 +67,19 @@ colnames(maxmin) <- c("Cover", "Dead_Cover", "Height")
 maxmin$Treatment <- m$Group.1
 
 write.csv(maxmin, "Maxmin_height.csv")
+
+# Data for the main text: ha covered
+total_area <- sum(f$area)
+ha <- total_area/10000 #Total area covered
+
+mean_area_ha <- mean(f$area)/10000 # Average area of FF
+sd_area_ha <- sqrt(var(f$area))/10000
+
+# Check FF that were repeated accross years
+f$Codi_Finca <- as.character(f$Codi_Finca)
+f15 <- f[which(f$Any == 2015), 2] 
+f16 <- f[which(f$Any == 2016), 2] 
+f17 <- f[which(f$Any == 2017), 2] 
+
+rep <- Reduce(intersect, list(f15, f16, f17))
+
