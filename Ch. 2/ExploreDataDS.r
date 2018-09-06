@@ -5,7 +5,7 @@ rm(list=ls())
 
 library(Distance)
 
-setwd("~/Second chapter/Data")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv")
 esp <- read.csv("Tespecies.csv", sep = ";") # All species grouped by community
 
@@ -133,18 +133,18 @@ library(sp)
 # 2. Linked to the spatial layer (centroid)
 
 # Load data
-setwd("~/Second chapter/Data")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv")
 dat$Species <- as.character(dat$Species) # Data species counts
 esp <- read.csv("Tespecies.csv", sep = ";") # Classifications all species grouped by community
 
-setwd("~/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies")
-cat<- readOGR("~/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies", "Provincies") # Load map study area
+setwd("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies")
+cat<- readOGR("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies", "Provincies") # Load map study area
 
-setwd("~/Second chapter/Data/GIS")
-red<- readOGR("~/Second chapter/Data/GIS", "clip_natura2000") # Load rednatura
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS")
+red<- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS", "clip_natura2000") # Load rednatura
 
-cen <- readOGR("~/Second chapter/Farmdindis/Maps/transectes", "Centroide_2017") # Contains transects sampled each year (1/0)
+cen <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2017") # Contains transects sampled each year (1/0)
 
 cen_10 <- cen[which(cen@data$FETS2010 == 1), ] # One layer for transects sampled each year only
 cen_11 <- cen[which(cen@data$FETS2011 == 1), ]
@@ -178,7 +178,7 @@ for (i in 1:nrow(dat)){
 
 
 # Select case species to explore data
-# Farmland
+  #  ---- 1. Farmland ---- 
 farm <- as.character(esp$codiEspecie[which(esp$Farmland == 1)]) # Vector selecting farmland species
 
 farm <- dat[which(dat$Species %in% farm), ] # Only farmland species
@@ -187,7 +187,7 @@ xtabs(~Species, farm) # See species detected more times. Take MECAL as example
 
 ### 2010_MECAL EXAMPLE
 farm_10 <- farm[which(farm$Year == 2010), ]
-cen_10 <- readOGR("~/Second chapter/Farmdindis/Maps/transectes", "Centroide_2010")
+cen_10 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2010")
 # 1. Suma species detected per transect (from farm)
 sum_10 <- aggregate(Count ~ transectID + Species, data = farm_10, FUN = 'sum')
 sum_10 <- spread(sum_10, Species, Count) # Wide format
@@ -207,7 +207,7 @@ points(count_10, pch=21, bg = adjustcolor("lightgrey",alpha.f = 0.1), lwd = 0.4,
 
 library(animation)
 
-setwd("~/Second chapter/Data/Explore_species")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
 sp <- unique(farm$Species)
@@ -249,7 +249,7 @@ for (j in 1:length(sp)){
 library(devtools)
 library(animation)
 
-setwd("~/Second chapter/Data/Explore_species_occurrence")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Farmland")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
 sp <- unique(farm$Species)
@@ -310,3 +310,69 @@ for (j in 1:length(sp)){
 prov <- count_year@data
 prov_presMECAL <- prov[which(complete.cases(prov$sp)), ] # Only 53! It should be 85
 c <- left_join(sum_year,prov_presMECAL)
+
+  #  ---- 2. Steppe ---- 
+step <- as.character(esp$codiEspecie[which(esp$Steppe == 1)]) 
+
+step <- dat[which(dat$Species %in% step), ] 
+xtabs(~Species, step) 
+
+# All species all years PRESENCE + ABUNDANCE
+
+library(devtools)
+library(animation)
+
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Steppe")
+
+Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
+sp <- unique(step$Species)
+
+
+for (j in 1:length(sp)){
+  
+  step_sp <- step[which(step$Species == sp[j]), ] # Select species
+  
+  saveGIF(
+    
+    for (i in 1:length(Year)) {
+      
+      step_year <- step_sp[which(step_sp$Year == Year[i]), ] # Determine year
+      
+      # 1. Suma individuals detected per transect (from step_sp)
+      sum_year <- aggregate(Count ~ transectID + Species, data = step_year, FUN = 'sum') # Number of individuals of the species in the year
+      sum_year <- spread(sum_year, Species, Count) # Wide format
+      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
+      #sum_year[is.na(sum_year)] <- 0
+      colnames(sum_year)[2] <- "sp" # Make it generic for all species
+      
+      # 2. Linked to the spatial layer (centroid)
+      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
+      
+      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
+      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
+      
+      par(mfrow = c(1,2))
+      
+      plot(cat, # Use points "presence_year"
+           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
+      
+      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
+      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
+      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
+      
+      
+      plot(cat, # Use points "Count_year"
+           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
+      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
+      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
+      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
+      
+      
+      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
+    }, 
+    movie.name = paste("",sp[j],".gif"),
+    ani.width = 900, ani.heigth = 500,
+    interval = 1.5
+  ) 
+}
