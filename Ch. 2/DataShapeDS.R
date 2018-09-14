@@ -46,7 +46,6 @@ for (i in 1:nrow(dat)){
   dat$transectID[i] <- paste(dat$Region.Label[i],dat$Num_transecte[i], sep = "")
 }
 
-# ---- Covariate: Minuts from sunrise (future) ----
 # ---- Distance ----
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
@@ -93,5 +92,6 @@ dat <- dat[-which(dat$Sample.Label %in% rem), ] # No repeated observations
 
 
 
+# ---- Covariate: Minuts from sunrise (future) ----
 # ---- Area region ----
 # Depends on the study question: where do I want to calculate abundance?
