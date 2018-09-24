@@ -2,6 +2,8 @@
 # FIND AREA AES
 rm(list=ls())
 library(rgdal)
+library(dplyr)
+library(raster)
 
 # ---- Before 2014 there is no AES
 # ---- 2014 ----
@@ -138,7 +140,10 @@ unique(d15@data$PROD_NOM)
 d15@data$PROD_NOM[which(d15@data$PROD_NOM %in% c("ORDI", "BLAT TOU", "SÃˆGOL", "TRITICALE", "CIVADA"))] <- "CROP"
 d15@data$PROD_NOM[which(d15@data$PROD_NOM %in% c("GUARET SIE/ SUP. LLIURE SEMBRA", "GUARET NO SIE/ SUP. LLIURE SE*"))] <- "FALLOW"
 
-d15@data$AJUTS <- as.character(d15@data$AJUTS) #To simplify: Any crop = CROP and any fallow = FALLOW
+d15@data$AJUTS <- as.character(d15@data$AJUTS) #Make easier the join later
+d15@data$CAMPANYA <- as.character(d15@data$CAMPANYA) 
+d15@data$ID_REC <- as.character(d15@data$ID_REC) 
+d15@data$US_SP <- as.character(d15@data$US_SP) 
 
 #Check duplicated
 
@@ -152,6 +157,11 @@ dup <- d15@data[which(d15@data$ID_REC %in% id_dup), ] # Only to check
 df <- as.data.frame(matrix(0, nrow = length(id_dup), ncol = 13))
 colnames(df) <- c("OBJECTID", "CAMPANYA","ID_REC","M2_SP","HA_SP","US_SP",
                   "PENDENT","PROD_NUM","AJUTS","ZEPA","HA_Crop","STRIP","HA_Fallow")
+
+df$AJUTS <- as.character(df$AJUTS) #Make easier the join later
+df$CAMPANYA <- as.character(df$CAMPANYA) 
+df$ID_REC <- as.character(df$ID_REC) 
+df$US_SP <- as.character(df$US_SP) 
 
 # Combine information strips
 
@@ -173,10 +183,44 @@ for (i in 1:length(id_dup)){
 for (i in 1:nrow(df)){
   if (df$HA_Crop[i] > 0 & df$HA_Fallow[i] > 0) {df$STRIP[i] <- 1}
 }
-  
+
+# Make df having the same columns (add prod_nom and ha_dec).
+df$PROD_NOM <- "DUP"
+df$HA_DEC <- NA
+
 # df joins information from strips and the ones that are duplicated and are not strips (eg: two different crops in same rec)
+
 
 # Join with spatial information
 
-# From the layer, identify and delete duplicates
+#1. Join information to layer with only duplicated IDs
+
+d15_dup <- d15[which(d15@data$ID_REC %in% id_dup), ] # Layer with only ids that are duplicated
+d15_dup@data$ID_REC <- as.character(d15_dup@data$ID_REC)
+d15_dup@data <- d15_dup@data[ ,c(2,3)] # Keep only the ID_REC, OBJ_ID y CAMPANYA (Año)
+d15_dup <- d15_dup[-which(duplicated(d15_dup@data$ID_REC)), ] #Remove duplicated
+
+# Join df - d15_dup
+d15_dup@data <- left_join(d15_dup@data, df, by = "ID_REC") # Spatial features duplicated
+
+#Fix Campanya name to make it fit
+d15_dup@data <- d15_dup@data[ ,-4]
+colnames(d15_dup@data)[1] <- "CAMPANYA"
+
+# 2. Merge d15_dup with the rest of the layer without duplicates
+d15_nodup <- d15[-which(d15@data$ID_REC %in% id_dup), ] # Layer with only ids that are NOT duplicated
+head(d15_nodup@data)
+head(d15_dup@data) # Same names. Ready to merge
+
+
+
+#d15_full <- union(d15_dup,d15_nodup)
+d15_full2 <- bind(d15_dup,d15_nodup)
+
+setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364")
+writeOGR(d15_full2,dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "AES_2015", driver = "ESRI Shapefile")
+
+
+
+
 
