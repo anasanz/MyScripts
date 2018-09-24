@@ -9,7 +9,8 @@ library(rgdal)
 #Load data
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014")
 d14 <- read.csv("DUN2014.csv", sep = ";") #DUN
-sp14 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/SIGPAC_2014/SP14_clip.shp")
+#sp14 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/SIGPAC_2014/SP14_clip.shp")
+sp14 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/SIGPAC_2014/SP14_clip.shp")
 
 # Check duplicates DUN
 dup_all <- d14[which(duplicated(d14$ID_REC)), ] #There are many duplicates that dont contain fallow (no possible AES)
@@ -118,78 +119,64 @@ head(sp14@data)
 
 # ---- 2015 ----
 
-d15 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364/364_2015.shp")
+#d15 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364/364_2015.shp")
+d15 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "364_2015")
+
 head(d15@data)
 
 # Limpiar columnas
+
 d15@data <- d15@data[, which(colnames(d15@data) %in% c("OBJECTID", "CAMPANYA", "ID_REC", "M2_SP", "HA_SP", "HA_DEC", 
                                         "US_SP", "PENDENT", "PROD_NUM", "PROD_NOM", "AJUTS", "ZEPA"))]
-d15@data$US_CU <- 0
-d15@data$HA_CU <- 0
-d15@data$AES <- 0
-d15@data$HA_AES <- 0
 
+d15@data$HA_Crop <- 0
+d15@data$STRIP <- 0
+d15@data$HA_Fallow <- 0
 
-#INTENTO 1
-# Identificar los ID duplicados (franjas)
-dup_all <- d15@data[which(duplicated(d15@data$ID_REC)), ]
+d15@data$PROD_NOM <- as.character(d15@data$PROD_NOM) #To simplify: Any crop = CROP and any fallow = FALLOW
+unique(d15@data$PROD_NOM)
+d15@data$PROD_NOM[which(d15@data$PROD_NOM %in% c("ORDI", "BLAT TOU", "SÃˆGOL", "TRITICALE", "CIVADA"))] <- "CROP"
+d15@data$PROD_NOM[which(d15@data$PROD_NOM %in% c("GUARET SIE/ SUP. LLIURE SEMBRA", "GUARET NO SIE/ SUP. LLIURE SE*"))] <- "FALLOW"
+
+d15@data$AJUTS <- as.character(d15@data$AJUTS) #To simplify: Any crop = CROP and any fallow = FALLOW
+
+#Check duplicated
+
+dup_all <- d15@data[which(duplicated(d15@data$ID_REC)), ] #Identify duplicates (franjas)
 dup_all$ID_REC <- as.character(dup_all$ID_REC)
+id_dup <- unique(dup_all$ID_REC) # List ids duplicated
+dup <- d15@data[which(d15@data$ID_REC %in% id_dup), ] # Only to check
 
-id_dup <- unique(dup_all$ID_REC)
+#Data frame to store
 
-for (i in 1:nrow(d15@data)){
-  
-  if (d15@data$ID_REC[i] %in% id_dup) { # Check if ID_REC is duplicated (if it is a franja)
-    
-    if (d15@data$PROD_NOM[i] == "GUARET SIE/ SUP. LLIURE SEMBRA") {
-      
-      
-    }# Si es ordi, blat tou o triticale meter info en cultivo y si es guaret en AES
-    d15@data$[i] <- d15@data$PROD_NOM[i]
-    }
+df <- as.data.frame(matrix(0, nrow = length(id_dup), ncol = 13))
+colnames(df) <- c("OBJECTID", "CAMPANYA","ID_REC","M2_SP","HA_SP","US_SP",
+                  "PENDENT","PROD_NUM","AJUTS","ZEPA","HA_Crop","STRIP","HA_Fallow")
 
-    }
-i = 1
-
-# INTENTO 2_
-library(tidyr)
-
-d15@data$HA_DEC <- as
-
-id_dup <- unique(dup_all$ID_REC)
+# Combine information strips
 
 for (i in 1:length(id_dup)){
   
   tmp <- d15@data[which(d15@data$ID_REC == id_dup[i]), ] # Select the duplicated rows for each franja
-  spread(tmp, tmp$PROD_NOM, tmp$HA_DEC) #No funciona. AQUI ME QUEDO (la idea es spread para combinar filas?)
+  tmp_spread <- spread(tmp, PROD_NOM, HA_DEC, fill = NA, drop = TRUE) # Spread to isolate the size of crop/fallows
   
-  for (j in 1: nrow(d15@data)){
-    
-  }
+  tmp_spread$HA_Crop <- sum(tmp_spread$CROP[which(!is.na(tmp_spread$CROP))]) # Sum in case there is more than one crop and place
+  tmp_spread$HA_Fallow <- sum(tmp_spread$FALLOW[which(!is.na(tmp_spread$FALLOW))]) # number in unique variable for field HA_crop/fallow
   
-  if (d15@data$ID_REC id_dup) { # Check if ID_REC is duplicated (if it is a franja)
-    
-    if (d15@data$PROD_NOM[i] == "GUARET SIE/ SUP. LLIURE SEMBRA") {
-      
-      
-    }# Si es ordi, blat tou o triticale meter info en cultivo y si es guaret en AES
-    d15@data$[i] <- d15@data$PROD_NOM[i]
-  }
-  
+  tmp_unique <- tmp_spread[-which(duplicated(tmp_spread$ID_REC)), 
+                           -which(colnames(tmp_spread) %in% c("CROP", "FALLOW"))] #Remove duplicates and crop/fallow cols
+
+  df[i, ] <- tmp_unique
 }
 
-# SOlo dataset con ID duplicados
+# Identify strips (franjas): 1/0
+for (i in 1:nrow(df)){
+  if (df$HA_Crop[i] > 0 & df$HA_Fallow[i] > 0) {df$STRIP[i] <- 1}
+}
+  
+# df joins information from strips and the ones that are duplicated and are not strips (eg: two different crops in same rec)
 
-rec_dup_aes_all <- d15@data[which(d15@data$ID_REC %in% id_dup), ] # Todas las categorias que podrian ser AES + duplicados (Strips)
-rec_dup_aes_all <- rec_dup_aes_all[order(rec_dup_aes_all$ID_REC), ]
+# Join with spatial information
 
-
-
-# Ordenar por orden alfabético para que los duplicados siempre sean la misma categoría
-
-d15@data <- d15@data[order(d15@data$PROD_NOM), ]
-
-
-
-
+# From the layer, identify and delete duplicates
 
