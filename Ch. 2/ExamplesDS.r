@@ -164,7 +164,9 @@ attach(tmp)
 # This histogram (blue) doesnt resemble a half-normal curve
 # So we calculate the maximum likelihood estimates of the half-normal parameter s (log-transformed to enforce
 #   a positive value) from the simulated data
-#
+
+#AQUIIIIIIIIIIIIII
+
 # CONDITIONAL LIKELIHOOD
 # 1. - R function that evaluates the conditional likelihoods
 # Conditional likelihood: estimation of N by first estimating the detection function parameter sigma
