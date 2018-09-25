@@ -224,3 +224,103 @@ writeOGR(d15_full2,dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DU
 
 
 
+
+# ---- 2016 (esperar mónica) ----
+# ---- 2017 ----
+d17 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "364_2017")
+
+head(d17@data)
+
+# Limpiar columnas
+
+d17@data <- d17@data[, which(colnames(d17@data) %in% c("OBJECTID", "CAMPANYA", "ID_REC", "M2_SP", "HA_SP", "HA_DEC", 
+                                                       "US_SP", "PENDENT", "PROD_NOM", "AJUTS", "ZEPA", "Shape_Leng"))]
+# AQUI: Check if 2015 has shape_length
+d17@data$HA_Crop <- 0
+d17@data$STRIP <- 0
+d17@data$HA_Fallow <- 0
+
+d17@data$PROD_NOM <- as.character(d17@data$PROD_NOM) #To simplify: Any crop = CROP and any fallow = FALLOW
+unique(d17@data$PROD_NOM)
+d17@data$PROD_NOM[which(d17@data$PROD_NOM %in% c("ORDI", "BLAT TOU", "SÃˆGOL", "TRITICALE", "CIVADA"))] <- "CROP"
+d17@data$PROD_NOM[which(d17@data$PROD_NOM %in% c("GUARET SIE/ SUP. LLIURE SEMBRA", "GUARET NO SIE/ SUP. LLIURE SE*"))] <- "FALLOW"
+
+d17@data$AJUTS <- as.character(d17@data$AJUTS) #Make easier the join later
+d17@data$CAMPANYA <- as.character(d17@data$CAMPANYA) 
+d17@data$ID_REC <- as.character(d17@data$ID_REC) 
+d17@data$US_SP <- as.character(d17@data$US_SP) 
+
+#Check duplicated
+
+dup_all <- d17@data[which(duplicated(d17@data$ID_REC)), ] #Identify duplicates (franjas)
+dup_all$ID_REC <- as.character(dup_all$ID_REC)
+id_dup <- unique(dup_all$ID_REC) # List ids duplicated
+dup <- d17@data[which(d17@data$ID_REC %in% id_dup), ] # Only to check
+
+#Data frame to store
+
+df <- as.data.frame(matrix(0, nrow = length(id_dup), ncol = 13))
+colnames(df) <- c("OBJECTID", "CAMPANYA","ID_REC","M2_SP","HA_SP","US_SP",
+                  "PENDENT","PROD_NUM","AJUTS","ZEPA","HA_Crop","STRIP","HA_Fallow")
+
+df$AJUTS <- as.character(df$AJUTS) #Make easier the join later
+df$CAMPANYA <- as.character(df$CAMPANYA) 
+df$ID_REC <- as.character(df$ID_REC) 
+df$US_SP <- as.character(df$US_SP) 
+
+# Combine information strips
+
+for (i in 1:length(id_dup)){
+  
+  tmp <- d17@data[which(d17@data$ID_REC == id_dup[i]), ] # Select the duplicated rows for each franja
+  tmp_spread <- spread(tmp, PROD_NOM, HA_DEC, fill = NA, drop = TRUE) # Spread to isolate the size of crop/fallows
+  
+  tmp_spread$HA_Crop <- sum(tmp_spread$CROP[which(!is.na(tmp_spread$CROP))]) # Sum in case there is more than one crop and place
+  tmp_spread$HA_Fallow <- sum(tmp_spread$FALLOW[which(!is.na(tmp_spread$FALLOW))]) # number in unique variable for field HA_crop/fallow
+  
+  tmp_unique <- tmp_spread[-which(duplicated(tmp_spread$ID_REC)), 
+                           -which(colnames(tmp_spread) %in% c("CROP", "FALLOW"))] #Remove duplicates and crop/fallow cols
+  
+  df[i, ] <- tmp_unique
+}
+
+# Identify strips (franjas): 1/0
+for (i in 1:nrow(df)){
+  if (df$HA_Crop[i] > 0 & df$HA_Fallow[i] > 0) {df$STRIP[i] <- 1}
+}
+
+# Make df having the same columns (add prod_nom and ha_dec).
+df$PROD_NOM <- "DUP"
+df$HA_DEC <- NA
+
+# df joins information from strips and the ones that are duplicated and are not strips (eg: two different crops in same rec)
+
+
+# Join with spatial information
+
+#1. Join information to layer with only duplicated IDs
+
+d17_dup <- d17[which(d17@data$ID_REC %in% id_dup), ] # Layer with only ids that are duplicated
+d17_dup@data$ID_REC <- as.character(d17_dup@data$ID_REC)
+d17_dup@data <- d17_dup@data[ ,c(2,3)] # Keep only the ID_REC, OBJ_ID y CAMPANYA (Año)
+d17_dup <- d17_dup[-which(duplicated(d17_dup@data$ID_REC)), ] #Remove duplicated
+
+# Join df - d17_dup
+d17_dup@data <- left_join(d17_dup@data, df, by = "ID_REC") # Spatial features duplicated
+
+#Fix Campanya name to make it fit
+d17_dup@data <- d17_dup@data[ ,-4]
+colnames(d17_dup@data)[1] <- "CAMPANYA"
+
+# 2. Merge d17_dup with the rest of the layer without duplicates
+d17_nodup <- d17[-which(d17@data$ID_REC %in% id_dup), ] # Layer with only ids that are NOT duplicated
+head(d17_nodup@data)
+head(d17_dup@data) # Same names. Ready to merge
+
+
+
+#d17_full <- union(d17_dup,d17_nodup)
+d17_full2 <- bind(d17_dup,d17_nodup)
+
+setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364")
+writeOGR(d17_full2,dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "AES_2015", driver = "ESRI Shapefile")
