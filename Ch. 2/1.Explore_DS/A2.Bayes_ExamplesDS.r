@@ -109,7 +109,9 @@ summarize_ds_models(amakihi_hn, amakihi_hr_obs, amakihi_hr_obs_mas) # Not big di
 
 # ---- 3. Muskox: bayesian (Ch. 8 Kery&Royle)
 
-# 3.1. ---- DS data: CONTINUOUS ----
+# ---- 3. DS analysis Kery$Royle ---- 
+# ---- 3.1. DATA SIMULATION
+# --------- DS data: CONTINUOUS ----
 
 # Simulate data:
 # - Transect of 10 km L
@@ -165,13 +167,14 @@ attach(tmp)
 # So we calculate the maximum likelihood estimates of the half-normal parameter s (log-transformed to enforce
 #   a positive value) from the simulated data
 
-#AQUIIIIIIIIIIIIII
-
 # CONDITIONAL LIKELIHOOD
 # 1. - R function that evaluates the conditional likelihoods
 # Conditional likelihood: estimation of N by first estimating the detection function parameter sigma
 # from the likelihood for the observed distances constructed for the n observations, a procedure that is
 # naturally conditional on the event that y = 1.
+# Therefore we will obtain the maximum likelihood estimates of the half-normal parameter s (log-transformed to enforce
+#a positive value) from the simulated data. To do this we define an R function that evaluates the conditional and full 
+#likelihoods and use optim to minimize the negative log-likelihood in each case.
 Lcond <- function(lsigma){ # Define conditional nll
   sigma <- exp(lsigma)
   -1*sum(log(g(x,sig=sigma)/integrate(g, 0, 100, sig=sigma)$value/100))
@@ -213,7 +216,7 @@ n0hat <- exp(4.78)
 (Nhat.full <- n + n0hat) # Abundance
 (Dhat.full <- Nhat.full/(10*.2)) 
 
-# 3.2. ---- DS data: BINNED ----
+# --------- DS data: BINNED ----
 
 set.seed(2015)
 # Design settings and truth (population size N and detection function g)
@@ -223,20 +226,14 @@ nbins <- strip.width%/%interval.width
 sigma <- 30 # Scale parameter of half-normal detection function
 g <- function(x, sig) exp(-x^2/(2*sig^2)) # Half-normal detection function
 N <- 200 # Population size
-
-#There are two ways to go about simulating binned distance sampling data:
-# Method 1: simulate continuous distances and aggregate into distance intervals
+# Method 1: simulate continuous distances and put into intervals
 x <- runif(N, -strip.width, strip.width) # Distance all animals
-xbin1 <- x %/% interval.width + 1
-xbin1 <- abs(xbin1)
-hist(xbin1)
 p <- g(x, sig=sigma) # Detection probability
 y <- rbinom(N, 1, p) # only individuals with y=1 are detected
 x <- x[y==1] # this has direction (right or left side of transect)
 x <- abs(x) # now it doesn't have direction
 # Compute the distance category of each observation
 xbin <- x %/% interval.width + 1 # note integer division function %/%
-hist(xbin, col = "blue", add = TRUE)
 # Multinomial frequencies, may have missing levels
 y.obs <- table(xbin)
 # Pad the frequencies to include those with 0 detections
@@ -257,7 +254,6 @@ for(j in 1:length(p)){
   p[j] <- integrate(g, dist.breaks[j], dist.breaks[j+1],
                     sig=sigma)$value / (dist.breaks[j+1]-dist.breaks[j])
 }
-
 round(p, 2)
 [1] 0.98 0.88 0.71 0.51 0.33 0.19 0.10 0.05 0.02 0.01
 # Compute the multinomial cell probabilities analytically. These are exact.
@@ -274,3 +270,131 @@ sum(pi) # This is 1 - pi(0) from above
 pi[length(p)+1] <- 1 - sum(pi)
 (y.obs2 <- as.vector(rmultinom(1, N, prob=pi)))
 (y.obs2 <- y.obs2[1:nbins]) # Discard last cell for n0 (because not observed)
+# This is a simple multinomial example (Like sampling one transect or pooling the data from several)
+
+# ---- 3.2. BAYESIAN ANALYSIS  ----
+# --------- ANALYSIS DS data: CONTINUOUS -----
+# Impala example: Distance data along a 60 km transect
+# Transect width = 1000 m (area = 60 km2 -> Used to estimate density D from N)
+# In BUGS : 1. specify the uniform distribution for distance explicitly 
+#           2. Conditional on the distances, the observation model is specified as a simple Bernoulli trial, 
+#           like in a logistic regression
+
+# Get data and do data-augmentation
+# Observed distances (meters) in the impala data set
+x <- c(71.93, 26.05, 58.47, 92.35, 163.83, 84.52, 163.83, 157.33,
+       22.27, 72.11, 86.99, 50.8, 0, 73.14, 0, 128.56, 163.83, 71.85,
+       30.47, 71.07, 150.96, 68.83, 90, 64.98, 165.69, 38.01, 378.21,
+       78.15, 42.13, 0, 400, 175.39, 30.47, 35.07, 86.04, 31.69, 200,
+       271.89, 26.05, 76.6, 41.04, 200, 86.04, 0, 93.97, 55.13, 10.46,
+       84.52, 0, 77.65, 0, 96.42, 0, 64.28, 187.94, 0, 160.7, 150.45,
+       63.6, 193.19, 106.07, 114.91, 143.39, 128.56, 245.75, 123.13,
+       123.13, 153.21, 143.39, 34.2, 96.42, 259.81, 8.72)
+B <- 500 # Strip half-width. Larger than max observed distance
+nind <- length(x)
+# Analysis of continuous data using data augmentation (DA)
+nz <- 200 # Augment observed data with nz = 200 zeroes
+y <- c(rep(1, nind), rep(0, nz)) # Augmented inds. have y=0 by definition
+x <- c(x, rep(NA, nz)) # Value of distance are missing for the augmented
+# Bundle and summarize data set
+str( win.data <- list(nind=nind, nz=nz, x=x, y=y, B=B) )
+# Save text file with BUGS model
+cat("
+    model {
+    # Priors
+    sigma ~ dunif(0,1000) # Half-normal scale
+    psi ~ dunif(0,1) # DA parameter
+
+    # Likelihood
+    for(i in 1:(nind+nz)){
+
+    # Process model
+    z[i] ~ dbern(psi) # DA variables
+    x[i] ~ dunif(0, B) # Distribution of distances
+
+  # Observation model
+  logp[i] <- -((x[i]*x[i])/(2*sigma*sigma)) # Half-normal detection fct.
+  p[i] <- exp(logp[i])
+  mu[i] <- z[i] * p[i]
+  y[i] ~ dbern(mu[i]) # Simple Bernoulli measurement error process
+    }
+
+# Derived quantities
+N <- sum(z[1:(nind + nz)]) # Population size
+D <- N / 60 # Density, with A = 60 km^2 when B = 500
+}",fill=TRUE,file="model1.txt")
+# Inits
+zst <- y
+inits <- function(){ list (psi=runif(1), z=zst, sigma=runif(1,40,200)) }
+# Params to save
+params <- c("N", "sigma", "D")
+# Experience the raw power of BUGS and summarize marginal posteriors
+library(R2WinBUGS)
+bd <- "c:/Program Files/WinBUGS14/" # May have to adapt for your computer
+out1 <- bugs(win.data, inits, params, "model1.txt", n.thin=2,n.chains=3,
+             n.burnin=1000, n.iter=11000, debug=TRUE, DIC=FALSE, bugs.dir=bd)
+print(out1, 3)
+
+
+# --------- ANALYSIS DS data: BINNED ----
+
+# Analysis of the impala data but using binned data to demonstrate the BUGS
+#implementation using data augmentation. We first need to convert the distance data into distance bins,
+#which we define here to be 50 m bins.
+
+#In BUGS we have to define detection probability for each interval, which we do by evaluating the half-normal 
+#detection probability function at the midpoint of each interval (input as data), which will look like this:
+log(p[g]) <- -midpt[g] * midpt[g] / (2 * sigma * sigma)
+
+#We also have to compute the probability mass for each distance interval:
+  pi[g] <- delta / B # probability of x in each interval
+  
+# Analysis of binned data using data augmentation
+B <- 500
+delta <- 50 # Width of distance bins
+xg <- seq(0, B, delta) # Make the interval cut points
+dclass <- x %/% delta + 1 # Convert distances to distance category
+nD <- length(xg) -1 # N intervals = length(xg) if max(x) = B
+
+# Bundle data
+# Note data changed to include dclass, nD, bin-width delta and midpt
+midpt <- xg[-1] - delta/2 # Interval mid-points
+str( win.data <- list (nind=nind, nz=nz, dclass=dclass, y=y, B=B,
+                       delta=delta, nD=nD, midpt=midpt) ) # Bundle and summarize
+# BUGS model specification
+cat("
+model{
+
+# Priors
+psi ~ dunif(0, 1)
+sigma ~ dunif(0, 1000)
+
+# Likelihood
+
+# Construct conditional detection probability and Pr(x) for each bin
+for(g in 1:nD){ # midpt = mid point of each cell
+log(p[g]) <- -midpt[g] * midpt[g] / (2 * sigma * sigma) # half-normal model
+pi[g] <- delta / B # probability of x in each interval
+} 
+
+for(i in 1:(n+nau)){
+z[i] ~ dbern(psi) # model for individual covariates
+
+dclass[i] ~ dcat(pi[]) # population distribution of distance class
+mu[i] <- z[i] * p[dclass[i]] # p depends on distance class
+
+y[i] ~ dbern(mu[i]) } 
+
+# Derived quantities: Population size and density
+N <- sum(z[])
+D <- N / 60
+}",fill=TRUE, file = "model2.txt")
+# Inits function
+zst <- y # DA variables start at observed value of y
+inits <- function(){ list (psi=runif(1), z=zst, sigma=runif(1,40,200)) }
+# Parameters to save
+params <- c("N", "sigma", "D")
+# Unleash WinBUGS and summarize posteriors
+out2 <- bugs(win.data, inits, params, "model2.txt", n.thin=2, n.chains=3,
+             n.burnin=1000, n.iter=11000, debug=TRUE, DIC=FALSE, bugs.dir = bd)
+print(out2, 2)

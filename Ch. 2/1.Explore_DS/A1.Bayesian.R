@@ -600,8 +600,7 @@ for(k in 1:3){ # Loop over 3 levels of hab or time factors
 alpha0[k] ~ dunif(-10, 10) # Detection intercepts
 alpha1[k] ~ dunif(-10, 10) # Detection slopes
 beta0[k] ~ dunif(-10, 10) # Abundance intercepts
-beta1[k] ~ dunif(-10, 10) # Abundance slopes
-}
+beta1[k] ~ dunif(-10, 10) # Abundance slopes}
 # Likelihood
 # Ecological model for true abundance
 for (i in 1:M){
@@ -613,9 +612,7 @@ z[i] <- step(N[i]-0.5) # Indicator for occupied site
 # Observation model for replicated counts
 for (j in 1:J){
 C[i,j] ~ dbin(p[i,j], N[i])
-logit(p[i,j]) <- alpha0[j] + alpha1[j] * wind[i,j]
-}
-}
+logit(p[i,j]) <- alpha0[j] + alpha1[j] * wind[i,j]}}
 # Derived quantities: functions of latent variables and predictions
 Nocc <- sum(z[]) # Number of occupied sites among sample of M
 Ntotal <- sum(N[]) # Total population size at M sites combined
@@ -625,9 +622,7 @@ Nhab[3] <- sum(N[67:100]) # Total abundance for sites in hab C
 for(k in 1:100){ # Predictions of lambda and p ...
 for(level in 1:3){ # . for each level of hab and time factors
 lam.pred[k, level] <- exp(beta0[level] + beta1[level] * XvegHt[k])
-logit(p.pred[k, level]) <- alpha0[level] + alpha1[level] * Xwind[k]
-}
-}
+logit(p.pred[k, level]) <- alpha0[level] + alpha1[level] * Xwind[k]}}
 N.critical <- sum(critical[]) # Number of populations with critical size
 }")
 
@@ -669,3 +664,39 @@ plot(X, out$summary[519:618,1], xlab = "Wind speed", ylab = "Detection probabili
 polygon(c(X, rev(X)), c(out$summary[519:618,3], rev(out$summary[519:618,7])),
         col = "gray", border = F)
 lines(X, out$summary[519:618,1], lty = 1, lwd = 3, col = "blue")
+# ----- 8. Bernouilli ----
+mean(rbinom(n = 1000,size = 1,prob = 0.5))# dbern(prob)
+                                          # When size = 1 is a bernouilli trial (Success (1) / Failure (0)). Eg: flip a coin. fly in glass
+rbinom(n = 1000, size = 20, prob = 0.25)  # n = times you flip the coin
+                                          # Within each draw, you have only one trial
+
+mean(rbinom(n = 1000, size = 20, prob = 0.25))# Within each draw, you have 20 trials
+
+#Data simulation
+x <- rbinom(n = 100,size = 1,prob = 0.5)
+
+# BUGS model to get p
+cat("model {
+    # Priors
+    prob ~ dunif(0,1) # DA parameter
+    
+    # Likelihood
+    for(i in 1:N){
+    x[i] ~ dbern(prob) # Simple Bernoulli measurement error process
+    }
+  
+    }",fill=TRUE,file="model1.txt")
+
+# With the data that it has (x), tries to find p with many iterations
+
+inits <- function(){ list (prob=runif(1)) }
+# Params to save
+params <- c("prob")
+# Experience the raw power of BUGS and summarize marginal posteriors
+library(R2WinBUGS)
+bd <- "c:/Program Files/WinBUGS14/" 
+win.data <- list(N=100, x=x) # This is all the data that it uses to find p
+
+out1 <- bugs(win.data, inits, params, "model1.txt", n.thin=2,n.chains=3,
+             n.burnin=1000, n.iter=11000, debug=TRUE, DIC=FALSE, bugs.dir=bd)
+print(out1, 3)
