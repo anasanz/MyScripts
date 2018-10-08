@@ -20,7 +20,7 @@ y <- rpois(n,exp(linpred)) # Generate observations from the model
 # ---- 2. Normal GLM ----
 
 #A. Simulate data (from given x covariate and coefficients)
-x <- rnorm(10)
+x <- rnorm(10) 
 mu <- -3.2 + 1.5*x
 y <- rnorm(10,mu,sd=4)
 
@@ -30,10 +30,12 @@ setwd("C:/OneDrive/PhD/Second chapter/Data/Examples")
 sink("normal.txt") 
 cat ("
      model{
+
      for (i in 1:10){
      y[i] ~ dnorm(mu[i],tau) # The likelihood
      mu[i] <- beta0 + beta1*x[i] # The linear predictor
      }
+
      beta0 ~ dnorm(0,.01) # Prior distributions
      beta1 ~ dnorm(0,.01)
      sigma ~ dunif(0,100)

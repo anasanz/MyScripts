@@ -268,7 +268,7 @@ sim.data <- function(N = 300, sigma = 60){
   round(p, 2)
   
   # 10. Compute the multinomial cell probabilities (pi)
-  # psi = probability of occurring in each interval
+  # psi = probability of occurring in each interval regarding the distance
   interval.width <- diff(dist.breaks) # Here we could account for different bin sizes
   psi <- interval.width/strip.width
   pi <- p * psi # Probability of occurring * probability of detection
@@ -309,14 +309,14 @@ nau <- 400 # Augment observed data with 300 observations more
 # (we dont know if are detections or not)
 y <- c(rep(1, n), rep(0, nau)) # Vector describing observed (1) and augmented (0) 
 # individuals
-x <- c(xbin, rep(NA, nau)) # Vector with distances observed (x, known) and augmented (NA)
+xbin1 <- c(xbin, rep(NA, nau)) # Vector with distances observed (x, known) and augmented (NA)
 # because we dont know
 
 # 3. Analysis in BUGS
 
 # Bundle data
 
-win.data <- list (n=n, nau=nau, xbin=xbin, y=y, sw=sw,
+win.data <- list (n=n, nau=nau, xbin=xbin1, y=y, sw=sw,
                   bw=bw, nbins=nbins, midpt=midpt)
 
 setwd("C:/OneDrive/PhD/Second chapter/Data/Examples")
@@ -325,14 +325,17 @@ model{
     
     # Priors # DA and g(x,sig) Parameters 
     psi ~ dunif(0, 1)
-    # sigma ~ dunif(0, 1000)
-    sigma <- 2 # For example if it doesnt work, you fix a parameter and try to estimate it.
+    sigma ~ dunif(0, 1000)
+    #sigma <- 2 # For example if it doesnt work, you fix a parameter and try to estimate it.
+
     # Likelihood
 
-      # Construct conditional detection probability and Pr(x) for each bin (pi, then applied to each individual)
+      # Construct conditional detection probability and Pr(x) for each bin 
+      # Objective is pi, then applied to each individual
+
     for(g in 1:nbins){ # midpt = mid point of each cell
-      log(p[g]) <- -midpt[g] * midpt[g] / (2 * sigma * sigma) # half-normal model
-      pi[g] <- bw / sw # probability of x in each interval
+      log(p[g]) <- -midpt[g] * midpt[g] / (2 * sigma * sigma) # p.detection at midbin distances
+      pi[g] <- bw / sw # Probability of occuring at each interval (related to area)
       } 
 
     for(i in 1:(n+nau)){
@@ -340,9 +343,10 @@ model{
       z[i] ~ dbern(psi) # model for individual covariates (DA)
 
       xbin[i] ~ dcat(pi[]) # Distribution of distances (distance classes because its binned)
+      
+      y[i] ~ dbern(mu[i])
       mu[i] <- z[i] * p[xbin[i]] # the probability that an individual occurs and is detected in distance class h
-
-      y[i] ~ dbern(mu[i]) } 
+      } 
 
     # Derived quantities: Population size and density
     N <- sum(z[]) # The sum of all estimated z is what you ultimately want
@@ -361,14 +365,14 @@ params <- c("N", "sigma", "D")
 # MCMC settings
 nc <- 3 ; ni <- 22000 ; nb <- 2000 ; nt <- 2
 
-out <- jags(win.data, inits, params, "model_continuousDS.txt", n.chains = nc,
+out <- jags(win.data, inits, params, "model_equalbinDS.txt", n.chains = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 traceplot(out, param = c("N", "sigma", "D"))
 print(out, 2)
 
 par(mfrow = c(1,2))
-plot(table(out$sims.list$N), xlab="Population size", ylab="Frequency", frame = F) 
+plot(density(out$sims.list$N), xlab="Population size", ylab="Frequency", frame = F) 
 abline(v = 300, col = "red", lwd = 3)
 
-plot(table(out$sims.list$sigma), xlim = c(40,70), xlab="Sigma", ylab="Frequency", frame = F) 
-abline(v = 60, col = "red", lwd = 3) #?????
+plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
+abline(v = 60, col = "red", lwd = 3) 
