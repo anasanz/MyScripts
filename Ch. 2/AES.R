@@ -4,6 +4,7 @@ rm(list=ls())
 library(rgdal)
 library(dplyr)
 library(raster)
+library(tidyr)
 
 # ---- Before 2014 there is no AES
 # ---- 2014 ----
@@ -121,8 +122,9 @@ head(sp14@data)
 
 # ---- 2015 ----
 
+# Upload the projected dun layer
 #d15 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364/364_2015.shp")
-d15 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "364_2015")
+d15 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/Only AES/364", layer = "364_2015_proj50")
 
 head(d15@data)
 
@@ -217,32 +219,29 @@ head(d15_dup@data) # Same names. Ready to merge
 #d15_full <- union(d15_dup,d15_nodup)
 d15_full2 <- bind(d15_dup,d15_nodup)
 
-setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364")
-writeOGR(d15_full2,dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "AES_2015", driver = "ESRI Shapefile")
 
-
-
+setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/Only AES/364")
+writeOGR(d15_full2,dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/Only AES/364", layer = "AES_2015_proj", driver = "ESRI Shapefile")
 
 
 
 # ---- 2016 (esperar mónica) ----
 # ---- 2017 ----
-d17 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "364_2017")
+d17 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/Only AES/364", layer = "364_2017_proj50")
 
 head(d17@data)
 
 # Limpiar columnas
 
 d17@data <- d17@data[, which(colnames(d17@data) %in% c("OBJECTID", "CAMPANYA", "ID_REC", "M2_SP", "HA_SP", "HA_DEC", 
-                                                       "US_SP", "PENDENT", "PROD_NOM", "AJUTS", "ZEPA", "Shape_Leng"))]
-# AQUI: Check if 2015 has shape_length
+                                                       "US_SP", "PENDENT", "PROD_NOM", "AJUTS", "ZEPA"))]
 d17@data$HA_Crop <- 0
 d17@data$STRIP <- 0
 d17@data$HA_Fallow <- 0
 
 d17@data$PROD_NOM <- as.character(d17@data$PROD_NOM) #To simplify: Any crop = CROP and any fallow = FALLOW
 unique(d17@data$PROD_NOM)
-d17@data$PROD_NOM[which(d17@data$PROD_NOM %in% c("ORDI", "BLAT TOU", "SÃˆGOL", "TRITICALE", "CIVADA"))] <- "CROP"
+d17@data$PROD_NOM[which(d17@data$PROD_NOM %in% c("ORDI", "BLAT TOU", "TRITICALE", "CIVADA"))] <- "CROP"
 d17@data$PROD_NOM[which(d17@data$PROD_NOM %in% c("GUARET SIE/ SUP. LLIURE SEMBRA", "GUARET NO SIE/ SUP. LLIURE SE*"))] <- "FALLOW"
 
 d17@data$AJUTS <- as.character(d17@data$AJUTS) #Make easier the join later
@@ -256,6 +255,7 @@ dup_all <- d17@data[which(duplicated(d17@data$ID_REC)), ] #Identify duplicates (
 dup_all$ID_REC <- as.character(dup_all$ID_REC)
 id_dup <- unique(dup_all$ID_REC) # List ids duplicated
 dup <- d17@data[which(d17@data$ID_REC %in% id_dup), ] # Only to check
+dup <- arrange(dup, desc(ID_REC))
 
 #Data frame to store
 
@@ -292,9 +292,8 @@ for (i in 1:nrow(df)){
 # Make df having the same columns (add prod_nom and ha_dec).
 df$PROD_NOM <- "DUP"
 df$HA_DEC <- NA
-
-# df joins information from strips and the ones that are duplicated and are not strips (eg: two different crops in same rec)
-
+# df joins information from strips and the ones that are duplicated and are not strips 
+#(eg: two different crops in same rec)
 
 # Join with spatial information
 
@@ -317,10 +316,12 @@ d17_nodup <- d17[-which(d17@data$ID_REC %in% id_dup), ] # Layer with only ids th
 head(d17_nodup@data)
 head(d17_dup@data) # Same names. Ready to merge
 
-
-
 #d17_full <- union(d17_dup,d17_nodup)
 d17_full2 <- bind(d17_dup,d17_nodup)
 
-setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364")
-writeOGR(d17_full2,dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/364/364", layer = "AES_2015", driver = "ESRI Shapefile")
+setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/Only AES/364")
+writeOGR(d17_full2,
+         dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/Codi364_DUN2015-2017/Only AES/364", 
+         layer = "AES_2017", driver = "ESRI Shapefile")
+# The strip of 2017 is digitalized!! So this layer is wrong, 
+# check what I should do (keeping strip spatial info or merging to be consistent in analyses)
