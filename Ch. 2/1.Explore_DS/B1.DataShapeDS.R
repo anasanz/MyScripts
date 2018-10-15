@@ -6,7 +6,7 @@ rm(list=ls())
 library(dplyr)
 library(stringr)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 dat <- read.csv("DataDS.csv", sep = ";")
 dat$Especie <- as.character(dat$Especie)
 dat <- dat[ ,-4]
@@ -47,7 +47,7 @@ for (i in 1:nrow(dat)){
 }
 
 # ---- Distance ----
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
 colnames(band)[1] <- "Banda"
 
@@ -61,7 +61,7 @@ for (i in 1:nrow(dat)){
   if (dat$Banda[i] == 1) {dat$distance[i] = 12.5}
  else if (dat$Banda[i] == 2) {dat$distance[i] = 37.5}
   else if (dat$Banda[i] == 3) {dat$distance[i] = 75}
-  else  {dat$distance[i] = 100} # Here is more than 100, so Im not sure which measure I should put
+  else  {dat$distance[i] = 150} 
 }
 
 # ---- Repeated observations ----
@@ -74,17 +74,32 @@ for (i in 1:nrow(dat)){
 trans <- dat[!duplicated(dat$Sample.Label), which(colnames(dat) %in% c("Sample.Label", "T_Y"))]
 trans_rep <- trans[which(duplicated(trans$T_Y)), ]
 
+# DUPLICATES: The sample label changed when removing observations related bin4. The previous
+# label (data not modified is listed in blue)
 # In some its because census were repeated in january, april and may. Take the ones of late April/May (In AL):
-  # Remove sample.label: 128, 198, 178, 114, 216, 131, 194, 172, 184, 210, 281
+  # Remove sample.label: 122, 198, 178, 114, 216, 131, 194, 172, 184, 210, 281
 # In others, 2 of the same season
   # Remove sample.label: 1505, 1737, 1744. Take the ones I could modify
 # In others, different weather conditions. Take good coditions
   # Remove sample.label: 268, 1350, 1594
-rem <- c(128, 198, 178, 114, 216, 131, 194, 172, 184, 210, 281, 1505, 1737, 1744, 268, 1350, 1594)
+# Comparison with the new data (modified is in excelfile DataDS_comparedup)
+rem <- c(122, 181, 165, 110, 197, 125, 178, 160, 170, 192, 253, 
+         1357, 804, 809, 243, 1203, 711)
 dat <- dat[-which(dat$Sample.Label %in% rem), ] # No repeated observations
 
+trans2 <- dat[!duplicated(dat$Sample.Label), which(colnames(dat) %in% c("Sample.Label", "T_Y"))]
+trans_rep <- trans2[which(duplicated(trans2$T_Y)), ]
 
-#write.csv(dat,"DataDS_ready.csv")
+
+# Remove species that are migrant and therefore are not link to the transect and the
+# scale of the study
+all <- read.csv("index_selec_communities_FSP_DG_GB.csv", sep = ";")
+mig <- all[which(all$NO.FS.DG.GB == 1),]
+sp_mig <- as.character(unique(mig$Species)) #Vector with species to delete
+
+dat <- dat[-which(dat$Species %in% sp_mig), ] # No repeated observations
+
+write.csv(dat,"DataDS_ready.csv")
 
 
 
