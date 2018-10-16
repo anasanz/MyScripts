@@ -90,14 +90,20 @@ dat <- dat[-which(dat$Sample.Label %in% rem), ] # No repeated observations
 trans2 <- dat[!duplicated(dat$Sample.Label), which(colnames(dat) %in% c("Sample.Label", "T_Y"))]
 trans_rep <- trans2[which(duplicated(trans2$T_Y)), ]
 
+# ---- Remove species ----
 
-# Remove species that are migrant and therefore are not link to the transect and the
+# Remove species that are MIGRANT and therefore are not link to the transect and the
 # scale of the study
 all <- read.csv("index_selec_communities_FSP_DG_GB.csv", sep = ";")
 mig <- all[which(all$NO.FS.DG.GB == 1),]
 sp_mig <- as.character(unique(mig$Species)) #Vector with species to delete
 
 dat <- dat[-which(dat$Species %in% sp_mig), ] # No repeated observations
+
+# Remove species that are very very scarce (around less than 10 observations per year)
+scarce <- all[which(all$remove == 1),]
+sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
+dat <- dat[-which(dat$Species %in% sp_scarce), ]
 
 write.csv(dat,"DataDS_ready.csv")
 
