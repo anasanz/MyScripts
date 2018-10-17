@@ -128,23 +128,19 @@ library(dplyr)
 library(tidyr)
 library(sp)
 
-# For each year, I need a dataframe with
-# 1. Suma species detected per transect (from farm)
-# 2. Linked to the spatial layer (centroid)
-
 # Load data
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv")
 dat$Species <- as.character(dat$Species) # Data species counts
 esp <- read.csv("Tespecies.csv", sep = ";") # Classifications all species grouped by community
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies")
-cat<- readOGR("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies", "Provincies") # Load map study area
+setwd("C:/Users/Ana/Documents/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies")
+cat<- readOGR("C:/Users/Ana/Documents/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies", "Provincies") # Load map study area
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS")
-red<- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS", "clip_natura2000") # Load rednatura
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS")
+red<- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS", "clip_natura2000") # Load rednatura
 
-cen <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2017") # Contains transects sampled each year (1/0)
+cen <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2017") # Contains transects sampled each year (1/0)
 
 cen_10 <- cen[which(cen@data$FETS2010 == 1), ] # One layer for transects sampled each year only
 cen_11 <- cen[which(cen@data$FETS2011 == 1), ]
@@ -157,56 +153,42 @@ cen_17 <- cen[which(cen@data$FETS2016 == 1), ]
 
 cen <- list(cen_10, cen_11, cen_12, cen_13, cen_14, cen_15, cen_16, cen_17)
 
-
-
-# Select case species to explore data
-#  ---- 1. Farmland ---- 
-farm <- as.character(esp$codiEspecie[which(esp$Farmland == 1)]) # Vector selecting farmland species
-
-farm <- dat[which(dat$Species %in% farm), ] # Only farmland species
-xtabs(~Species + Year, farm) # See species detected more times. Take MECAL as example
-
-
-### 2010_MECAL EXAMPLE
-farm_10 <- farm[which(farm$Year == 2010), ]
-cen_10 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2010")
+# For each year, I need a dataframe with
 # 1. Suma species detected per transect (from farm)
-sum_10 <- aggregate(Count ~ transectID + Species, data = farm_10, FUN = 'sum')
-sum_10 <- spread(sum_10, Species, Count) # Wide format
-colnames(sum_10)[which(colnames(sum_10) == "transectID")] <- "Codi" # Same name than spatial layer to join
-sum_10[is.na(sum_10)] <- 0
 # 2. Linked to the spatial layer (centroid)
-count_10 <- merge(cen_10, sum_10, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-count_10@data[is.na(count_10@data)] <- 0.1 # Set na's and 0 to 0.1 to change it to log scale and plot it in different sizes
-count_10@data[count_10@data == 0] <- 0.1
-count_10@data$MECAL_log <- log(count_10@data$MECAL) #Log scale to plot it in different sizes
-plot(cat, axes = TRUE, xlim = c(min(count_10@coords[,1]), max(count_10@coords[,1])), ylim = c(min(count_10@coords[,2]), max(count_10@coords[,2])) )
-points(count_10, pch=21, bg = adjustcolor("lightgrey",alpha.f = 0.1), lwd = 0.4, cex = count_10@data$MECAL_log)
-###
 
+#  ---- PLOTS COUNTS-PRESENCE
+#  ----- All species ---- 
+library(tidyr)
+xtabs(~Species + Year, dat)
+freq <- as.data.frame(xtabs(~Species + Year, dat))
+freq <- spread(freq,Year, Freq)
+freq$remove <- 0 # To export data set and select the ones that are present in enough transects
 
-# All species all years ABUNDANCE
+write.csv(freq, "freq_species.csv")
+# All species all years PRESENCE + ABUNDANCE
 
+library(devtools)
 library(animation)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/All")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(farm$Species)
+sp <- unique(dat$Species)
 
 
 for (j in 1:length(sp)){
   
-  farm_sp <- farm[which(farm$Species == sp[j]), ] # Select species
+  dat_sp <- dat[which(dat$Species == sp[j]), ] # Select species
   
   saveGIF(
     
     for (i in 1:length(Year)) {
       
-      farm_year <- farm_sp[which(farm_sp$Year == Year[i]), ] # Determine year
+      dat_year <- dat_sp[which(dat_sp$Year == Year[i]), ] # Determine year
       
-      # 1. Suma individuals detected per transect (from farm_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = farm_year, FUN = 'sum') # Number of individuals of the species in the year
+      # 1. Suma individuals detected per transect (from dat_sp)
+      sum_year <- aggregate(Count ~ transectID + Species, data = dat_year, FUN = 'sum') # Number of individuals of the species in the year
       sum_year <- spread(sum_year, Species, Count) # Wide format
       colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
       #sum_year[is.na(sum_year)] <- 0
@@ -214,17 +196,40 @@ for (j in 1:length(sp)){
       
       # 2. Linked to the spatial layer (centroid)
       count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      count_year@data[is.na(count_year@data)] <- 0.1 # Set na's to 0.1 to change it to log scale and plot it in different sizes
       
-      count_year@data$log_sp <- log(count_year@data$sp) #Log scale to plot it in different sizes
+      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
+      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
       
-      plot(cat, axes = TRUE, main = paste("",sp[j], Year[i],""),
-           xlim = c(min(count_year@coords[,1]), max(count_year@coords[,1])), ylim = c(min(count_year@coords[,2]), max(count_year@coords[,2])) )
-      points(count_year, pch=21, bg = adjustcolor("lightgrey",alpha.f = 0.7), lwd = 0.4, cex = count_year@data$log_sp)
+      par(mfrow = c(1,2))
+      
+      plot(cat, # Use points "presence_year"
+           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
+      
+      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
+      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
+      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
+      
+      
+      plot(cat, # Use points "Count_year"
+           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
+      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
+      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
+      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
+      
+      
+      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
     }, 
-    movie.name = paste("",sp[j],".gif")
+    movie.name = paste("",sp[j],".gif"),
+    ani.width = 900, ani.heigth = 500,
+    interval = 1.5
   ) 
 }
+#  ----- Only farmland ---- 
+farm <- as.character(esp$codiEspecie[which(esp$Farmland == 1)]) # Vector selecting farmland species
+
+farm <- dat[which(dat$Species %in% farm), ] # Only farmland species
+xtabs(~Species + Year, farm) # See species detected more times. Take MECAL as example
 
 # All species all years PRESENCE + ABUNDANCE
 
@@ -293,7 +298,7 @@ prov <- count_year@data
 prov_presMECAL <- prov[which(complete.cases(prov$sp)), ] # Only 53! It should be 85
 c <- left_join(sum_year,prov_presMECAL)
 
-#  ---- 2. Steppe ---- 
+#  ----- Only steppe ---- 
 step <- as.character(esp$codiEspecie[which(esp$Steppe == 1)]) 
 
 step <- dat[which(dat$Species %in% step), ] 
@@ -358,425 +363,68 @@ for (j in 1:length(sp)){
     interval = 1.5
   ) 
 }
-#  ---- 3. Wetland ---- 
-wet <- as.character(esp$codiEspecie[which(esp$Wetland == 1)]) 
 
-wet <- dat[which(dat$Species %in% wet), ] 
-xtabs(~Species, wet) 
+#####
+# ---- TABLE OF TRANSECTS OCCUPIED PER SPECIES
+# ----- Number of detections per year ----
 
-# All species all years PRESENCE + ABUNDANCE
+aggregate( ~ transectID + Species + Year , data = dat, FUN = 'sum') # Number of individuals of the species in the year
+sum_year <- spread(sum_year, Species, Count)
 
-library(devtools)
-library(animation)
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Wetland")
-
-Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(wet$Species)
-
-
-for (j in 1:length(sp)){
-  
-  wet_sp <- wet[which(wet$Species == sp[j]), ] # Select species
-  
-  saveGIF(
-    
-    for (i in 1:length(Year)) {
-      
-      wet_year <- wet_sp[which(wet_sp$Year == Year[i]), ] # Determine year
-      
-      # 1. Suma individuals detected per transect (from wet_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = wet_year, FUN = 'sum') # Number of individuals of the species in the year
-      sum_year <- spread(sum_year, Species, Count) # Wide format
-      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
-      #sum_year[is.na(sum_year)] <- 0
-      colnames(sum_year)[2] <- "sp" # Make it generic for all species
-      
-      # 2. Linked to the spatial layer (centroid)
-      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
-}
-#  ---- 4. Forest ---- 
-forest <- as.character(esp$codiEspecie[which(esp$Forest == 1)]) 
-
-forest <- dat[which(dat$Species %in% forest), ] 
-xtabs(~Species, forest) 
-
-# All species all years PRESENCE + ABUNDANCE
-
-library(devtools)
-library(animation)
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Forest")
-
-Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(forest$Species)
-
-
-for (j in 1:length(sp)){
-  
-  forest_sp <- forest[which(forest$Species == sp[j]), ] # Select species
-  
-  saveGIF(
-    
-    for (i in 1:length(Year)) {
-      
-      forest_year <- forest_sp[which(forest_sp$Year == Year[i]), ] # Determine year
-      
-      # 1. Suma individuals detected per transect (from forest_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = forest_year, FUN = 'sum') # Number of individuals of the species in the year
-      sum_year <- spread(sum_year, Species, Count) # Wide format
-      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
-      #sum_year[is.na(sum_year)] <- 0
-      colnames(sum_year)[2] <- "sp" # Make it generic for all species
-      
-      # 2. Linked to the spatial layer (centroid)
-      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
-}
-#  ---- 5. Shrubland ---- 
-shrub <- as.character(esp$codiEspecie[which(esp$Shrubland == 1)]) 
-
-shrub <- dat[which(dat$Species %in% shrub), ] 
-xtabs(~Species, shrub) 
-
-# All species all years PRESENCE + ABUNDANCE
-
-library(devtools)
-library(animation)
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Shrubland")
-
-Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(shrub$Species)
-
-
-for (j in 1:length(sp)){
-  
-  shrub_sp <- shrub[which(shrub$Species == sp[j]), ] # Select species
-  
-  saveGIF(
-    
-    for (i in 1:length(Year)) {
-      
-      shrub_year <- shrub_sp[which(shrub_sp$Year == Year[i]), ] # Determine year
-      
-      # 1. Suma individuals detected per transect (from shrub_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = shrub_year, FUN = 'sum') # Number of individuals of the species in the year
-      sum_year <- spread(sum_year, Species, Count) # Wide format
-      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
-      #sum_year[is.na(sum_year)] <- 0
-      colnames(sum_year)[2] <- "sp" # Make it generic for all species
-      
-      # 2. Linked to the spatial layer (centroid)
-      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
-}
-#  ---- 6. Urban ---- 
-urban <- as.character(esp$codiEspecie[which(esp$Urban == 1)]) 
-
-urban <- dat[which(dat$Species %in% urban), ] 
-xtabs(~Species, urban) 
-
-# All species all years PRESENCE + ABUNDANCE
-
-library(devtools)
-library(animation)
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Urban")
-
-Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(urban$Species)
-
-
-for (j in 1:length(sp)){
-  
-  urban_sp <- urban[which(urban$Species == sp[j]), ] # Select species
-  
-  saveGIF(
-    
-    for (i in 1:length(Year)) {
-      
-      urban_year <- urban_sp[which(urban_sp$Year == Year[i]), ] # Determine year
-      
-      # 1. Suma individuals detected per transect (from urban_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = urban_year, FUN = 'sum') # Number of individuals of the species in the year
-      sum_year <- spread(sum_year, Species, Count) # Wide format
-      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
-      #sum_year[is.na(sum_year)] <- 0
-      colnames(sum_year)[2] <- "sp" # Make it generic for all species
-      
-      # 2. Linked to the spatial layer (centroid)
-      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
-}
-#  ---- 7. Rapaz ---- 
-rap <- as.character(esp$codiEspecie[which(esp$Rapinyaire == 1)]) 
-
-rap <- dat[which(dat$Species %in% rap), ] 
-xtabs(~Species, rap) 
-
-# All species all years PRESENCE + ABUNDANCE
-
-library(devtools)
-library(animation)
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Rapinyaire")
-
-Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(rap$Species)
-
-
-for (j in 1:length(sp)){
-  
-  rap_sp <- rap[which(rap$Species == sp[j]), ] # Select species
-  
-  saveGIF(
-    
-    for (i in 1:length(Year)) {
-      
-      rap_year <- rap_sp[which(rap_sp$Year == Year[i]), ] # Determine year
-      
-      # 1. Suma individuals detected per transect (from rap_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = rap_year, FUN = 'sum') # Number of individuals of the species in the year
-      sum_year <- spread(sum_year, Species, Count) # Wide format
-      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
-      #sum_year[is.na(sum_year)] <- 0
-      colnames(sum_year)[2] <- "sp" # Make it generic for all species
-      
-      # 2. Linked to the spatial layer (centroid)
-      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
-}
-#  ---- 8. Migrant ---- 
-mig <- as.character(esp$codiEspecie[which(esp$Migrant == 1)]) 
-
-mig <- dat[which(dat$Species %in% mig), ] 
-xtabs(~Species + Year, mig) 
-
-# All species all years PRESENCE + ABUNDANCE
-
-library(devtools)
-library(animation)
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Migrant")
-
-Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
-sp <- unique(mig$Species)
-
-
-for (j in 1:length(sp)){
-  
-  mig_sp <- mig[which(mig$Species == sp[j]), ] # Select species
-  
-  saveGIF(
-    
-    for (i in 1:length(Year)) {
-      
-      mig_year <- mig_sp[which(mig_sp$Year == Year[i]), ] # Determine year
-      
-      # 1. Suma individuals detected per transect (from mig_sp)
-      sum_year <- aggregate(Count ~ transectID + Species, data = mig_year, FUN = 'sum') # Number of individuals of the species in the year
-      sum_year <- spread(sum_year, Species, Count) # Wide format
-      colnames(sum_year)[which(colnames(sum_year) == "transectID")] <- "Codi" # Same name than spatial layer to join
-      #sum_year[is.na(sum_year)] <- 0
-      colnames(sum_year)[2] <- "sp" # Make it generic for all species
-      
-      # 2. Linked to the spatial layer (centroid)
-      count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
-}
-
-#  ---- 9. ALL SPECIES ---- 
 library(tidyr)
 xtabs(~Species + Year, dat)
+aggregate(Count ~ transectID + Year  , data = dat, FUN = 'sum') # Number of individuals of the species in the year
+
 freq <- as.data.frame(xtabs(~Species + Year, dat))
 freq <- spread(freq,Year, Freq)
 freq$remove <- 0 # To export data set and select the ones that are present in enough transects
 
-write.csv(freq, "freq_species.csv")
-# All species all years PRESENCE + ABUNDANCE
+write.csv(freq, "NumberDetect_sp_year.csv")
 
-library(devtools)
-library(animation)
+# Check separatedly farmland and steppe
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/All")
+esp <- read.csv("Tespecies.csv", sep = ";") # All species grouped by community
+# Farmland occurrence 
+farm <- as.character(esp$codiEspecie[which(esp$Farmland == 1)]) # Vector selecting farmland species
+farm <- dat[which(dat$Species %in% farm), ] # Only farmland species
+farm$Species <- as.character(farm$Species)
+xtabs(~Species, farm) # See species detected more times. Take MECAL as example
+
+#Steppe birds occurrence
+step <- as.character(esp$codiEspecie[which(esp$Steppe == 1)]) 
+step <- dat[which(dat$Species %in% step), ]
+step$Species <- as.character(step$Species)
+xtabs(~Species, step) 
+
+
+
+# ----- Number/proportion of occupied transects per year ----
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Explore_species_occurrence/All")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
+cen <- list(cen_10, cen_11, cen_12, cen_13, cen_14, cen_15, cen_16, cen_17)
 sp <- unique(dat$Species)
 
+# Fill 2 datasets:
+# 1. Number of transects occupied by the species per year
+occupancy_numb <- data.frame(matrix(NA, ncol = length(Year), nrow = length(sp)))
+colnames(occupancy_numb) <- Year
+rownames(occupancy_numb) <- sp
+# 2. Proportion of transects occupied by the species per year
+occupancy_prop <- data.frame(matrix(NA, ncol = length(Year), nrow = length(sp)))
+colnames(occupancy_prop) <- Year
+rownames(occupancy_prop) <- sp
 
 for (j in 1:length(sp)){
   
   dat_sp <- dat[which(dat$Species == sp[j]), ] # Select species
   
-  saveGIF(
+  for (i in 1:length(Year)) {
     
-    for (i in 1:length(Year)) {
-      
-      dat_year <- dat_sp[which(dat_sp$Year == Year[i]), ] # Determine year
+    dat_year <- dat_sp[which(dat_sp$Year == Year[i]), ] # Determine year
+    
+    if (nrow(dat_year) > 0) { # Only the years when was detected
       
       # 1. Suma individuals detected per transect (from dat_sp)
       sum_year <- aggregate(Count ~ transectID + Species, data = dat_year, FUN = 'sum') # Number of individuals of the species in the year
@@ -785,34 +433,26 @@ for (j in 1:length(sp)){
       #sum_year[is.na(sum_year)] <- 0
       colnames(sum_year)[2] <- "sp" # Make it generic for all species
       
-      # 2. Linked to the spatial layer (centroid)
+      # 2. Linked to the spatial layer (centroid) to know the overall sampled transects each year
       count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
-      
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
-      presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
-      
-      par(mfrow = c(1,2))
-      
-      plot(cat, # Use points "presence_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(presence_year, pch=21, bg = "red", lwd = 0.4, cex = 0.8)
-      mtext("Presence", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      plot(cat, # Use points "Count_year"
-           xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
-      plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
-      mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
-      
-      
-      mtext(paste("", sp[j], Year[i], ""), outer = TRUE, side = 1, line = -5, cex = 2, adj = 0.5)
-    }, 
-    movie.name = paste("",sp[j],".gif"),
-    ani.width = 900, ani.heigth = 500,
-    interval = 1.5
-  ) 
+      count_year@data$sp[is.na(count_year@data$sp)] <- 0 
+      count_year@data$sp[which(count_year@data$sp > 0)] <- 1
+      # Fill number of occupied transects
+      number_oc_transects <- sum(count_year@data$sp)
+      occupancy_numb[which(rownames(occupancy_numb) == sp[j]), which(colnames(occupancy_numb) == Year[i])] <- number_oc_transects
+      # Fill proportion of occupied transects
+      prop_oc_transects <- (number_oc_transects/length(count_year@data$sp))*100
+      occupancy_prop[which(rownames(occupancy_prop) == sp[j]), which(colnames(occupancy_prop) == Year[i])] <- prop_oc_transects
+    } else { # When it was not detected, put 0
+      occupancy_numb[which(rownames(occupancy_numb) == sp[j]), which(colnames(occupancy_numb) == Year[i])] <- 0
+      occupancy_prop[which(rownames(occupancy_prop) == sp[j]), which(colnames(occupancy_prop) == Year[i])] <- 0
+    }}
 }
+
+#write.csv(occupancy_numb, "NumberTrans_sp_year.csv")
+#write.csv(occupancy_prop, "PropTrans_sp_year.csv")
+
+
+
+
+#####
