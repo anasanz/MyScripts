@@ -52,10 +52,6 @@ w6 <- dat[which(dat$Wind == 5), ]
 hist(w5$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = "All sp - Wind 6",
      freq = FALSE)
 
-
-
 # The number of detections slightly decreases for all distances except the 1sr bin
 
-# ---- Abundant species ---- 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
-dat <- read.csv("DataDS_ready.csv")
+

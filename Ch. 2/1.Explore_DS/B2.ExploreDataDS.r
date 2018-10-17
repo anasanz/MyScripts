@@ -121,14 +121,16 @@ for (i in 1:length(Year)){
 m[which(is.na(m))] <- 0
 
 
-# ---- Species evolution (Spatio-temporal) ----
+#####
+#####
+# ---- SPECIES EVOLUTION (SPATIO-TEMPORAL) ----
 
 library(rgdal)
 library(dplyr)
 library(tidyr)
 library(sp)
 
-# Load data
+# ----- Load data -----
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv")
 dat$Species <- as.character(dat$Species) # Data species counts
@@ -158,6 +160,8 @@ cen <- list(cen_10, cen_11, cen_12, cen_13, cen_14, cen_15, cen_16, cen_17)
 # 2. Linked to the spatial layer (centroid)
 
 #  ---- PLOTS COUNTS-PRESENCE
+#####
+#  ---- 1. PLOT OF ABUNDANCE/OCCUPANCY
 #  ----- All species ---- 
 library(tidyr)
 xtabs(~Species + Year, dat)
@@ -365,7 +369,7 @@ for (j in 1:length(sp)){
 }
 
 #####
-# ---- TABLE OF TRANSECTS OCCUPIED PER SPECIES
+# ---- 2. TABLE OF TRANSECTS OCCUPIED PER SPECIES
 # ----- Number of detections per year ----
 
 aggregate( ~ transectID + Species + Year , data = dat, FUN = 'sum') # Number of individuals of the species in the year
@@ -449,10 +453,36 @@ for (j in 1:length(sp)){
     }}
 }
 
-#write.csv(occupancy_numb, "NumberTrans_sp_year.csv")
-#write.csv(occupancy_prop, "PropTrans_sp_year.csv")
+# Round proportion dataset
+
+occupancy_prop <- round(occupancy_prop, 2) 
+
+# Rownames as variable 
+occupancy_numb$Species <- rownames(occupancy_numb)
+occupancy_numb <- occupancy_numb[ ,c(9,1:8)]
+
+occupancy_prop$Species <- rownames(occupancy_prop)
+occupancy_prop <- occupancy_prop[ ,c(9,1:8)]
+
+#Rownumbers
+row.names(occupancy_numb) <- seq(1,73,1)
+row.names(occupancy_prop) <- seq(1,73,1)
+
+# Get total per species
+sum(occupancy_prop[72,c(2:9)])
+for (i in 1:nrow(occupancy_prop)){
+  occupancy_numb$total[i] <- sum(occupancy_numb[i,c(2:9)])
+  occupancy_prop$total[i] <- sum(occupancy_prop[i,c(2:9)])
+}
+
+# Sort from more to less common species (based in total)
+occupancy_numb <- arrange(occupancy_numb,desc(total))
+occupancy_prop <- arrange(occupancy_prop,desc(total))
 
 
-
+write.csv(occupancy_numb, "NumberTrans_sp_year.csv")
+write.csv(occupancy_prop, "PropTrans_sp_year.csv")
 
 #####
+
+
