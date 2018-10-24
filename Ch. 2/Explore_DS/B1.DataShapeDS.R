@@ -105,9 +105,50 @@ scarce <- all[which(all$remove == 1),]
 sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
 dat <- dat[-which(dat$Species %in% sp_scarce), ]
 
-write.csv(dat,"DataDS_ready.csv")
 
+# ---- Remove transects that are irrigated (and therefore have very different conditions) ----
+irri <- read.csv("TransecteAnyReg.csv", sep = ";")
+colnames(irri)[2] <- "Num_transecte"
+colnames(irri)[1] <- "Region.Label"
 
+  # CREATE TRANSECT ID VARIABLE
+# Add a 0 before the transect number
+for (i in 1:nrow(irri)){ 
+  irri$Num_transecte[i] <- paste(0,irri$Num_transecte[i], sep = "")}
+# Keep only the last 2 digits 
+library(stringr)
+for (i in 1:nrow(irri)){ 
+  irri$Num_transecte[i] <- str_sub(irri$Num_transecte[i], start = -2)}
+# Create variable by pasting it
+for (i in 1:nrow(irri)){ 
+  irri$transectID[i] <- paste(irri$Region.Label[i],irri$Num_transecte[i], sep = "")}
+
+# Remove the ones irrigated all years
+irri_all <- irri$transectID[which(irri$Regadio == 1)]
+dat <- dat[-which(dat$transectID %in% irri_all), ]
+
+# Remove the ones irrigated the year it changed (report remove = 1 for the ones to remove)
+
+irri_change <- irri[which(!is.na(irri$X1er.año.cambio)), ]
+irri_change_ID <- irri_change$transectID
+irri_change_year <- irri_change$X1er.año.cambio
+dat$remove <- NA
+
+for (i in 1:nrow(dat)){
+  if (sum(dat$transectID[i] == irri_change_ID)>0) { # For the transects that changed from irrigation
+  tmp_change <- irri_change_year[which(irri_change_ID == dat$transectID[i])] # Year of change
+  
+    if(dat$Year[i] >= tmp_change){
+  dat[i,which(colnames(dat) %in% "remove")] <- 1 # Data from that year gets a 1 (to be removed)
+    }}
+  }
+
+# Remove the ones (1) and column remove
+
+dat <- dat[-which(dat$remove == 1), ]
+dat <- dat[ ,-which(colnames(dat) %in% "remove")]
+
+#write.csv(dat,"DataDS_ready.csv")
 
 
 
