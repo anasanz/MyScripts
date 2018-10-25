@@ -106,6 +106,7 @@ sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
 dat <- dat[-which(dat$Species %in% sp_scarce), ]
 
 
+# ---- Join observations from PTALC and PTORI ----
 # ---- Remove transects that are irrigated (and therefore have very different conditions) ----
 irri <- read.csv("TransecteAnyReg.csv", sep = ";")
 colnames(irri)[2] <- "Num_transecte"
@@ -148,7 +149,10 @@ for (i in 1:nrow(dat)){
 dat <- dat[-which(dat$remove == 1), ]
 dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 
+
+
 #write.csv(dat,"DataDS_ready.csv")
+
 
 
 

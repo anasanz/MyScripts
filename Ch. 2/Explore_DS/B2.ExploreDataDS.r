@@ -124,13 +124,11 @@ m[which(is.na(m))] <- 0
 #####
 #####
 # ---- SPECIES EVOLUTION (SPATIO-TEMPORAL) ----
-
+# ----- Load data -----
 library(rgdal)
 library(dplyr)
 library(tidyr)
 library(sp)
-
-# ----- Load data -----
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv")
 dat$Species <- as.character(dat$Species) # Data species counts

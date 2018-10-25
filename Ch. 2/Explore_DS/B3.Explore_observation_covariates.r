@@ -7,9 +7,9 @@ setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv") # All data
 datV <- dat[which(dat$Obs_type == "V"), ] # Only seen observations
 
-#setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Explore_species_occurrence/All")
-#num <- read.csv("NumberTrans_sp_year.csv") # Data to see most frequent species
-#prop <- read.csv("PropTrans_sp_year.csv")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Explore_species_occurrence/All")
+num <- read.csv("NumberTrans_sp_year.csv") # Data to see most frequent species
+prop <- read.csv("PropTrans_sp_year.csv")
 
 # Most detected species are: 
 # - Target: Mecal, terax, buoed
@@ -83,16 +83,19 @@ for (i in 1:length(interesting)){
 
 datV <- dat[which(dat$Obs_type == "V"), ] # Data has 34180 obs. Only seen is 22016, so 36% of the observations are lost
 
-datTERAX_all <- dat[which(dat$Species == "TERAX"), ]
-datTERAX_V <- dat[which(dat$Obs_type == "V" & dat$Species == "TERAX"), ] # I loose 55.85% of observations
+# Explore how much I loose of each species:
 
-datBUOED_all <- dat[which(dat$Species == "BUOED"), ]
-datBUOED_V <- dat[which(dat$Obs_type == "V" & dat$Species == "BUOED"), ] # I loose 56.6% of observations
+sp <- as.vector(num$Species)
+m <- as.data.frame(matrix(nrow = length(sp), ncol = 2))
+colnames(m) <- c("sp", "lost.heard")
+m$sp <- sp
 
-datPTALC_all <- dat[which(dat$Species == "PTALC"), ]
-datPTALC_V <- dat[which(dat$Obs_type == "V" & dat$Species == "PTALC"), ] # Only loose 20% but is very scarce
-xtabs(~Year, datPTALC_V )
-
+for (i in 1:length(all_sp)){
+  dat_sp_all <- dat[which(dat$Species == sp[i]), ]
+  dat_sp_S <- dat[which(dat$Obs_type == "S" & dat$Species == sp[i]), ] # I loose 55.85% of observations
+  lost <- round((nrow(dat_sp_S)/nrow(dat_sp_all))*100,2)
+  m[i,2] <- lost
+  }
 
 # ---- Temperature ----
 # A. All Species 
@@ -136,6 +139,38 @@ freq <- observations/transects
 par(mfrow = c(1,1))
 plot(freq)
 
+# Corrected by the number of transects for TERAX
+dat_temp_ter <- dat_temp[which(dat_temp$Species == "TERAX"), ]
+prop <- as.data.frame(xtabs(~Temp + transectID, dat_temp_ter))
+
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Temp,sum)
+observations <- xtabs(~Temp, dat_temp_ter) # Number of observations with each temperature
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq)
+
+# Corrected by the number of transects for ALRUF
+dat_temp_ter <- dat_temp[which(dat_temp$Species == "ALRUF"), ]
+prop <- as.data.frame(xtabs(~Temp + transectID, dat_temp_ter))
+
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Temp,sum)
+observations <- xtabs(~Temp, dat_temp_ter) # Number of observations with each temperature
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq)
+
+# Conclusion: It seems like the fact that there was more in 15ºC was because
+# there were more transects recorded in that temperature, and now the different
+# species seem to react differently
+
 
 # C. Other species 
 
@@ -145,6 +180,19 @@ for (i in 1:length(other)){
   hist(dat_temp$Temp[which(dat_temp$Species %in% other[i])], main = paste(other[i], "- Temperature")) 
 }
 
+# Accounting for number of transects at each temperature
+dat_temp_ter <- dat_temp[which(dat_temp$Species == "MECAL"), ]
+prop <- as.data.frame(xtabs(~Temp + transectID, dat_temp_ter))
+
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Temp,sum)
+observations <- xtabs(~Temp, dat_temp_ter) # Number of observations with each temperature
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq)
 
 # ---- Wind ----
 
@@ -241,21 +289,14 @@ for (j in 1:length(other)){
 # ---- Observer ----
 
 xtabs(~Observer, datV)
-obs1 <- as.vector(unique(datV$Observer))[1:4]
-obs2 <- as.vector(unique(datV$Observer))[5:8]
-obs3 <- as.vector(unique(datV$Observer))[9:12]
-obs4 <- as.vector(unique(datV$Observer))[12:15]
+obs1 <- c("Albert Petit", "David Guixé", "Ferran Broto", "Ferran González", "Joan Castelló", "Sergi Sales")
 
 
 # All species
-par(mfrow = c(2,2))
+par(mfrow = c(2,3))
 for (i in 1:length(obs1)){
   w <- datV[which(datV$Observer == obs1[i]), ]
   hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - obs ",obs1[i]),
-       freq = FALSE)}
-for (i in 1:length(obs2)){
-  w <- datV[which(datV$Observer == obs2[i]), ]
-  hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - obs ",obs2[i]),
        freq = FALSE)}
 
 
@@ -265,11 +306,11 @@ for (j in 1:length(target)){
   par(mfrow = c(2,3))
   sp <- datV[which(datV$Species == target[j]),]
   
-  for (i in 1:length(obs)){
-    w <- sp[which(sp$obss == obs[i]), ]
+  for (i in 1:length(obs1)){
+    w <- sp[which(sp$Observer == obs1[i]), ]
     
     if(nrow(w)>0){
-      hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(target[j], "- obs ",obs[i]),
+      hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(target[j], "- obs ",obs1[i]),
            freq = FALSE)}}
 }
 
@@ -279,10 +320,10 @@ for (j in 1:length(other)){
   par(mfrow = c(2,3))
   sp <- datV[which(datV$Species == other[j]),]
   
-  for (i in 1:length(obs)){
-    w <- sp[which(sp$obss == obs[i]), ]
+  for (i in 1:length(obs1)){
+    w <- sp[which(sp$Observer == obs1[i]), ]
     
     if(nrow(w)>0){
-      hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(other[j], "- obs ",obs[i]),
+      hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(other[j], "- obs ",obs1[i]),
            freq = FALSE)}}
 }
