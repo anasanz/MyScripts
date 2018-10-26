@@ -9,7 +9,7 @@ sigma <- 30 # Scale parameter of half-normal detection function
 # Define half-normal detection function
 
 g <- function(x, sig) exp(-x^2/(2*sig^2)) # Function definition
-g(15, sig=sigma) # Example: Detection probability at a distance of 30m
+g(30, sig=sigma) # Example: Detection probability at a distance of 30m
 
 # Plot the detection function
 
@@ -112,19 +112,23 @@ cat("
     for(i in 1:(n + nau)){ # For each observation of the detected and augmented data
     
     # Process model : You get z and x (one value per real and augmented observation)
+
     z[i] ~ dbern(psi) # DA variables 
     x[i] ~ dunif(0, sw) # Distribution of distances (Why does it belong to the process and not obs?)
     
     # Observation model: You get mu (p detection corrected by whether the individual is alive)
+
     logp[i] <- -((x[i]*x[i])/(2*sigma*sigma)) # Half-normal detection fct.
     p[i] <- exp(logp[i])
     mu[i] <- z[i] * p[i] # Combine p detection with whether that individual is alive or not?
     # Probability that that individual is alive and detected?
     # If the individual is not alive (Z = 0), cant be detected and mu[i] = 0
+
     y[i] ~ dbern(mu[i]) # Simple Bernoulli measurement error process
     # Model y[i] (1/0) as bernouilli with probability mu[i]
     
     # y[i] ~ dbern(z[i] * p[i]) # Simple Bernoulli measurement error process
+
     # If y is a 0 (non detected), the probability 
     # that p is high (e.g. 1) is very low (because at the
     # transect with a high p you would have detected it y=1)}

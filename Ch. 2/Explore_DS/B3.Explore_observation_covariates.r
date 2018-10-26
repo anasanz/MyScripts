@@ -5,7 +5,6 @@ rm(list=ls())
 # ---- Load ----
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 dat <- read.csv("DataDS_ready.csv") # All data
-datV <- dat[which(dat$Obs_type == "V"), ] # Only seen observations
 
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Explore_species_occurrence/All")
 num <- read.csv("NumberTrans_sp_year.csv") # Data to see most frequent species
@@ -18,88 +17,9 @@ target <- c("MECAL", "TERAX", "BUOED")
 other <- c("GACRI", "MICAL", "PIPIC", "COPAL", "HIRUS", "PADOM")
 interesting <- c("MEAPI", "ALRUF", "UPEPO", "COGAR", "CABRA", "PTALC")
 
-
-# ---- Detection distance - Seen (V)/ Heard (S) observations ----
-
-# A. Target
-
-# All observations
-par(mfrow = c(1,3))
-for (i in 1:length(target)){
-  hist(dat$distance[which(dat$Species %in% target[i])],breaks = c(0,25,50,99,200),
-       main = paste(target[i], "- Distances"), col = "grey", freq = FALSE) 
-}
-
-# Only S
-par(mfrow = c(1,3))
-for (i in 1:length(target)){
-  hist(dat$distance[which(dat$Species %in% target[i] & dat$Obs_type == "S")],breaks = c(0,25,50,99,200),
-       main = paste(target[i], "- Distances"), col = "grey", freq = FALSE) 
-}
-
-# Only V
-par(mfrow = c(1,3))
-for (i in 1:length(target)){
-  hist(dat$distance[which(dat$Species %in% target[i] & dat$Obs_type == "V")],breaks = c(0,25,50,99,200),
-       main = paste(target[i], "- Distances"), col = "grey", freq = FALSE) 
-}
-
-# B. Other
-
-par(mfrow = c(2,3))
-for (i in 1:length(other)){
-  hist(dat$distance[which(dat$Species %in% other[i])],breaks = c(0,25,50,99,200),
-       main = paste(other[i], "- Distances"), col = "grey", freq = FALSE) 
-}
-
-par(mfrow = c(2,3))
-for (i in 1:length(other)){
-  hist(dat$distance[which(dat$Species %in% other[i] & dat$Obs_type == "S")],breaks = c(0,25,50,99,200),
-       main = paste(other[i], "- Distances"), col = "grey", freq = FALSE) 
-}
-
-par(mfrow = c(2,3))
-for (i in 1:length(other)){
-  hist(dat$distance[which(dat$Species %in% other[i] & dat$Obs_type == "V")],breaks = c(0,25,50,99,200),
-       main = paste(other[i], "- Distances"), col = "grey", freq = FALSE) 
-}
-
-# C. Interesting
-
-par(mfrow = c(2,3))
-for (i in 1:length(interesting)){
-  hist(dat$distance[which(dat$Species %in% interesting[i])],breaks = c(0,25,50,99,200),
-       main = paste(interesting[i], "- Distances"), col = "grey", freq = FALSE) }
-
-for (i in 1:length(interesting)){
-  hist(dat$distance[which(dat$Species %in% interesting[i] & dat$Obs_type == "S")],breaks = c(0,25,50,99,200),
-       main = paste(interesting[i], "- Distances"), col = "grey", freq = FALSE) }
-
-for (i in 1:length(interesting)){
-  hist(dat$distance[which(dat$Species %in% interesting[i] & dat$Obs_type == "V")],breaks = c(0,25,50,99,200),
-       main = paste(interesting[i], "- Distances"), col = "grey", freq = FALSE) }
-
-# The heard (S) observations damage the detection curve, so I keep only the V
-
-datV <- dat[which(dat$Obs_type == "V"), ] # Data has 34180 obs. Only seen is 22016, so 36% of the observations are lost
-
-# Explore how much I loose of each species:
-
-sp <- as.vector(num$Species)
-m <- as.data.frame(matrix(nrow = length(sp), ncol = 2))
-colnames(m) <- c("sp", "lost.heard")
-m$sp <- sp
-
-for (i in 1:length(all_sp)){
-  dat_sp_all <- dat[which(dat$Species == sp[i]), ]
-  dat_sp_S <- dat[which(dat$Obs_type == "S" & dat$Species == sp[i]), ] # I loose 55.85% of observations
-  lost <- round((nrow(dat_sp_S)/nrow(dat_sp_all))*100,2)
-  m[i,2] <- lost
-  }
-
 # ---- Temperature ----
 # A. All Species 
-dat_temp <- datV[-which(datV$Temp > 40),] # Remove from 40, its mistakes
+dat_temp <- dat[-which(dat$Temp > 40),] # Remove from 40, its mistakes
 hist(dat_temp$Temp, main = "All sp - Temperature") # 15ºC looks like the best
 
 # Corrected by the number of transects:
@@ -119,7 +39,7 @@ hist(freq, main = "All sp - Temperature") # 15ºC looks like the best
 
 # B. Target species 
 
-dat_temp <- datV[-which(datV$Temp > 40),]
+dat_temp <- dat[-which(dat$Temp > 40),]
 par(mfrow = c(1,3))
 for (i in 1:3){
   hist(dat_temp$Temp[which(dat_temp$Species %in% target[i])], main = paste(target[i], "- Temperature")) 
@@ -199,12 +119,12 @@ plot(freq)
 # Frequency - Distance with different winds
 xtabs(~Wind, dat)
 wind <- c(0:6)
-# Check with only seen (datV)
+# Check with only seen (dat)
 
 # All species
 par(mfrow = c(3,3))
 for (i in 1:length(wind)){
-w <- datV[which(datV$Wind == wind[i]), ]
+w <- dat[which(dat$Wind == wind[i]), ]
 hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - Wind ",wind[i]),
      freq = FALSE)
 }
@@ -213,7 +133,7 @@ hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "
 
 for (j in 1:length(target)){
   par(mfrow = c(3,3))
-  sp <- datV[which(datV$Species == target[j]),]
+  sp <- dat[which(dat$Species == target[j]),]
   
   for (i in 1:length(wind)){
     w <- sp[which(sp$Wind == wind[i]), ]
@@ -227,7 +147,7 @@ for (j in 1:length(target)){
 
 for (j in 1:length(other)){
   par(mfrow = c(3,3))
-  sp <- datV[which(datV$Species == other[j]),]
+  sp <- dat[which(dat$Species == other[j]),]
   
   for (i in 1:length(wind)){
     w <- sp[which(sp$Wind == wind[i]), ]
@@ -244,13 +164,13 @@ for (j in 1:length(other)){
 # Frequency - Distance with different clouds
 # Check with only seen data, because heard is not supossed to be influenced by this
 
-xtabs(~Clouds, datV)
+xtabs(~Clouds, dat)
 cloud <- c(0:5)
 
 # All species
 par(mfrow = c(2,3))
 for (i in 1:length(cloud)){
-  w <- datV[which(datV$Clouds == cloud[i]), ]
+  w <- dat[which(dat$Clouds == cloud[i]), ]
   hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - cloud ",cloud[i]),
        freq = FALSE)
 }
@@ -259,7 +179,7 @@ for (i in 1:length(cloud)){
 
 for (j in 1:length(target)){
   par(mfrow = c(2,3))
-  sp <- datV[which(datV$Species == target[j]),]
+  sp <- dat[which(dat$Species == target[j]),]
   
   for (i in 1:length(cloud)){
     w <- sp[which(sp$Clouds == cloud[i]), ]
@@ -273,7 +193,7 @@ for (j in 1:length(target)){
 
 for (j in 1:length(other)){
   par(mfrow = c(2,3))
-  sp <- datV[which(datV$Species == other[j]),]
+  sp <- dat[which(dat$Species == other[j]),]
   
   for (i in 1:length(cloud)){
     w <- sp[which(sp$Clouds == cloud[i]), ]
@@ -288,14 +208,14 @@ for (j in 1:length(other)){
 
 # ---- Observer ----
 
-xtabs(~Observer, datV)
+xtabs(~Observer, dat)
 obs1 <- c("Albert Petit", "David Guixé", "Ferran Broto", "Ferran González", "Joan Castelló", "Sergi Sales")
 
 
 # All species
 par(mfrow = c(2,3))
 for (i in 1:length(obs1)){
-  w <- datV[which(datV$Observer == obs1[i]), ]
+  w <- dat[which(dat$Observer == obs1[i]), ]
   hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - obs ",obs1[i]),
        freq = FALSE)}
 
@@ -304,7 +224,7 @@ for (i in 1:length(obs1)){
 
 for (j in 1:length(target)){
   par(mfrow = c(2,3))
-  sp <- datV[which(datV$Species == target[j]),]
+  sp <- dat[which(dat$Species == target[j]),]
   
   for (i in 1:length(obs1)){
     w <- sp[which(sp$Observer == obs1[i]), ]
@@ -318,7 +238,7 @@ for (j in 1:length(target)){
 
 for (j in 1:length(other)){
   par(mfrow = c(2,3))
-  sp <- datV[which(datV$Species == other[j]),]
+  sp <- dat[which(dat$Species == other[j]),]
   
   for (i in 1:length(obs1)){
     w <- sp[which(sp$Observer == obs1[i]), ]
