@@ -1,4 +1,6 @@
 
+library(jagsUI)
+
 # ---- DATA SIMULATION ----
 
 # Transect of 500 m length and 200 m half-width
@@ -100,7 +102,7 @@ win.data <- list(n = n, nau = nau, x=x, y=y, sw = sw)
 
 # BUGS model
 
-setwd("C:/OneDrive/PhD/Second chapter/Data/Examples")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples")
 
 cat("
     model {
@@ -114,9 +116,9 @@ cat("
     # Process model : You get z and x (one value per real and augmented observation)
 
     z[i] ~ dbern(psi) # DA variables 
-    x[i] ~ dunif(0, sw) # Distribution of distances (Why does it belong to the process and not obs?)
+    x[i] ~ dunif(0, sw) # Distribution of distances (Why does it belong to the process and not obs? is it because its a latent variable?)
     
-    # Observation model: You get mu (p detection corrected by whether the individual is alive)
+    # Observation (data) model: You get mu (p detection corrected by whether the individual is alive)
 
     logp[i] <- -((x[i]*x[i])/(2*sigma*sigma)) # Half-normal detection fct.
     p[i] <- exp(logp[i])
@@ -124,20 +126,19 @@ cat("
     # Probability that that individual is alive and detected?
     # If the individual is not alive (Z = 0), cant be detected and mu[i] = 0
 
-    y[i] ~ dbern(mu[i]) # Simple Bernoulli measurement error process
+    y[i] ~ dbern(mu[i]) } # Or y[i] ~ dbern(z[i] * p[i]) (Simple Bernoulli measurement error process)
     # Model y[i] (1/0) as bernouilli with probability mu[i]
-    
-    # y[i] ~ dbern(z[i] * p[i]) # Simple Bernoulli measurement error process
+    # Simple Bernoulli measurement error process
 
     # If y is a 0 (non detected), the probability 
     # that p is high (e.g. 1) is very low (because at the
-    # transect with a high p you would have detected it y=1)}
+    # transect with a high p you would have detected it y=1)
     
     # Derived quantities
     N <- sum(z[1:(n + nau)]) # Population size
     D <- N / 0.1 # Density, with A = 0.1 km^2 when sw = 200
     
-    }",fill=TRUE,file="model_continuousDS.txt")
+    }", fill = TRUE, file = "model_continuousDS.txt")
 
 # Inits
 zst <- y
@@ -151,7 +152,9 @@ nc <- 3 ; ni <- 22000 ; nb <- 2000 ; nt <- 2
 
 out <- jags(win.data, inits, params, "model_continuousDS.txt", n.chains = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+
 traceplot(out, param = c("N", "sigma", "D"))
+
 print(out, 2)
 
 par(mfrow = c(1,2))

@@ -93,7 +93,6 @@ sim.data <- function(N = 300, sigma = 60){
 }
 dat <- sim.data()
 
-
 # ---- MODEL ----
 
 #1. Known data
@@ -132,7 +131,7 @@ xbin1 <- c(xbin, rep(NA, nau)) # Vector with distances observed (x, known) and a
 win.data <- list (n=n, nau=nau, xbin=xbin1, y=y, sw=sw,
                   bw=bw, nbins=nbins, midpt=midpt)
 
-setwd("C:/OneDrive/PhD/Second chapter/Data/Examples")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples")
 cat("
     model{
     
