@@ -155,6 +155,7 @@ cat("
     z[i] ~ dbern(psi) # model for individual covariates (DA)
     
     xbin[i] ~ dcat(pi[]) # Distribution of distances (distance classes because its binned)
+                          # Because it is a latent variable (DA)
     
     y[i] ~ dbern(mu[i])
     mu[i] <- z[i] * p[xbin[i]] # the probability that an individual occurs and is detected in distance class h

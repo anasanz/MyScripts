@@ -116,7 +116,8 @@ cat("
     # Process model : You get z and x (one value per real and augmented observation)
 
     z[i] ~ dbern(psi) # DA variables 
-    x[i] ~ dunif(0, sw) # Distribution of distances (Why does it belong to the process and not obs? is it because its a latent variable?)
+    
+# Distribution of distances (Why does it belong to the process and not obs? is it because its a latent variable?)
     
     # Observation (data) model: You get mu (p detection corrected by whether the individual is alive)
 
