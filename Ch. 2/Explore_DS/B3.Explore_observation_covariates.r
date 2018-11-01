@@ -57,7 +57,7 @@ observations <- xtabs(~Temp, dat_temp_buo) # Number of observations with each te
 
 freq <- observations/transects
 par(mfrow = c(1,1))
-plot(freq)
+plot(freq, main = "buoed")
 
 # Corrected by the number of transects for TERAX
 dat_temp_ter <- dat_temp[which(dat_temp$Species == "TERAX"), ]
@@ -71,7 +71,7 @@ observations <- xtabs(~Temp, dat_temp_ter) # Number of observations with each te
 
 freq <- observations/transects
 par(mfrow = c(1,1))
-plot(freq)
+plot(freq, main = "terax")
 
 # Corrected by the number of transects for ALRUF
 dat_temp_ter <- dat_temp[which(dat_temp$Species == "ALRUF"), ]
@@ -85,7 +85,7 @@ observations <- xtabs(~Temp, dat_temp_ter) # Number of observations with each te
 
 freq <- observations/transects
 par(mfrow = c(1,1))
-plot(freq)
+plot(freq, main = "alruf")
 
 # Conclusion: It seems like the fact that there was more in 15ºC was because
 # there were more transects recorded in that temperature, and now the different

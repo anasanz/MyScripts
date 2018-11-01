@@ -3,6 +3,7 @@ rm(list=ls())
 
 library(jagsUI)
 
+# ======================= WITH DATA AUGMENTATION ==========================
 # ---- Analysis with continuous distances
   # A. ---- Simulate data similar to mine: continuous (not binned) ----
 # Order of data simulation
@@ -376,3 +377,102 @@ abline(v = 300, col = "red", lwd = 3)
 
 plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
 abline(v = 60, col = "red", lwd = 3) 
+
+# ======================== NO DATA AUGMENTATION =========================================
+# ---- Three part multinomial model ----
+# 1. Multinomial (p in each bin)
+# 2. Binomal (detection)
+# 3. Poisson (process)
+
+library(AHMbook)
+library(jagsUI)
+
+# Simulate line transect data set (continuous data, then we will cat in bins)
+# Discard = FALSE, to not discard the data where individuals were not detected
+# Important when you dont do data augmentation
+set.seed(1234)
+tmp <- simHDS(type="line", discard0=FALSE) 
+attach(tmp)
+
+# Get number of individuals detected per site
+# ncap = 1 plus number of detected individuals per site
+ncap <- table(data[,1]) # ncap = 1 if no individuals captured
+sites0 <- data[is.na(data[,2]),][,1] # sites where nothing detected
+ncap[as.character(sites0)] <- 0 # Fill in 0 for sites with no detections
+ncap <- as.vector(ncap)
+
+# Prepare other data (CATEGORIZE IN BINS)
+site <- data[!is.na(data[,2]),1] # site ID of each observation
+delta <- 0.1 # distance bin width for rect. approx.
+midpt <- seq(delta/2, B, delta) # make mid-points and chop up data
+dclass <- data[,5] %/% delta + 1 # convert distances to cat. distances
+nD <- length(midpt) # Number of distance intervals
+dclass <- dclass[!is.na(data[,2])] # Observed categorical observations
+nind <- length(dclass) # Total number of individuals detected
+
+# Bundle and summarize data set
+# ncap is the number of individuals detected in each transect (0 if nothing detected,TRANSECT = 100)
+# and dclass are the distances at which ind were detected (INDIVIDUAL = more than 100)
+str( win.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt, delta=delta,
+                      ncap=ncap, habitat=habitat, wind=wind, dclass=dclass, site=site) )
+
+
+# BUGS model specification for line-transect HDS (NOT point transects!)
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples")
+
+cat("
+    model{
+
+    # Priors
+    alpha0 ~ dunif(-10,10)
+    alpha1 ~ dunif(-10,10)
+    beta0 ~ dunif(-10,10)
+    beta1 ~ dunif(-10,10)
+
+    for(i in 1:nind){
+    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+    }
+            # fc is a parameter for the pdetection for an individual i
+            # in transect s (knowing the bin)
+            # SECOND COLUMN???
+    for(s in 1:nsites){
+
+    # Construct cell probabilities for nD multinomial cells
+    for(g in 1:nD){ # midpt = mid-point of each cell
+
+      log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])
+      pi[s,g] <- delta / B # Probability per interval
+
+      f[s,g] <- p[s,g] * pi[s,g] 
+        # Detection probability in a site in a distance bin * 
+        # probability of being in that bin given the size of the bin
+
+      fc[s,g] <- f[s,g] / pcap[s] # WHAT IS THIS
+    }
+
+    pcap[s] <- sum(f[s,]) # Pr(capture): sum of rectangular areas
+    ncap[s] ~ dbin(pcap[s], N[s]) # Part 2 of HM
+    N[s] ~ dpois(lambda[s]) # Part 3 of HM
+    log(lambda[s]) <- beta0 + beta1 * habitat[s] # Linear model abundance
+    log(sigma[s])<- alpha0 + alpha1*wind[s] # Linear model detection
+
+    }
+    # Derived parameters
+    Ntotal <- sum(N[])
+    area <- nsites*1*2*B # Unit length == 1, half-width = B
+    D <- Ntotal/area
+    }
+    ",fill=TRUE, file = "three_part.txt")
+# Inits
+Nst <- ncap + 1
+inits <- function(){list(alpha0=0, alpha1=0, beta0=0, beta1=0, N=Nst)}
+# Params to save
+params <- c("alpha0", "alpha1", "beta0", "beta1", "Ntotal","D")
+# MCMC settings
+ni <- 12000 ; nb <- 2000 ; nt <- 1 ; nc <- 3
+# Run JAGS (ART 1 min) and summarize posteriors
+library(jagsUI)
+out3 <- jags(win.data, inits, params, "model3.txt", n.thin=nt,
+             n.chains=nc, n.burnin=nb, n.iter=ni)
+print(out3, 2)
