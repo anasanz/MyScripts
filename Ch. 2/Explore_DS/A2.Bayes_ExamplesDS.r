@@ -247,15 +247,18 @@ y.true <- c(y.obs, N-length(xbin)) # Last category is "Not detected"
 (y.rel <- y.true/N) # Last category is pi(0) from above
 (pi0.v1 <- y.rel[nbins+1])
 0.635
+
 # Compute detection probability in each distance interval
 dist.breaks <- seq(0, strip.width, by=interval.width)
 p <- rep(NA, length(dist.breaks)-1)
 for(j in 1:length(p)){
   p[j] <- integrate(g, dist.breaks[j], dist.breaks[j+1],
                     sig=sigma)$value / (dist.breaks[j+1]-dist.breaks[j])
-}
+} # This would be equal to f = p * pi in jags model
 round(p, 2)
 [1] 0.98 0.88 0.71 0.51 0.33 0.19 0.10 0.05 0.02 0.01
+
+
 # Compute the multinomial cell probabilities analytically. These are exact.
 # psi = probability of occurring in each interval
 interval.width <- diff(dist.breaks)

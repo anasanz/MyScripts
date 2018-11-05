@@ -1,6 +1,6 @@
 
 # =========================================================================
-#               LMM: VIPER MASS - LENGTH FOR DIFFERENT POPULATIONS
+#               LMM: VIPER MASS - LENGTH FOR DIFFERENT POPULATIONS (p.151)
 #===========================================================================
 # ===================== DATA SIMULATION ===============================
 
@@ -21,6 +21,7 @@ hist(length, col = "grey")
 # We build a design matrix without intercept.
 Xmat <- model.matrix(~ pop * length-1-length)
 print(Xmat[1:21,], dig = 2) # Print top 21 rows
+dim(Xmat)
 
 intercept.mean <- 230 # mu alpha
 intercept.sd <- 20 # sigma alpha
@@ -48,6 +49,12 @@ lme.fit1
 # ===================== MODEL IN JAGS ===============================
 
 library(jagsUI)
+
+# Save data for exercise in class
+d <- cbind(pop,mass,length)
+colnames(d)[2] <- "mass"
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples")
+write.csv(d,"visper.csv")
 
 # Specify data that will be used in the model
 
@@ -122,8 +129,9 @@ abline(v = 230, col = "red", lwd = 3)
 
 # ----
 # =========================================================================
-#              GLMM: RED-BACKED SHRIKE ABUNDANCE IN DIFFERENT SITES
+#              GLMM: RED-BACKED SHRIKE ABUNDANCE IN DIFFERENT SITES (p.203)
 #===========================================================================
+# Pair counts over 30 years available in each of the 16 populations
 # ===================== DATA SIMULATION ==================================
 
 #We generate data under the random-coefficients model without correlation

@@ -198,6 +198,12 @@ strip.width <- 200
 interval.width <- 50
 nbins <- strip.width%/%interval.width
 
+# There are two methods:
+#1. Simulate continuous distances and agregate them into intervals
+#2. Simulate multinomial onservations with cell probabilities pih (p of the cell)
+
+# 1. METHOD 1: CONTINUOUS DISTANCES
+
 # -- FUNCTION TO SIMULATE DATA --
 set.seed(15)
 sim.data <- function(N = 300, sigma = 60){ 
@@ -255,9 +261,11 @@ sim.data <- function(N = 300, sigma = 60){
   y.true <- c(y.obs, N-length(xbin)) # Last category is "Not detected"
   
   # 8. Relative frequencies of detection of each bin (similar to pi with N big)
+  # Relative frequencies by binning continuous data (pi). These should compare
+  # with the cell probabilities computed below when N is very large
   (y.rel <- y.true/N) # Last category is pi(0) or nondetected from above
   (pi0.v1 <- y.rel[nbins+1]) # Frequency of non detected  
-  
+
   # 9.  Compute detection probability in each distance interval 
   # (From detection function applied to each interval/bin)
   dist.breaks <- seq(0, strip.width, by=interval.width) # Distance breaks
@@ -268,18 +276,30 @@ sim.data <- function(N = 300, sigma = 60){
   }
   round(p, 2)
   
-  # 10. Compute the multinomial cell probabilities (pi)
+  # Compute the multinomial cell probabilities analytically. These are exact.
   # psi = probability of occurring in each interval regarding the distance
   interval.width <- diff(dist.breaks) # Here we could account for different bin sizes
   psi <- interval.width/strip.width
   pi <- p * psi # Probability of occurring * probability of detection
                 #“the probability that an individual occurs and is detected in distance class h”
+                # f in jags model
   sum(pi) # This is 1 - pi(0) from above
   (pi0.exact <- 1-sum(pi)) # Compare with 0.635 above
+  pi/sum(pi) #☺ This would be fc
   
   return(list(N = N, sigma = sigma, xbinall = xbinall, xbin = xbin, nbins=nbins, psi = psi, pi = pi))
   }
 dat <- sim.data()
+
+# METHOD 2:  Use rmultinom to simulate binned observations directly
+# This includes 0 cells AND n0
+pi[length(p)+1] <- 1 - sum(pi)
+(y.obs2 <- as.vector(rmultinom(1, N, prob=pi)))
+(y.obs2 <- y.obs2[1:nbins]) # Discard last cell for n0 (because not observed)
+# This is a simple multinomial example (Like sampling one transect or pooling the data from several)
+
+
+
   
 
   # B. ---- Estimate population size ----
@@ -434,24 +454,28 @@ cat("
     dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
     }
             # fc is a parameter for the pdetection for an individual i
-            # in transect s (knowing the bin)
+            # in transect s (knowing the p of the bin [,_]?
             # SECOND COLUMN???
+
     for(s in 1:nsites){
 
-    # Construct cell probabilities for nD multinomial cells
+    # Construct cell probabilities for nD multinomial cells (distance categories)
     for(g in 1:nD){ # midpt = mid-point of each cell
 
       log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])
       pi[s,g] <- delta / B # Probability per interval
 
-      f[s,g] <- p[s,g] * pi[s,g] 
-        # Detection probability in a site in a distance bin * 
+      f[s,g] <- p[s,g] * pi[s,g] # f = pi greek simbol in book (pi = p*psi)
+                                 # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
+                                 #            p  is the integral under the detection function over the bin h     
+        # Detection probability in a site in a distance bin 
         # probability of being in that bin given the size of the bin
 
-      fc[s,g] <- f[s,g] / pcap[s] # WHAT IS THIS
+      fc[s,g] <- f[s,g] / pcap[s] # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
     }
 
     pcap[s] <- sum(f[s,]) # Pr(capture): sum of rectangular areas
+
     ncap[s] ~ dbin(pcap[s], N[s]) # Part 2 of HM
     N[s] ~ dpois(lambda[s]) # Part 3 of HM
     log(lambda[s]) <- beta0 + beta1 * habitat[s] # Linear model abundance
@@ -464,6 +488,23 @@ cat("
     D <- Ntotal/area
     }
     ",fill=TRUE, file = "three_part.txt")
+
+#2 Understand the model
+
+for(g in 1:nD){ # midpt = mid-point of each cell
+  
+  p[g] <- exp(-midpt[g] * midpt[g] / (2*sigma*sigma))
+  pi[g] <- delta / B # Probability per interval
+  
+  f <- p[g] * pi[g] # f = pi greek simbol in book (pi = p*psi)
+  # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
+  #            p  is the integral under the detection function over the bin h     
+  # Detection probability in a site in a distance bin 
+  # probability of being in that bin given the size of the bin
+  
+  fc[g] <- f / pcap # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
+}
+
 # Inits
 Nst <- ncap + 1
 inits <- function(){list(alpha0=0, alpha1=0, beta0=0, beta1=0, N=Nst)}
