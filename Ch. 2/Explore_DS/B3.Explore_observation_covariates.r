@@ -114,6 +114,16 @@ freq <- observations/transects
 par(mfrow = c(1,1))
 plot(freq)
 
+# There are many 0 temperature!!
+check_0 <- as.data.frame(xtabs(~Temp + T_Y, dat_temp))
+zero <- check_0[which(check_0$Temp == 0), ]
+zero$ones <- NA
+for (i in 1:nrow(zero)){
+  if (zero$Freq[i] >= 1){zero$ones[i] = 1}
+  else {zero$ones[i] = 0}
+}
+sum(zero$ones)
+
 # ---- Wind ----
 
 # Frequency - Distance with different winds

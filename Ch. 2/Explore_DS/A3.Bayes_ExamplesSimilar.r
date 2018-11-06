@@ -398,6 +398,7 @@ abline(v = 300, col = "red", lwd = 3)
 plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
 abline(v = 60, col = "red", lwd = 3) 
 
+#####
 # ======================== NO DATA AUGMENTATION =========================================
 # ---- Three part multinomial model ----
 # 1. Multinomial (p in each bin)
@@ -453,9 +454,6 @@ cat("
     for(i in 1:nind){
     dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
     }
-            # fc is a parameter for the pdetection for an individual i
-            # in transect s (knowing the p of the bin [,_]?
-            # SECOND COLUMN???
 
     for(s in 1:nsites){
 
@@ -489,21 +487,6 @@ cat("
     }
     ",fill=TRUE, file = "three_part.txt")
 
-#2 Understand the model
-
-for(g in 1:nD){ # midpt = mid-point of each cell
-  
-  p[g] <- exp(-midpt[g] * midpt[g] / (2*sigma*sigma))
-  pi[g] <- delta / B # Probability per interval
-  
-  f <- p[g] * pi[g] # f = pi greek simbol in book (pi = p*psi)
-  # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
-  #            p  is the integral under the detection function over the bin h     
-  # Detection probability in a site in a distance bin 
-  # probability of being in that bin given the size of the bin
-  
-  fc[g] <- f / pcap # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
-}
 
 # Inits
 Nst <- ncap + 1
@@ -517,3 +500,114 @@ library(jagsUI)
 out3 <- jags(win.data, inits, params, "model3.txt", n.thin=nt,
              n.chains=nc, n.burnin=nb, n.iter=ni)
 print(out3, 2)
+
+# ---- Three part multinomial model with ISSJ data and transect effect in sigma ----
+
+# Load the ISSJ data
+library(unmarked)
+data(issj)
+
+# Prepare some data
+nD <- 3 # Number of intervals
+delta <- 100 # Interval width
+B <- 300 # Upper bound (max. distance)
+midpt <- c(50, 150, 250) # mid points
+
+# Convert vector frequencies to individual distance class
+H <- as.matrix(issj[,1:3])
+nsites <- nrow(H)
+ncap <- apply(H, 1, sum) # Number of individuals detected per site
+dclass <- rep(col(H), H) # Distance class of each individual
+
+nind <- length(dclass) # Number of individuals detected
+elevation <- as.vector(scale(issj[,c("elevation")])) # Prepare covariates
+forest <- as.vector(scale(issj[,"forest"]))
+chaparral <- as.vector(scale(issj[,"chaparral"]))
+
+# Bundle and summarize data set
+str( win.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,delta=delta,
+                      ncap=ncap, chaparral=chaparral, elevation=elevation, dclass=dclass) )
+# BUGS model specification
+cat("
+    model{
+    # Priors
+    sigma ~ dunif(0,1000)
+    beta0 ~ dunif(-10,10)
+    beta1 ~ dunif(-10,10)
+    beta2 ~ dunif(-10,10)
+    beta3 ~ dunif(-10,10)
+    sigma.site ~ dunif(0,10)
+    tau <- 1/(sigma.site*sigma.site)
+
+    # Specify hierarchical model
+    for(i in 1:nind){
+    dclass[i] ~ dcat(fc[]) # Part 1 of HM
+                            # 1 p associated to each bin for all sites
+    }
+
+    # Construct cell probabilities for nD cells
+    for(g in 1:nD){ # midpt = mid-point of each cell
+    log(p[g]) <- -midpt[g] * midpt[g] / (2 * sigma * sigma)
+    pi[g] <- ((2 * midpt[g]) / (B * B)) * delta # prob. per interval
+    f[g] <- p[g] * pi[g]
+    fc[g] <- f[g] / pcap # p varies by bin but not by site
+    }
+
+    pcap <- sum(f[]) # Pr(capture): sum of rectangular areas
+
+    for(s in 1:nsites){
+
+    ncap[s] ~ dbin(pcap, N[s]) # Part 2 of HM
+    N[s] ~ dpois(lambda[s]) # Part 3 of HM
+    log(lambda[s]) <- beta0 + beta1*elevation[s] + beta2*chaparral[s] +
+    beta3*chaparral[s]*chaparral[s] + site.eff[s]
+
+    # Linear model for abundance
+    site.eff[s] ~ dnorm(0, tau) # Site log normal 'residuals'
+    }
+    # Derived params
+    Ntotal <- sum(N[])
+    area <- nsites*3.141*300*300/10000 # Total area sampled, ha
+    D <- Ntotal/area
+    }
+    ",fill=TRUE, file="model5.txt")
+
+# Priors
+sigma ~ dunif(0,1000)
+beta0 ~ dunif(-10,10)
+beta1 ~ dunif(-10,10)
+beta2 ~ dunif(-10,10)
+beta3 ~ dunif(-10,10)
+sigma.site ~ dunif(0,10)
+tau <- 1/(sigma.site*sigma.site)
+
+# Specify hierarchical model
+for(i in 1:nind){
+  dclass[i] ~ dcat(fc[]) # Part 1 of HM
+}
+
+# Construct cell probabilities for nD cells
+for(g in 1:nD){ # midpt = mid-point of each cell
+  p <- exp(-midpt[g] * midpt[g] / (2 * sigma * sigma))
+  pi <- ((2 * midpt[g]) / (B * B)) * delta # prob. per interval
+  f <- p * pi
+  fc <- f / sum(f[])
+}
+
+pcap <- sum(f[]) # Pr(capture): sum of rectangular areas
+
+for(s in 1:nsites){
+  
+  ncap[s] ~ dbin(pcap, N[s]) # Part 2 of HM
+  N[s] ~ dpois(lambda[s]) # Part 3 of HM
+  log(lambda[s]) <- beta0 + beta1*elevation[s] + beta2*chaparral[s] +
+    beta3*chaparral[s]*chaparral[s] + site.eff[s]
+  
+# Inits
+Nst <- ncap + 1
+inits <- function(){list (sigma = runif(1, 30, 100), beta0 = 0, beta1 = 0, beta2 = 0,
+                          beta3 = 0, N = Nst, sigma.site = 0.2)}
+# Params to save
+params <- c("sigma", "beta0", "beta1", "beta2", "beta3", "sigma.site", "Ntotal","D")
+# MCMC settings
+ni <- 52000 ; nb <- 2000 ; nt <- 2 ; nc <- 3

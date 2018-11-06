@@ -27,7 +27,7 @@ nSites <- 50					# number of line transect surveys
 strip.width <- 10 				# strip half-width, w (in this example only one side of the line transect is surveyed)
 int.w<-1					# width of distance categories (v)
 dist.breaks <- seq(0, strip.width, by=int.w)	# distance break points
-nG<-length(dist.breaks)-1			# number of distance categories
+nG <- length(dist.breaks)-1			# number of distance categories
 
 
 ############################################################################################################
@@ -66,8 +66,8 @@ while(iter<=niter){
   
   #####simulate site-specific binary covariate and species and site specific detection parameter sigma 
   
-  obscov<-rbinom(nSites, 1, 0.6)			# observation covariate
-  s.alpha<-rnorm(n.spec, mu.s, sig.s)		# detection intercept
+  obscov <- rbinom(nSites, 1, 0.6)			# observation covariate
+  s.alpha <- rnorm(n.spec, mu.s, sig.s)		# detection intercept
   
   ###makes a species by site matrix for Scale parameter of half-normal detection function 
   sigma <- exp(matrix(s.alpha, nrow=n.spec, ncol=nSites) + 

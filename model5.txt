@@ -1,0 +1,42 @@
+
+    model{
+    # Priors
+    sigma ~ dunif(0,1000)
+    beta0 ~ dunif(-10,10)
+    beta1 ~ dunif(-10,10)
+    beta2 ~ dunif(-10,10)
+    beta3 ~ dunif(-10,10)
+    sigma.site ~ dunif(0,10)
+    tau <- 1/(sigma.site*sigma.site)
+
+    # Specify hierarchical model
+    for(i in 1:nind){
+    dclass[i] ~ dcat(fc[]) # Part 1 of HM
+    }
+
+    # Construct cell probabilities for nD cells
+    for(g in 1:nD){ # midpt = mid-point of each cell
+    log(p[g]) <- -midpt[g] * midpt[g] / (2 * sigma * sigma)
+    pi[g] <- ((2 * midpt[g]) / (B * B)) * delta # prob. per interval
+    f[g] <- p[g] * pi[g]
+    fc[g] <- f[g] / pcap
+    }
+
+    pcap <- sum(f[]) # Pr(capture): sum of rectangular areas
+
+    for(s in 1:nsites){
+
+    ncap[s] ~ dbin(pcap, N[s]) # Part 2 of HM
+    N[s] ~ dpois(lambda[s]) # Part 3 of HM
+    log(lambda[s]) <- beta0 + beta1*elevation[s] + beta2*chaparral[s] +
+    beta3*chaparral[s]*chaparral[s] + site.eff[s]
+
+    # Linear model for abundance
+    site.eff[s] ~ dnorm(0, tau) # Site log normal 'residuals'
+    }
+    # Derived params
+    Ntotal <- sum(N[])
+    area <- nsites*3.141*300*300/10000 # Total area sampled, ha
+    D <- Ntotal/area
+    }
+    
