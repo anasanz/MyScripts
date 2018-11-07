@@ -1,7 +1,7 @@
 
 rm(list=ls())
 
-library(jagsUI)
+library(rjags)
 
 # ---- Data simulation ----
 #### Simulate abundance for one species; one sigma; site-specific lambda
@@ -79,59 +79,82 @@ for(j in 1:nSites){
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nsites=nSites, nG=nG, db=dist.breaks, int.w=int.w, strip.width = strip.width, 
-            y = y.sum, nind=nind, dclass=dclass, site=sst)
+data1 <- list(nsites=nSites, nG=nG, int.w=int.w, strip.width = strip.width, 
+            y = y.sum, nind=nind, dclass=dclass, midpt = midpt)
        
 # ---- JAGS model ----
 
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
-cat("
-    model{
+cat("model{
     # Priors
-    mu.lam ~ dunif(0, 10)
+    mu.lam ~ dunif(-10, 10) # I allow it to have negative values because the log of lambda can have
     sig.lam ~ dunif(0, 10)
     sigma ~ dunif(0, 1000)
+    tau.lam <- 1/(sig.lam*sig.lam)
     
     for(i in 1:nind){
-    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+    dclass[i] ~ dcat(fc[]) # Part 1 of HM
     }
     
-    for(j in 1:nsites){
-    
-    # Construct cell probabilities for nD multinomial cells (distance categories)
-    for(k in 1:nD){ 
-    log(p[j,k]) <- -midpt[k] * midpt[k] / (2*sigma*sigma)
-    pi[j,k] <- int.w[k] / strip.width # Probability per interval
-    f[j,k] <- p[j,k] * pi[j,k] # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
-                                          # p  is the integral under the detection function over the bin h 
-    fc[j,k] <- f[j,k] / pcap # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
+    # Construct cell probabilities for nG multinomial cells (distance categories)
+    for(k in 1:nG){ 
+    log(p[k]) <- -midpt[k] * midpt[k] / (2*sigma*sigma)
+    pi[k] <- int.w[k] / strip.width # Probability per interval
+    f[k] <- p[k] * pi[k] # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
+    # p  is the integral under the detection function over the bin h 
+    fc[k] <- f[k] / pcap # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
     }
-    
     pcap <- sum(f[]) # Pr(capture): sum of rectangular areas
-    
+
+    for(j in 1:nsites){
     y[j] ~ dbin(pcap, N[j]) # Part 2 of HM
     N[j] ~ dpois(lambda[j]) # Part 3 of HM
-    log(lambda[j]) ~ dnorm(mu.lam, sig.lam)
-    
+    lambda[j] <- exp(log.lambda[j])
+    log.lambda[j] ~ dnorm(mu.lam, tau.lam)
     }
     # Derived parameters
     Ntotal <- sum(N[])
     area <- nsites*1*2*strip.width # Unit length == 1, half-width = B
     D <- Ntotal/area
-    }
-    
     }",fill=TRUE, file = "s_sigma_lambda_j.txt")
 
-
+  
 # Inits
-Nst <- y + 1
+Nst <- y.sum + 1
 inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, sigma = runif(1, 20, 100), N=Nst)}
 
 # Params
 params <- c("Ntotal", "N", "D", "sigma", "lambda", "mu.lam", "sig.lam")
 
 # MCMC settings
-nc <- 1 ; ni <- 10000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
 
-out <- jags(data1, inits, params, "s_sigma_lambda_j.txt", n.chains = nc,
-            n.thin = nt, n.iter = ni, n.burnin = nb)
+# With jagsUI 
+ out <- jags(data1, inits, params, "s_sigma_lambda_j.txt", n.chain = nc,
+                 n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+ print(out)
+ out$sims.list$N
+
+ setwd("C:/Users/Ana/Documents/Second chapter/Data/Model/Plots")
+ pdf(file = "4.1.s_sigma_lambda_j.pdf")
+ par(mfrow = c(1,2))
+ plot(density(out$sims.list$Ntotal), xlab="Population size", ylab="Frequency", frame = F) 
+ abline(v = N.tot, col = "blue", lwd = 3)
+ abline(v = mean(out$sims.list$Ntotal), col = "red", lwd = 3)
+ 
+ plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
+ abline(v = sigma, col = "blue", lwd = 3) 
+ abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
+ 
+ dev.off()
+ 
+# With rjags
+modelFile = "s_sigma_lambda_j.txt"
+mod <- jags.model(modelFile, data1, inits, n.chain = nc, n.adapt = 500)
+out <- coda.samples(mod, params, n.iter = 8000, thin=8)
+summary(out)
+traceplot(out)
+mod$
+outplot(apply(samps.jags$predicted, 1, mean), apply(samps.jags$residual, 1, mean), main ="Residuals vs. predicted
+values", las= 1, xlab= "Predicted values", ylab= "Residuals")
+abline(h= 0)
