@@ -2,6 +2,7 @@
 rm(list=ls())
 
 library(rjags)
+library(jagsUI)
 
 # ---- Data simulation ----
 #### Simulate abundance for one species; one sigma; site-specific lambda
@@ -101,7 +102,7 @@ cat("model{
     log(p[k]) <- -midpt[k] * midpt[k] / (2*sigma*sigma)
     pi[k] <- int.w[k] / strip.width # Probability per interval
     f[k] <- p[k] * pi[k] # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
-    # p  is the integral under the detection function over the bin h 
+                                    # p  is the integral under the detection function over the bin h 
     fc[k] <- f[k] / pcap # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
     }
     pcap <- sum(f[]) # Pr(capture): sum of rectangular areas
@@ -116,9 +117,8 @@ cat("model{
     Ntotal <- sum(N[])
     area <- nsites*1*2*strip.width # Unit length == 1, half-width = B
     D <- Ntotal/area
-    }",fill=TRUE, file = "s_sigma_lambda_j.txt")
+    }",fill=TRUE, file = "s_sigma_lambda_norm_j.txt")
 
-  
 # Inits
 Nst <- y.sum + 1
 inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, sigma = runif(1, 20, 100), N=Nst)}
@@ -130,10 +130,11 @@ params <- c("Ntotal", "N", "D", "sigma", "lambda", "mu.lam", "sig.lam")
 nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
- out <- jags(data1, inits, params, "s_sigma_lambda_j.txt", n.chain = nc,
+ out <- jags(data1, inits, params, "s_sigma_lambda_norm_j.txt", n.chain = nc,
                  n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
  print(out)
- out$sims.list$N
+ traceplot(out)
+
 
  setwd("C:/Users/Ana/Documents/Second chapter/Data/Model/Plots")
  pdf(file = "4.1.s_sigma_lambda_j.pdf")
@@ -147,14 +148,72 @@ nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
  abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
  
  dev.off()
+ out$q2.5
+ 
+ par(mfrow = c(1,1))
+ plot(out$mean$N, pch = 19) # Plot true abundance per site
+ x <- seq(1,50)
+ arrows(x, out$q2.5$N, x, out$q97.5$N, code = 3, angle = 90, length = 0.04) #
+ points(out$mean$lambda, col = "red", pch = 19)
+ abline(h = exp(out$mean$mu.lam), lty = 2, col = "red")
+ abline(h =  median(out$mean$lambda), lty = 2, col = "green")
+ 
  
 # With rjags
 modelFile = "s_sigma_lambda_j.txt"
 mod <- jags.model(modelFile, data1, inits, n.chain = nc, n.adapt = 500)
 out <- coda.samples(mod, params, n.iter = 8000, thin=8)
 summary(out)
+samps.jags <- jags.samples(mod, params, ni, nt, n.burnin=nb)
+
+# ---- Run model with only one lambda (not random effects in site) ----
+
+# This is only to see if the facto of not adding non-explained random variation 
+# results in the same estimates every time I run the model -> YES :)
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+cat("model{
+    # Priors
+    lambda ~ dunif(0, 1000)
+    sigma ~ dunif(0, 1000)
+    
+    for(i in 1:nind){
+    dclass[i] ~ dcat(fc[]) # Part 1 of HM
+    }
+    
+    # Construct cell probabilities for nG multinomial cells (distance categories)
+    for(k in 1:nG){ 
+    log(p[k]) <- -midpt[k] * midpt[k] / (2*sigma*sigma)
+    pi[k] <- int.w[k] / strip.width # Probability per interval
+    f[k] <- p[k] * pi[k] # f = p*pi;  pi is the probability of occurring in the interval (pi = delta/B)
+    # p  is the integral under the detection function over the bin h 
+    fc[k] <- f[k] / pcap # Prob of detection in that cell relative to the total pdetection in the site (sum of p of all bins)
+    }
+    pcap <- sum(f[]) # Pr(capture): sum of rectangular areas
+    
+    for(j in 1:nsites){
+    y[j] ~ dbin(pcap, N[j]) # Part 2 of HM
+    N[j] ~ dpois(lambda) # Part 3 of HM
+
+    }
+    # Derived parameters
+    Ntotal <- sum(N[])
+    area <- nsites*1*2*strip.width # Unit length == 1, half-width = B
+    D <- Ntotal/area
+    }",fill=TRUE, file = "s_sigma_lambda_j.txt")
+
+# Inits
+Nst <- y.sum + 1
+inits <- function(){list(lamda = Nst, sigma = runif(1, 20, 100), N=Nst)}
+
+# Params
+params <- c("Ntotal", "N", "D", "sigma", "lambda")
+
+# MCMC settings
+nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
+
+# With jagsUI 
+out <- jags(data1, inits, params, "s_sigma_lambda_j.txt", n.chain = nc,
+            n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+print(out)
 traceplot(out)
-mod$
-outplot(apply(samps.jags$predicted, 1, mean), apply(samps.jags$residual, 1, mean), main ="Residuals vs. predicted
-values", las= 1, xlab= "Predicted values", ylab= "Residuals")
-abline(h= 0)

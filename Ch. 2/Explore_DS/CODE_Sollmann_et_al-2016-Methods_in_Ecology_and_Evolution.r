@@ -174,8 +174,8 @@ while(iter<=niter){
   modelFile1='Community_DS_Simulations.txt'
   
   ### compile and adapt JAGS model, then generate posterior samples (adjust n.iter for n=5 to 20000)
-  mod<-jags.model(modelFile1, data1, inits1, n.chain=1, n.adapt=500)
-  out<-coda.samples(mod, params1, n.iter=8000, thin=8)
+  mod <- jags.model(modelFile1, data1, inits1, n.chain=1, n.adapt=500)
+  out <- coda.samples(mod, params1, n.iter=8000, thin=8)
   
   ### save model output for post-processing
   dput(out,  paste('Output_spec',n.spec,'_', iter, '.R', sep=''))
@@ -196,7 +196,8 @@ while(iter<=niter){
 #### this code needs to be written to a .txt file called 'Community_DS_Simulations.txt'
 #### if given a different name, adjust accordingly in the code above
 
-
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+cat("
 model{
   
   ###species specific parameters
@@ -306,7 +307,7 @@ model{
   }
   
   
-}
+}",fill=TRUE, file = "Community_DS_Simulations.txt")
 
 
 

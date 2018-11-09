@@ -8,7 +8,7 @@ library(rgdal)
 # ---- Load data ----
 
 #Transects
-tr <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Farmdindis/Maps/transectes", "Trans_2017") # Contains transects sampled each year (1/0)
+tr <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Farmdindis/Maps/transectes", "Trans_2017_EPSG23031") # Contains transects sampled each year (1/0)
 tr@data$FETS2017 <- as.numeric(tr@data$FETS2017)
 tr@data$FETS2017[which(is.na(tr@data$FETS2017))] <- 0
 
@@ -58,6 +58,6 @@ tr@data[which(tr@data$Codi %in% irri_change_ID[12]), c(12,13,14) ] <- 0
 
 writeOGR(tr,
          dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Farmdindis/Maps/transectes", 
-         layer = "Transects_2010_2017", driver = "ESRI Shapefile")
+         layer = "Transects_2010_2017_EPSG23031", driver = "ESRI Shapefile")
 
 
