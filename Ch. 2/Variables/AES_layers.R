@@ -10,7 +10,7 @@ library(tidyr)
 # ---- 2010 ----
 # Load dun2010 (with measure 312)
 
-setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/DUN/ID_REC_AES")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/2010-2014/DUN/ID_REC_AES")
 
 d10 <- read.csv("IDREC_AES_2010.csv", sep = ";")
 
@@ -86,7 +86,7 @@ for (i in 1:nrow(df)){
 
 # Join select id_rec from sigpac that are AES (id from df)
 # Load sigpac2010
-sp10 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/SIGPAC_2010", layer = "sp10_clip")
+sp10 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/2010-2014/SIGPAC_2010", layer = "sp10_clip")
 
 # Same name df = sigpac
 colnames(df)[colnames(df) == "ID_REC"] <- "CODI_REC"
@@ -283,7 +283,7 @@ writeOGR(sp12_aes,
 # ---- 2013 ----
 # Load dun2013 (with measure 312)
 
-setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/DUN/ID_REC_AES")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/2010-2014/DUN/ID_REC_AES")
 
 d13 <- read.csv("ID_REC_AES_2013.csv", sep = ";")
 
@@ -318,6 +318,8 @@ dup_all$ID_REC <- as.character(dup_all$ID_REC)
 id_dup <- unique(dup_all$ID_REC) # List ids duplicated
 dup <- d13[which(d13$ID_REC %in% id_dup), ] # Only to check
 dup <- arrange(dup,desc(ID_REC))
+du <- arrange(dup, desc(HA_DEC))
+dup[which(dup$ID_REC == "25010:0:0:6:12:13"), ]
 
 #Data frame to store
 
@@ -605,26 +607,30 @@ writeOGR(d17,
          dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2017", driver = "ESRI Shapefile")
 
 # ---- Correct units layers 2010, 2013, 2014 ----
-aes10 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2010")
-colnames(aes10@data)[colnames(aes10@data) == "HA_SP"] <- "HA_SP2" #Because it had already a field with this name
-colnames(aes10@data)[colnames(aes10@data) == "SUP_HA"] <- "HA_SP"
-aes13 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2013")
-aes14 <- readOGR("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2014")
+aes10 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2010_EPSG23031")
+aes13 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2013_EPSG23031")
+aes14 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2014_EPSG23031")
 
-layers <- list(aes10,aes13,aes14)
+aes10@data <- aes10@data[ ,-which(colnames(aes10@data) %in% "HA_SP")]
+colnames(aes10@data)[colnames(aes10@data) == "HA_SP2"] <- "HA_SP" #Because it had already a field with this name
 
-for (i in 1:3){
-  layers[[i]]@data$HA_SP <- layers[[i]]@data$HA_SP/1000000
-  layers[[i]]@data$HA_Crop <- layers[[i]]@data$HA_Crop/10000
-  layers[[i]]@data$HA_Fallow <- layers[[i]]@data$HA_Fallow/10000
-}
+# Correct separatledly per year because I dont know how to index this loop
+# aes10
+aes10@data$HA_SP <- aes10@data$HA_SP/1000000
+aes10@data$HA_Crop <- aes10@data$HA_Crop/10000
+aes10@data$HA_Fallow <- aes10@data$HA_Fallow/10000
+#writeOGR(aes10, dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2010_EPSG23031", driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
-layers_ready <- list(aes10,aes13,aes14)
+# aes13
+aes13@data$HA_SP <- aes13@data$HA_SP/1000000
+aes13@data$HA_Crop <- aes13@data$HA_Crop/10000
+aes13@data$HA_Fallow <- aes13@data$HA_Fallow/10000
+#writeOGR(aes13, dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2013_EPSG23031", driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
-writeOGR(aes10, dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2010", driver = "ESRI Shapefile", overwrite_layer = TRUE)
-writeOGR(aes13, dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2013", driver = "ESRI Shapefile", overwrite_layer = TRUE)
-writeOGR(aes14, dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2014", driver = "ESRI Shapefile", overwrite_layer = TRUE)
+# aes14
+aes14@data$HA_SP <- aes14@data$HA_SP/1000000
+aes14@data$HA_Crop <- aes14@data$HA_Crop/10000
+aes14@data$HA_Fallow <- aes14@data$HA_Fallow/10000
+#writeOGR(aes14, dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2014_EPSG23031", driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
-
-names(aes10@data)
 
