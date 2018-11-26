@@ -16,24 +16,31 @@ library(dplyr)
 tr <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS", "Transects_2010_2017_EPSG23031") # Contains transects sampled each year (1/0)
 
 # AES and fix fields where needed
-aes10 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2010_EPSG23031")
-aes11 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2011_EPSG23031")
+aes10 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2010_EPSG23031")
+aes11 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2011_EPSG23031")
 colnames(aes11@data)[2] <- "HA_SP"
-aes12 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2012_EPSG23031")
+aes12 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2012_EPSG23031")
 colnames(aes12@data)[2] <- "HA_SP"
-aes13 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2013_EPSG23031")
-aes14 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2014_EPSG23031")
-aes15 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2015_EPSG23031")
-aes16 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2016_EPSG23031")
-aes16 <- aes16[which(aes16)] #...select fields with only fallows and see if the fucking orphan hole is fixed
-aes17 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2017_EPSG23031")
-# Same in 17 than in 16
+aes13 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2013_EPSG23031")
+aes14 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2014_EPSG23031")
+aes15 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2015_EPSG23031")
+aes16 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2016_EPSG23031")
+aes16 <- aes16[which(aes16@data$PROD_NOM == "FALLOW"), ] #...select fields with only fallows and see if the fucking orphan hole is fixed
+#writeOGR(aes16, dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", 
+#         layer = "AES_2016_EPSG23031_FALLOW", driver = "ESRI Shapefile") # Save layer to make intersect in arcgis
+aes16 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2016_EPSG23031_FALLOW_intersect")
+# Layer of 16 with the intersection already done
+aes17 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031", layer = "AES_2017_EPSG23031")
+aes17 <- aes17[which(aes17@data$PROD_NOM == "FALLOW"), ] #...select fields with only fallows and see if the fucking orphan hole is fixed
+
 
 # SG
 sg14 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/SG", layer = "SG_2014_EPSG23031")
+colnames(sg14@data)[colnames(sg14@data) == "Codi"] <- "Codi.2"
 sg15 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/SG", layer = "SG_2015_EPSG23031")
 sg16 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/SG", layer = "SG_2016_EPSG23031")
 sg17 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/SG", layer = "SG_2017_EPSG23031")
+
 
 
 # ---- Create buffers and calculate area ----
@@ -80,8 +87,6 @@ layers <- list(aes16, aes17)
 layers_names <- c("aes16", "aes17")
 
 
-
-
 for (i in 1:length(layers)){
   
   poli <- raster::intersect(buf, layers[[i]]) # Intersect buffers with management fields polygons
@@ -91,29 +96,36 @@ for (i in 1:length(layers)){
   # Proportional intersecting area of fallow:
  # poli$ha_intersect_fallow <- poli$ha_intersect_buffer*poli$HA_Fallow/poli$HA_SP 
   
-  transect_area <- aggregate(ha_intersect_fallow ~ Codi, data = poli, FUN = sum) # Sum area of polygons belonging to a buffer
+  transect_area <- aggregate(ha_intersect_buffer ~ Codi, data = poli, FUN = sum) # Sum area of polygons belonging to a buffer
   
   colnames(transect_area)[2] <- paste("area", layers_names[i], sep = "_") # Change column name to store it
   management <- left_join(management, transect_area, by = "Codi") # Store area
   management[is.na(management)] <- 0 # Substitute NA by 0
 }
 
-# SG LEFT!
+# ---- SG 14-17 ----
 
-poli <- raster::intersect(buf, aes10)
-plot(aes10)
-buf@data
-aes10@data
-poli@data
+layers <- list(sg14, sg15, sg16, sg17)
+layers_names <- c("sg14", "sg15", "sg16", "sg17")
 
-plot(poli)
-plot(buf[1, ])
-plot(area_aes_10, add = TRUE)
-
-plot(buf2)
-plot(buf2[1, ])
-plot(tr[1, ], add = T)
-
-for (i in 1:nrow(tr@data)) {
+for (i in 1:length(layers)){
   
+  poli <- raster::intersect(buf, layers[[i]]) # Intersect buffers with management fields polygons
+  poli$ha_intersect_buffer <- area(poli)/10000 # Calculate area of what falls in the buffer (in ha)
+  
+  # HERE NOTHING
+  # Proportional intersecting area of fallow:
+  # poli$ha_intersect_fallow <- poli$ha_intersect_buffer*poli$HA_Fallow/poli$HA_SP 
+  
+  transect_area <- aggregate(ha_intersect_buffer ~ Codi, data = poli, FUN = sum) # Sum area of polygons belonging to a buffer
+  
+  colnames(transect_area)[2] <- paste("area", layers_names[i], sep = "_") # Change column name to store it
+  management <- left_join(management, transect_area, by = "Codi") # Store area
+  management[is.na(management)] <- 0 # Substitute NA by 0
 }
+
+# Save
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+write.csv(management, "mamagement_area.csv")
+
+
