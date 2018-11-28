@@ -677,7 +677,9 @@ write.csv(round(Nout, dig=3),paste('BetaByN_', n.spec, '.csv', sep='' ))
 
 library(rjags)
 
-sbdata<-dget("sbdata.R")  			# holds all data necessary for analysis below, available on Dryad
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples/Sollman_data")
+sbdata <- readRDS("sbdata.rds")
+#sbdata<-dget("sbdata.R")  			# holds all data necessary for analysis below, available on Dryad
 
 db<-seq(0, 1000, 100) 				# breaks for distance categories
 nG=length(db)-1       				# number of distance categories
@@ -694,7 +696,7 @@ nind=sum(y)    					# total number of observations
 nsp=dim(y)[2]	    				# number of species in data set
 nSeg = dim(y)[1]				# number of transects
 
-dclass<-sbdata$dclassb				# distance class for all observations
+dclass<-sbdata$dclass				# distance class for all observations
 species<-sbdata$spec				# species index for all observations
 site<-sbdata$site				# site index for all observations
 
