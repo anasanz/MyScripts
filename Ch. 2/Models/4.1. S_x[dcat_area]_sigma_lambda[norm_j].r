@@ -137,26 +137,43 @@ nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
 
 
  setwd("C:/Users/Ana/Documents/Second chapter/Data/Model/Plots")
- pdf(file = "4.1.s_sigma_lambda_j.pdf")
+ pdf(file = "4.2.d_mecal_sigma_lambda_j_TOTALPOP.pdf")
  par(mfrow = c(1,2))
  plot(density(out$sims.list$Ntotal), xlab="Population size", ylab="Frequency", frame = F) 
- abline(v = N.tot, col = "blue", lwd = 3)
+ #abline(v = N.tot, col = "blue", lwd = 3)
  abline(v = mean(out$sims.list$Ntotal), col = "red", lwd = 3)
  
  plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
- abline(v = sigma, col = "blue", lwd = 3) 
+ #abline(v = sigma, col = "blue", lwd = 3) 
  abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
  
  dev.off()
  out$q2.5
  
- par(mfrow = c(1,1))
- plot(out$mean$N, pch = 19) # Plot true abundance per site
+ setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model/Plots")
+ pdf(file = "4.2.d_mecal_sigma_lambda_j_TRANSECTS.pdf")
+ par(mfrow = c(3,1))
+ plot(out$mean$N[1:50], pch = 19, xaxt = "n", ylab = "Abundance",ylim = c(0,40), xlab = "Transect") # Plot true abundance per site
+ axis(1, at=1:50, labels= names(y.sum)[1:50], cex.axis = 0.7, las = 2)
  x <- seq(1,50)
- arrows(x, out$q2.5$N, x, out$q97.5$N, code = 3, angle = 90, length = 0.04) #
- points(out$mean$lambda, col = "red", pch = 19)
- abline(h = exp(out$mean$mu.lam), lty = 2, col = "red")
- abline(h =  median(out$mean$lambda), lty = 2, col = "green")
+ arrows(x, out$q2.5$N[1:50], x, out$q97.5$N[1:50], code = 3, angle = 90, length = 0.04) #
+ #points(out$mean$lambda, col = "red", pch = 19)
+ #abline(h = exp(out$mean$mu.lam), lty = 2, col = "red")
+ #abline(h =  median(out$mean$lambda), lty = 2, col = "green")
+ mtext("MECAL 2017", side = 3, cex = 1, line = 1)
+ 
+ plot(out$mean$N[51:100], pch = 19, xaxt = "n", ylab = "Abundance",ylim = c(0,40), xlab = "Transect") # Plot true abundance per site
+ axis(1, at=1:50, labels= names(y.sum)[51:100], cex.axis = 0.7, las = 2)
+ x <- seq(1,50)
+ arrows(x, out$q2.5$N[51:100], x, out$q97.5$N[51:100], code = 3, angle = 90, length = 0.04) #
+ 
+ plot(out$mean$N[101:153], pch = 19, xaxt = "n", ylab = "Abundance", ylim = c(0,40), xlab = "Transect") # Plot true abundance per site
+ axis(1, at=1:53, labels= names(y.sum)[101:153], cex.axis = 0.7, las = 2)
+ x <- seq(1,53)
+ arrows(x, out$q2.5$N[101:153], x, out$q97.5$N[101:153], code = 3, angle = 90, length = 0.04) #
+ 
+ 
+ dev.off()
  
  
 # With rjags
