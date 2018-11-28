@@ -34,7 +34,7 @@ nG <- length(dist.breaks)-1
 y <- as.data.frame(array(0, c(nSites, length(dist.breaks)-1)))
 rownames(y) <- tr2017
 
-ID <- unique(m$transectID)
+ID <- unique(m$transectID) # order transects = dclass
 bin.breaks <- c(0,1,2,3,4)
 
 for (i in 1:length(ID)){
@@ -45,7 +45,23 @@ for (i in 1:length(ID)){
   
 y.sum <- apply(y, 1, sum) # Total count per site
 nind <- sum(y)
+dclass <- m$Banda
+length(dclass) #394 and it should be 353. There are sampled transects not included in the layer? (41obs)
+                # PROBLEMS: SI02 (it is transect SI102, the SI02 doesnt exist and wasnt sampled) --> Error mio (4obs)
+                #           AF27 (doesnt appear en layer, like if it wasnt sampled but I have data) (8obs)
+                #           BE29 " (8obs)
+                #           AF02 " (11obs)
+                #           BE46 " (6obs)
+                #           SI98 " (1obs)
 
+
+
+
+
+y[which(rownames(y) == "SI98"),]
+tr@data[tr@data$Codi == "AF27", ]
+which(m$transectID == "BE29")
+length(which(m$transectID == "SI02"))
 
 
 # ---- Compile data for JAGS model ----
