@@ -126,6 +126,6 @@ for (i in 1:length(layers)){
 
 # Save
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
-write.csv(management, "mamagement_area.csv")
+write.csv(management, "management_area.csv")
 
 
