@@ -29,6 +29,7 @@ prop$tmp <- NA
 for (i in 1:nrow(prop)){
   if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
 transects <- tapply(prop$tmp,prop$Temp,sum)
+
 # Second, divide observations/number of transects
 observations <- xtabs(~Temp, dat_temp) # Number of observations with each temperature
 
@@ -257,3 +258,85 @@ for (j in 1:length(other)){
       hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(other[j], "- obs ",obs1[i]),
            freq = FALSE)}}
 }
+
+# ---- Fallow vegetation height ----
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+veg <- read.csv("veg_management.csv")
+
+dat_veg <- left_join(dat, veg, by = "T_Y")
+
+hist(dat_veg$heightFallow)
+
+# SInce it is continuous, maybe I have to discretize it to check proportion or other way?
+# ---- Clutch size (Count) ----
+
+# Corrected by the number of transects:
+# First, see how many transects were sampled at that temperature
+dat_count <- dat[-which(dat$Count > 60),] # Remove from 60 to see it better
+
+prop <- as.data.frame(xtabs(~ Count + transectID, dat_count))
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Count,sum)
+
+# Second, divide observations/number of transects
+observations <- xtabs( ~ Count, dat_count) # Number of observations with each count
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq) # It seems like it is influenced by 23ºC
+hist(freq, main = "All sp - Temperature") # 15ºC looks like the best
+
+
+
+# B. Target species 
+
+dat_count <- dat[-which(dat$Temp > 40),]
+par(mfrow = c(1,3))
+for (i in 1:3){
+  hist(dat_count$Count[which(dat_count$Species %in% target[i])], main = paste(target[i], "- Clutch size")) 
+}
+
+# Corrected by the number of transects for BUOED
+dat_count_buo <- dat_count[which(dat_count$Species == "BUOED"), ]
+prop <- as.data.frame(xtabs(~ Count + transectID, dat_count_buo))
+
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Count,sum)
+observations <- xtabs( ~ Count, dat_count_buo) # Number of observations with each temperature
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq, main = "buoed")
+
+# Corrected by the number of transects for TERAX
+dat_count_buo <- dat_count[which(dat_count$Species == "TERAX"), ]
+prop <- as.data.frame(xtabs(~ Count + transectID, dat_count_buo))
+
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Count,sum)
+observations <- xtabs( ~ Count, dat_count_buo) # Number of observations with each temperature
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq, main = "terax")
+
+# Corrected by the number of transects for MECAL
+dat_count_buo <- dat_count[which(dat_count$Species == "MECAL"), ]
+prop <- as.data.frame(xtabs(~ Count + transectID, dat_count_buo))
+
+prop$tmp <- NA
+for (i in 1:nrow(prop)){
+  if(prop$Freq [i] >= 1){prop$tmp[i] <- 1} else {prop$tmp[i] <- 0}}
+transects <- tapply(prop$tmp,prop$Count,sum)
+observations <- xtabs( ~ Count, dat_count_buo) # Number of observations with each temperature
+
+freq <- observations/transects
+par(mfrow = c(1,1))
+plot(freq, main = "MECAL")
