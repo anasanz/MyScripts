@@ -157,4 +157,52 @@ for (i in 1:length(year)){
   veg[which(veg$Year == year[i]), which(colnames(veg) %in% c("area_AES", "area_SG"))] <- veg_manag[which(veg_manag$Year == year[i]), which(grepl(str_sub(year[i], start = -2), names(veg_manag)))]
 }
 
-i = 2
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+#write.csv(veg,"veg_management.csv")
+
+# ---- 3. Explore relation between vegetation height and management measure ----
+
+rm(list=ls())
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+veg <- read.csv("veg_management.csv")
+veg[which(veg$area_AES > 40), ] # They are outliers but they are fine
+
+# Check AES
+plot(covCereal ~ area_AES, data = veg, pch = 19)
+abline(lm(covCereal ~ area_AES, data = veg), pch = 19)
+plot(covCereal ~ area_AES, data = veg, xlim = c(0,20), pch = 19)
+
+plot(heightCereal ~ area_AES, data = veg)
+abline(lm(heightCereal ~ area_AES, data = veg), pch = 19)
+plot(heightCereal ~ area_AES, data = veg, xlim = c(0,20), pch = 19)
+
+plot(covFallow ~ area_AES, data = veg, pch = 19)
+abline(lm(covFallow ~ area_AES, data = veg), pch = 19)
+plot(covFallow ~ area_AES, data = veg,  xlim = c(0,20), pch = 19)
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Figures")
+pdf("heightFallow_AES.pdf")
+plot(heightFallow ~ area_AES, data = veg, pch = 19)
+abline(lm(heightFallow ~ area_AES, data = veg), pch = 19)
+dev.off()
+summary(lm(heightFallow ~ area_AES, data = veg))
+plot(heightFallow ~ area_AES, data = veg,  xlim = c(0,20), pch = 19) 
+      #Maybe the height of fallow is affected by a bigger area of AES within the buffer
+
+
+# Check Fallow
+plot(covFallow ~ area_SG, data = veg, pch = 19)
+abline(lm(covFallow ~ area_SG, data = veg), pch = 19)
+plot(covFallow ~ area_SG, data = veg,  xlim = c(0,20), pch = 19)
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Figures")
+pdf("heightFallow_SG.pdf")
+plot(heightFallow ~ area_SG, data = veg, pch = 19)
+abline(lm(heightFallow ~ area_SG, data = veg), pch = 19)
+dev.off()
+summary(lm(heightFallow ~ area_SG, data = veg))
+plot(heightFallow ~ area_SG, data = veg,  xlim = c(0,20), pch = 19) 
+      #Maybe the height of fallow is affected by a bigger area of SG within the buffer
+
+
