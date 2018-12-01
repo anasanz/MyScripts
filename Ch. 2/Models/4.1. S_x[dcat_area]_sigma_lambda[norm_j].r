@@ -61,20 +61,20 @@ for(j in 1:nSites) {
   counts <- table(cut(d1, dist.breaks, include.lowest=TRUE))
   y[j,] <- counts 				# The number of detections in each distance interval
 }
-y.sum<-apply(y, 1, sum) # Total count per site
+y.sum <- apply(y, 1, sum) # Total count per site
 
 
 # ---- Convert data to JAGS format ----
 
-nind<-sum(y)
+nind <- sum(y)
 
 sst<-dclass<-NULL
 
 for(j in 1:nSites){
   for (k in 1:nG){
     if (y[j,k] == 0) next
-    sst <- c(sst, rep(j, y[j,k]))		# Site index
-    dclass <- c(dclass, rep(k, y[j,k]))	# Distance category index
+    sst <- c(sst, rep(j, y[j,k]))		# Site index for the counted individuals
+    dclass <- c(dclass, rep(k, y[j,k]))	# Distance category index for the counted individuals
   }}
 
 
