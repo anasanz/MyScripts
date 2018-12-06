@@ -38,22 +38,40 @@ g(4,3)
 
 # RANDOM EFFECT IN SITE (INDEPENDENT OF THE YEAR)
 # Mean abundance and sd across sites
-mu.lam <- log(1.5)				
-sig.lam <- 1				
+mu.lam.alpha.site <- log(1.5)				
+sig.lam.alpha.site <- 1				
 ##Site effect in lambda
-log.lam <- rnorm(max.sites, mu.lam, sig.lam) # Here I add it as a random effect, it could be as a predictor with covariates
-lam <- exp(log.lam)                       # Also, I am assuming that lambda doesnt change by year
+lam.alpha.site <- rnorm(max.sites, mu.lam.alpha.site, sig.lam.alpha.site) 
+                       
 
 #ZONE COVARIATE (SITE)
-b.zoneA <- rnorm(1,0,0.01)
-b.zoneB <- rnorm(1,0,0.01)
+b.zoneA <- rnorm(1,0,0.05)
+b.zoneB <- rnorm(1,0,0.05)
 # Site specific binary co-variate
 z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
 z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, df)
+zone <- model.matrix(~ var-1, z)
+
+
 
 #AREA COVARIATE (SITE AND YEAR)
+#Coefficients
+b.a1 <- rnorm(1,0,0.05)
+b.a2 <- rnorm(1,0,0.05)
+#Covariates
+a1 <- abs(rnorm(max.sites, 10, 5))
+a2 <- abs(rnorm(max.sites, 5, 2.5))
 
+
+
+matrix(a1,nrow = max.sites, ncol = nyrs)
+
+
+lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
+             matrix(b.zoneA*zone[,1], nrow = max.sites, ncol = nyrs, byrow=T) +
+             matrix(b.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T) + 
+             matrix(b.a1*a1, nrow = max.sites, ncol = nyrs, byrow=T) +
+             matrix(b.a2*a2, nrow = max.sites, ncol = nyrs, byrow=T) )
 
 
 
@@ -61,7 +79,7 @@ zone <- model.matrix(~ var-1, df)
 N <- list()
 
 for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam[1:length(nSites[t])])
+  N[[t]] <- rpois(nSites[t],lam[1:length(nSites[t]), t])
 } # Here we can have all the sites because its the real abundance (even if we haven't sampled them??)
 
 NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
