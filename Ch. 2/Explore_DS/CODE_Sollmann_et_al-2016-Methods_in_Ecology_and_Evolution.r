@@ -88,7 +88,8 @@ while(iter<=niter){
   ##Poisson mean (log(expected abundance))
   lambda<-exp(matrix(lam.alpha, nrow=n.spec, ncol=nSites) + 
                 matrix(rep(b1,each=nSites )*rep(Ncov, times=n.spec), nrow=n.spec, ncol=nSites, byrow=T) ) 
-  
+  # Adds a random effect per species + a covariate that has a random effect in species (same for each, b1)
+  # and that covariate is different per site (but the same for all species)
   ##abundance
   N <- matrix(rpois(n.spec*nSites, as.vector(lambda)), nrow=n.spec, ncol=nSites ) 
   
