@@ -59,8 +59,8 @@ zone <- model.matrix(~ var-1, z)
 b.a1 <- rnorm(1,0,0.05)
 b.a2 <- rnorm(1,0,0.05)
 #Covariates
-a1 <- abs(rnorm(max.sites, 10, 5))
-a2 <- abs(rnorm(max.sites, 5, 2.5))
+a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
+a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
 
 
 
@@ -133,6 +133,29 @@ for (i in 1:nyrs){
   sitesYears <- c(sitesYears,c(1:nSites[i]))
 }
 
+# Create one long vector with covariate values
+area1 <- NULL
+for (i in 1:nyrs){
+  area1 <- c(area1,a1[1:nSites[i]])
+}
+
+area2 <- NULL
+for (i in 1:nyrs){
+  area2 <- c(area2,a2[1:nSites[i]])
+}
+
+zA <- as.vector(zone[,1])
+zoneA <- NULL
+for (i in 1:nyrs){
+  zoneA <- c(zoneA,zA[1:nSites[i]])
+}
+
+zB <- as.vector(zone[,2])
+zoneB <- NULL
+for (i in 1:nyrs){
+  zoneB <- c(zoneB,zB[1:nSites[i]])
+}
+
 
 # Get one long vector with years, distance category and site
 site <- dclass <- year <- NULL
@@ -164,8 +187,9 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nsites=nSites, nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, 
-              y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears)
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, 
+              y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
+              area1 = area1, area2 = area2, zoneA = zoneA, zoneB = zoneB)
 
 # ---- JAGS model ----
 
@@ -173,10 +197,22 @@ setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
 cat("model{
     # Priors
     
-    mu.lam ~ dunif(-10, 10) # I allow it to have negative values because the log of lambda can have
+    bzA.lam ~ dnorm(0, 0.001) # Coefficients for lambda
+    bzB.lam ~ dnorm(0, 0.001)
+    ba1.lam ~ dnorm(0, 0.001)
+    ba2.lam ~  dnorm(0, 0.001)
+
+    
+    mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
+                            # I allow it to have negative values because the log of lambda can have
     sig.lam ~ dunif(0, 10)
-    sigma ~ dunif(0, 1000)
     tau.lam <- 1/(sig.lam*sig.lam)
+    sigma ~ dunif(0, 1000)
+
+    #RANDOM TRANSECT LEVEL EFFECT FOR LAMBDA (doesn't change over time) # takes care of the dependence in data when you repeatedly visit the same transect
+    for (s in 1:max.sites){
+    log.lambda[s] ~ dnorm(mu.lam, tau.lam)
+    }
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fc[]) 
@@ -194,37 +230,36 @@ cat("model{
     for(j in 1:length(y)){ # sites*years. Because in my data there is different number of sites per year
     y[j] ~ dbin(pcap, N[j]) 
     N[j] ~ dpois(lambda[j]) 
-    lambda[j] <- exp(log.lambda[sitesYears[j]]) 
-    }
-    #RANDOM TRANSECT LEVEL EFFECT (doesn't change over time) # takes care of the dependence in data when you repeatedly visit the same transect
-    for (s in 1:max.sites){
-    log.lambda[s] ~ dnorm(mu.lam, tau.lam)
+    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzA.lam*zoneA[j] + bzB.lam*zoneB[j]
+                      + ba1.lam*area1[j] + ba2.lam*area2[j]) 
     }
     
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma_lambda_norm_j_year[jdif].txt")
+    }",fill=TRUE, file = "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt")
 
 # Inits
 Nst <- yLong + 1
-inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, sigma = runif(1, 20, 100), N=Nst)}
+inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, sigma = runif(1, 20, 100), N=Nst,
+                         bzA.lam = runif(1), bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1) )}
 
 # Params
-params <- c("Ntotal", "N", "sigma", "lambda", "mu.lam", "sig.lam")
+params <- c("Ntotal", "N", "sigma", "lambda", "mu.lam", "sig.lam", 
+            "bzA.lam", "bzB.lam", "ba1.lam", "ba2.lam")
 
 # MCMC settings
-nc <- 1 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma_lambda_norm_j_year[jdif].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
-
-
-
-traceplot(out)
+out$mean # Doesnt retreive estimates and bad pop.estimates
+summary <- as.data.frame(as.matrix(out$summary)) # Doesnt converge in zones and mu.lambda
+par(mfrow = c(1,1))
+traceplot(out, parameters = c("bzA.lam", "bzB.lam", "mu.lam")) # Chains didnt converge
 
 for (i in 1:nyrs){
   plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
@@ -237,6 +272,7 @@ plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F)
 abline(v = sigma, col = "blue", lwd = 3) 
 abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
 
+density(out$sims.list$sigma
 
 
 # With rjags
