@@ -142,11 +142,6 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2[1:nSites[i]])
 }
 
-#zA <- as.vector(zone[,1])
-#zoneA <- NULL
-#for (i in 1:nyrs){
-#  zoneA <- c(zoneA,zA[1:nSites[i]])
-#}
 
 zB <- as.vector(zone[,2])
 zoneB <- NULL

@@ -7,7 +7,7 @@ library(plyr)
 # ---- Data simulation ----
 #### Simulate abundance for one species:
 #8 years (unbalanced number of transects per year); lambda site specific; one sigma;
-# Zone variable. ONLY AREA 1 INCLUDED, IT CONVERGES AND RETREIVES ESTIMATES
+# Zone variable
 # Half-normal detection function
 g <- function(x, sig) exp(-x^2/(2*sig^2))
 
