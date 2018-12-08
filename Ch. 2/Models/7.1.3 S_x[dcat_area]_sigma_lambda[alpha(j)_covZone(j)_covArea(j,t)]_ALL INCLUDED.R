@@ -4,11 +4,10 @@ library(rjags)
 library(jagsUI)
 library(plyr)
 
-set.seed(2013)
 # ---- Data simulation ----
 #### Simulate abundance for one species:
 #8 years (unbalanced number of transects per year); lambda site specific; one sigma;
-# Zone variable and 2 areas variable
+# Zone variable and 2 areas again
 # Half-normal detection function
 g <- function(x, sig) exp(-x^2/(2*sig^2))
 
@@ -42,10 +41,10 @@ mu.lam.alpha.site <- log(1.5)
 sig.lam.alpha.site <- 1				
 ##Site effect in lambda
 lam.alpha.site <- rnorm(max.sites, mu.lam.alpha.site, sig.lam.alpha.site) 
-                       
+
 
 #ZONE COVARIATE (SITE)
-b.zoneA <- rnorm(1,0,0.05)
+#b.zoneA <- rnorm(1,0,0.05) #I wont include it (its in the intercept)
 b.zoneB <- rnorm(1,0,0.05)
 # Site specific binary co-variate
 z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
@@ -68,10 +67,10 @@ matrix(a1,nrow = max.sites, ncol = nyrs)
 
 
 lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
-             matrix(b.zoneA*zone[,1], nrow = max.sites, ncol = nyrs, byrow=T) +
-             matrix(b.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T) + 
-             matrix(b.a1*a1, nrow = max.sites, ncol = nyrs, byrow=T) +
-             matrix(b.a2*a2, nrow = max.sites, ncol = nyrs, byrow=T) )
+             matrix(b.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T)  
+           + matrix(b.a1*a1, nrow = max.sites, ncol = nyrs, byrow=T) 
+           + matrix(b.a2*a2, nrow = max.sites, ncol = nyrs, byrow=T) 
+)
 
 
 
@@ -144,11 +143,6 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2[1:nSites[i]])
 }
 
-zA <- as.vector(zone[,1])
-zoneA <- NULL
-for (i in 1:nyrs){
-  zoneA <- c(zoneA,zA[1:nSites[i]])
-}
 
 zB <- as.vector(zone[,2])
 zoneB <- NULL
@@ -189,7 +183,9 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, 
               y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area1 = area1, area2 = area2, zoneA = zoneA, zoneB = zoneB)
+              area1 = area1, 
+              area2 = area2, 
+              zoneB = zoneB)
 
 # ---- JAGS model ----
 
@@ -197,18 +193,18 @@ setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
 cat("model{
     # Priors
     
-    bzA.lam ~ dnorm(0, 0.001) # Coefficients for lambda
+    # Coefficients for lambda
     bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
-
+    
     
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
-                            # I allow it to have negative values because the log of lambda can have
+    # I allow it to have negative values because the log of lambda can have
     sig.lam ~ dunif(0, 10)
     tau.lam <- 1/(sig.lam*sig.lam)
     sigma ~ dunif(0, 1000)
-
+    
     #RANDOM TRANSECT LEVEL EFFECT FOR LAMBDA (doesn't change over time) # takes care of the dependence in data when you repeatedly visit the same transect
     for (s in 1:max.sites){
     log.lambda[s] ~ dnorm(mu.lam, tau.lam)
@@ -230,36 +226,40 @@ cat("model{
     for(j in 1:length(y)){ # sites*years. Because in my data there is different number of sites per year
     y[j] ~ dbin(pcap, N[j]) 
     N[j] ~ dpois(lambda[j]) 
-    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzA.lam*zoneA[j] + bzB.lam*zoneB[j]
-                      + ba1.lam*area1[j] + ba2.lam*area2[j]) 
+    lambda[j] <- exp(log.lambda[sitesYears[j]]  
+    + bzB.lam*zoneB[j] + ba1.lam*area1[j] 
+    + ba2.lam*area2[j]
+    ) 
     }
     
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt")
+    }",fill=TRUE, file = "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)_ALL INCLUDED].txt")
 
 # Inits
 Nst <- yLong + 1
 inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, sigma = runif(1, 20, 100), N=Nst,
-                         bzA.lam = runif(1), bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1) )}
+                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1) 
+)}
 
 # Params
 params <- c("Ntotal", "N", "sigma", "lambda", "mu.lam", "sig.lam", 
-            "bzA.lam", "bzB.lam", "ba1.lam", "ba2.lam")
+            "bzB.lam", "ba1.lam", "ba2.lam"
+)
 
 # MCMC settings
-nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)_ALL INCLUDED].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 out$mean # Doesnt retreive estimates and bad pop.estimates
 summary <- as.data.frame(as.matrix(out$summary)) # Doesnt converge in zones and mu.lambda
 par(mfrow = c(1,1))
-traceplot(out, parameters = c("bzA.lam", "bzB.lam", "mu.lam")) # Chains didnt converge
+traceplot(out, parameters = c("bzB.lam", "mu.lam")) # Chains didnt converge
 
 for (i in 1:nyrs){
   plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
@@ -272,7 +272,7 @@ plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F)
 abline(v = sigma, col = "blue", lwd = 3) 
 abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
 
-density(out$sims.list$sigma
+density(out$sims.list$sigma)
 
 
 # With rjags
