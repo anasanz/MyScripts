@@ -204,9 +204,9 @@ model{
   ###species specific parameters
   
   for (s in 1:spec){
-    asig[s]~dnorm(mu_s, tau_s)
-    beta1[s]~dnorm(mu_b1,tau_b1)
-    alpha[s]~dnorm(mu_a,tau_a)
+    asig[s]~dnorm(mu_s, tau_s) # alpha for sigma (dif detection per species)
+    beta1[s]~dnorm(mu_b1,tau_b1) # Beta for covariate for detection (sigma)
+    alpha[s]~dnorm(mu_a,tau_a) # alpha for lambda (dif baseline abundance per species?)
   }
   
   ###hyperparameters of species level random effects

@@ -7,7 +7,7 @@ library(plyr)
 # ---- Data simulation ----
 #### Simulate abundance for one species:
 #8 years (unbalanced number of transects per year); lambda site specific; one sigma;
-# Zone variable and 2 areas variable
+# Zone variable and 2 areas variable SCALED
 # Half-normal detection function
 g <- function(x, sig) exp(-x^2/(2*sig^2))
 
@@ -60,10 +60,6 @@ b.a2 <- rnorm(1,0,0.05)
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
-
-
-
-matrix(a1,nrow = max.sites, ncol = nyrs)
 
 
 lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
@@ -142,6 +138,15 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2[1:nSites[i]])
 }
 
+# sCALED
+
+area1_mean <- mean(area1)
+area1_sd <- sd(area1)
+area1_sc <- (area1 - area1_mean) / area1_sd
+
+area2_mean <- mean(area2)
+area2_sd <- sd(area2)
+area2_sc <- (area2 - area2_mean) / area2_sd
 
 zB <- as.vector(zone[,2])
 zoneB <- NULL
@@ -182,7 +187,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, 
               y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area1 = area1, area2 = area2, zoneB = zoneB)
+              area1 = area1_sc, area2 = area2_sc, zoneB = zoneB)
 
 # ---- JAGS model ----
 
