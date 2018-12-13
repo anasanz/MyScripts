@@ -16,7 +16,7 @@ nSites <- seq(50,106, by = 8)				# number of line transect surveys (DIFFERENT BY
 max.sites <- max(nSites)            # Maximun number of sites is the last year
 
 strip.width <- 200 				# strip half-width, w (in this example only one side of the line transect is surveyed)
-dist.breaks <- c(0,25,50,100,200) 
+dist.breaks <- c(0,25,50,100,200)
 int.w <- diff(dist.breaks) # width of distance categories (v)
 midpt <- diff(dist.breaks)/2+dist.breaks[-5]
 nG <- length(dist.breaks)-1	
@@ -193,7 +193,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, 
               y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area1 = area1, area2 = area2, zoneB = zoneB)
+              area1 = area1, area2 = area2, zoneB = zoneB, db = dist.breaks)
 
 # ---- JAGS model ----
 
@@ -219,17 +219,25 @@ cat("model{
     }
     
     for(i in 1:nind){
-    dclass[i] ~ dcat(fc[]) 
+    dclass[i] ~ dcat(fct[]) 
     }
     
-    # Construct cell probabilities for nG multinomial cells (distance categories)
+    # Construct cell probabilities for nG multinomial cells (distance categories). Not approximation, but real integral
+    
     for(k in 1:nG){ 
-    log(p[k]) <- -midpt[k] * midpt[k] / (2*sigma*sigma)
+
+    up[k]<-pnorm(db[k+1], 0, 1/sigma^2) ##db are distance bin limits
+    low[k]<-pnorm(db[k], 0, 1/sigma^2) 
+    p[k]<- 2 * (up[k] - low[k])
     pi[k] <- int.w[k] / strip.width 
-    f[k] <- p[k] * pi[k] 
-    fc[k] <- f[k] / pcap 
+    f[k]<- p[k]/f.0/int.w[k]                   ## detection prob. in distance category k                      
+    fc[k]<- f[k] * pi[k]                 ## pi=percent area of k; drops out if constant
+    fct[k]<-fc[k]/pcap 
+    
     }
-    pcap <- sum(f[]) # Same for all sites all years
+    pcap <- sum(fc[]) # Same for all sites all years
+
+    f.0 <- 2 * dnorm(0,0, 1/sigma^2)  ####NEW LINE OF CODE
     
     for(j in 1:length(y)){ # sites*years. Because in my data there is different number of sites per year
     y[j] ~ dbin(pcap, N[j]) 
@@ -243,7 +251,7 @@ cat("model{
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt")
+    }",fill=TRUE, file = "s_sigma[integral]_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt")
 
 # Inits
 Nst <- yLong + 1
@@ -258,7 +266,7 @@ params <- c("Ntotal", "N", "sigma", "lambda", "mu.lam", "sig.lam",
 nc <- 3 ; ni <- 10000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma[integral]_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 out$mean 

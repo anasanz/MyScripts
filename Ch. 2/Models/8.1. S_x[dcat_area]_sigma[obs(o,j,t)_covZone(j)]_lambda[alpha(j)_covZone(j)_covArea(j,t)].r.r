@@ -40,21 +40,19 @@ sig.obs <- rnorm(length(obs), mu.sig.obs, sig.sig.obs)
 # Observer covariate
 
 ob.id <- matrix(sample(1:9, max.sites*nyrs, replace = TRUE), nrow = max.sites, ncol = nyrs) # Matix with IDs
-ob <- ob.id
-old <- obs
-new <- sig.obs
-ob[ob %in% old] <- new[match(ob, old)] # Matrix with intercept for simulating data
+
+ob <- matrix(sig.obs[ob.id],  nrow = max.sites, ncol = nyrs) # Matrix with intercept for simulating data
 
 
 #ZONE COVARIATE (SITE)
-b.sig.zoneB <- rnorm(1,0,0.05)
+b.sig.zoneB <- 0.7
 # Site specific binary co-variate
 z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
 z$var <- as.factor(z$var)
 zone <- model.matrix(~ var-1, z)
 
 #SIGMA
-sigma <- exp(ob + matrix(b.sig.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T) )
+sigma <- exp(ob + matrix(b.sig.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow = FALSE) )# HERE IT SHOULD BE FALSE :o!
 
 
 # ----  Abundance component: random effect accross sites, zone covariate and 2 area covariates
@@ -62,25 +60,19 @@ sigma <- exp(ob + matrix(b.sig.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, by
 # RANDOM EFFECT IN SITE (INDEPENDENT OF THE YEAR)
 # Mean abundance and sd across sites
 mu.lam.alpha.site <- log(1.5)				
-sig.lam.alpha.site <- 1				
+sig.lam.alpha.site <- 0.5				
 ##Site effect in lambda
 lam.alpha.site <- rnorm(max.sites, mu.lam.alpha.site, sig.lam.alpha.site) 
 
 
 #ZONE COVARIATE (SITE)
-#b.zoneA <- rnorm(1,0,0.05) #I wont include it (its in the intercept)
-b.lam.zoneB <- rnorm(1,0,0.05)
-# Site specific binary co-variate
-z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
-z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, z)
-
-
+# Coefficient (I had created the co-variate already!So dont generate it twice!)
+b.lam.zoneB <- -0.5
 
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
-b.a1 <- 0.3
-b.a2 <- 0.8
+b.a1 <- 0.9
+b.a2 <- 1.2
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
@@ -96,18 +88,17 @@ area2_sc <- (a2 - area2_mean) / area2_sd
 
 
 lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
-             matrix(b.lam.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T) + 
-             matrix(b.a1*area1_sc, nrow = max.sites, ncol = nyrs, byrow=T) +
-             matrix(b.a2*area2_sc, nrow = max.sites, ncol = nyrs, byrow=T) )
-
+             matrix(b.lam.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow = F) + # By row has to be false for site covariates that dont change with year!
+             matrix(b.a1*area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) + # For this it doesn't really matter
+             matrix(b.a2*area2_sc, nrow = max.sites, ncol = nyrs, byrow = F) ) 
 
 
 # Abundance per site and year
 N <- list()
 
 for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam[1:length(nSites[t]), t])
-} # Here we can have all the sites because its the real abundance (even if we haven't sampled them??)
+  N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t])
+} 
 
 NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
 N3 <- ldply(N,rbind)
@@ -162,14 +153,17 @@ for (i in 1:nyrs){
 }
 
 # Create one long vector with covariate values
+a1.m <- matrix(area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) # I need to make it from the same matrix
+a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+
 area1 <- NULL
 for (i in 1:nyrs){
-  area1 <- c(area1,area1_sc[1:nSites[i]])
+  area1 <- c(area1,a1.m[1:nSites[i],i])
 }
 
 area2 <- NULL
 for (i in 1:nyrs){
-  area2 <- c(area2,area2_sc[1:nSites[i]])
+  area2 <- c(area2,a2.m[1:nSites[i],i])
 }
 
 
@@ -310,23 +304,30 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
 )}
 
 # Params
-params <- c("Ntotal", "N", "sigma", #"lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
+params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu.lam", "sig.lam", 
             "bzB.lam", "ba1.lam", "ba2.lam",
             "mu.sig", "sig.sig", "bzB.sig"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 50000 ; nb <- 20000 ; nt <- 2
+nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
-out$mean # Doesnt retreive estimates and bad pop.estimates
-summary <- as.data.frame(as.matrix(out$summary)) # Doesnt converge in zones and mu.lambda
-par(mfrow = c(1,1))
-traceplot(out, parameters = c("bzB.lam", "mu.lam")) # Chains didnt converge
+
+summary <- as.data.frame(as.matrix(out$summary))
+
+# To compare:
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
+                  mu.lam.alpha.site = mu.lam.alpha.site,
+                  sig.lam.alpha.site = sig.lam.alpha.site,
+                  b.sig.zoneB = b.sig.zoneB, mu.sig.obs = mu.sig.obs,
+                  sig.sig.obs = sig.sig.obs)
+
+
 
 for (i in 1:nyrs){
   plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
@@ -343,7 +344,4 @@ density(out$sims.list$sigma)
 
 ###########################################################################################
 
-# This model doesnt give the values back.
-# 1. Plot the simulated lambdas and covariate to see if the relation that I am creating is very weak
 
-plot(lam,a2)
