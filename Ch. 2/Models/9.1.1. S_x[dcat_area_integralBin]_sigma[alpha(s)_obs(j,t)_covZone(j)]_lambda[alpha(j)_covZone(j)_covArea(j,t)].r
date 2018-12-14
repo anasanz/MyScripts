@@ -196,21 +196,33 @@ rowSums(h[,,1])
 
 # Arrange it by species (so that each element of the list is a species)
 y.sum.sites.sp <- list()
-for (t in 1:nyrs){
-  y.sum.sites.sp[[t]] <- sapply(y.sum.sites, function(x) x[t]) }
+for (s in 1:nSpecies){
+  y.sum.sites.sp[[s]] <- sapply(y.sum.sites, function(x) x[s]) }
 
 # From here I do the same than in script 8.1 but applied to the list of lists
+y.sum <- list()
 
+for (s in 1:nSpecies){
+  store <- unlist(y.sum.sites.sp[s], recursive = F) # Convert it into single list to use ldply later
+  y.sum.sites2 <- ldply(store,rbind) # Put all together (in rows) 
+  y.sum[[s]] <- t(y.sum.sites2)} 
+  
+# y.sum is a list of species counts.
+# Contains y per site and year stored in a matrix with columns.
 
-y.sum.sites2 <- ldply(y.sum.sites,rbind)
-y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
 
 #############################################
 # ---- Convert data to JAGS format ----
+nind.sp <- list()
+for (s in 1:nSpecies){
+nind.year.sp <- lapply(y.sum.sites.sp[[s]],sum)
+nind.sp[[s]] <- sum(unlist(nind.year.sp, use.names = F)) # Just to know, but jags only wants the sum
+}
+nind <- do.call(sum, nind.sp)
 
-nind.year <- lapply(yList,sum)
-nind <- sum(unlist(nind.year, use.names = F))
 
+
+#####AQUI ME QUEDO
 # Get one long vector with counts and sites
 yLong.na <- unlist(as.data.frame(y.sum), use.names = F) # With NA included (useful if I ever make a model estimating abundance in sites with no information)
 yLong <- yLong.na[complete.cases(yLong.na)]
