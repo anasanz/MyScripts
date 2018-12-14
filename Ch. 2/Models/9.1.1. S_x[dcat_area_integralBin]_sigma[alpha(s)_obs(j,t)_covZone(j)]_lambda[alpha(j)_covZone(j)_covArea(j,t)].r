@@ -1,3 +1,5 @@
+
+
 rm(list=ls())
 
 library(rjags)
@@ -9,24 +11,25 @@ set.seed(2013)
 # ---- Data simulation ----
 
 # 60 species
-# 8 years (unbalanced number of transects per year); 
-# lambda site specific:
-    # Random sp intercept
-    # Site effect independent of year
-    # Zone variable
-    # 2 areas variables)
-# Sigma site-year specific (effect of zone cov(?) and random effect in observer)
+# 8 years (unbalanced number of transects per year) 
 
+# Sigma site-year specific
+### Effect of zone cov(?) (site) 
+### Random effect in observer (site-year)
+
+# Lambda site-year specific:
+### Random sp intercept
+### Site effect independent of year
+### Zone variable (site)
+### 2 areas variables)
+
+# Detection function
 g <- function(x, sig) exp(-x^2/(2*sig^2))
 
 # Number of transects per year (unbalanced)
 nSites <- seq(50,106, by = 8)				# number of line transect surveys (DIFFERENT BY YEAR)
 max.sites <- max(nSites)            # Maximun number of sites is the last year
 
-# Number of species
-nSpecies <- 60
-
-# Transect characteristics
 strip.width <- 200 				# strip half-width, w (in this example only one side of the line transect is surveyed)
 dist.breaks <- c(0,25,50,100,200)
 int.w <- diff(dist.breaks) # width of distance categories (v)
@@ -37,35 +40,48 @@ nG <- length(dist.breaks)-1
 yrs <- 1:8 # eight years
 nyrs <- length(yrs)
 
+# Number of species
+nSpecies <- 15
+
 
 #################################
 # ---- Detection component ----
 
+# RANDOM INTERCEPT PER SPECIES
+
+mu.sig.sp <- log(50)					# Mean of species-level random effect on intercept of sigma
+sig.sig.sp <- 0.25				# SD of species-level random effect on intercept of sigma
+s.alpha <- rnorm(nSpecies, mu.sig.sp, sig.sig.sp)
+
+# Look at distribution of sigma intercepts (to see if I chose reasonable)
+hist(exp(rnorm(1000, mu.sig.sp, sig.sig.sp)))
+
+
+
 # RANDOM EFFECT IN OBSERVER
 obs <- 1:9
 nobs <- length(obs)
-mu.sig.obs <- log(50)
 sig.sig.obs <- 0.25
+
 # Observer effect in sigma
-sig.obs <- rnorm(length(obs), mu.sig.obs, sig.sig.obs) 
+sig.obs <- rnorm(length(obs), 0, sig.sig.obs) # Mean is 0 because is adding noise around the mean
+
 # Observer covariate
-
 ob.id <- matrix(sample(1:9, max.sites*nyrs, replace = TRUE), nrow = max.sites, ncol = nyrs) # Matix with IDs
-ob <- ob.id
-old <- obs
-new <- sig.obs
-ob[ob %in% old] <- new[match(ob, old)] # Matrix with intercept for simulating data
+ob <- matrix(sig.obs[ob.id],  nrow = max.sites, ncol = nyrs) # Matrix with intercept for simulating data
 
-
+      
 #ZONE COVARIATE (SITE)
-b.sig.zoneB <- rnorm(1,0,0.05)
+b.sig.zoneB <- 0.7
 # Site specific binary co-variate
 z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
 z$var <- as.factor(z$var)
 zone <- model.matrix(~ var-1, z)
 
-#SIGMA
-sigma <- exp(ob + matrix(b.sig.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T) )
+#SIGMA: sigma[j,t,s]
+sigma <- exp(array(rep(s.alpha, each = max.sites*nyrs), c(max.sites, nyrs, nSpecies)) 
+             + replicate(nSpecies,ob) 
+             + array(b.sig.zoneB*zone[,2], c(max.sites,nyrs,nSpecies)) )
 
 
 # ----  Abundance component: random effect accross sites, zone covariate and 2 area covariates
@@ -73,25 +89,19 @@ sigma <- exp(ob + matrix(b.sig.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, by
 # RANDOM EFFECT IN SITE (INDEPENDENT OF THE YEAR)
 # Mean abundance and sd across sites
 mu.lam.alpha.site <- log(1.5)				
-sig.lam.alpha.site <- 1				
+sig.lam.alpha.site <- 0.5				
 ##Site effect in lambda
 lam.alpha.site <- rnorm(max.sites, mu.lam.alpha.site, sig.lam.alpha.site) 
 
 
 #ZONE COVARIATE (SITE)
-#b.zoneA <- rnorm(1,0,0.05) #I wont include it (its in the intercept)
-b.lam.zoneB <- rnorm(1,0,0.05)
-# Site specific binary co-variate
-z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
-z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, z)
-
-
+# Coefficient (I had created the co-variate already!So dont generate it twice!)
+b.lam.zoneB <- -0.5
 
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
-b.a1 <- 0.3
-b.a2 <- 0.8
+b.a1 <- 0.9
+b.a2 <- 1.2
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
@@ -107,53 +117,91 @@ area2_sc <- (a2 - area2_mean) / area2_sd
 
 
 lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
-             matrix(b.lam.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow=T) + 
-             matrix(b.a1*area1_sc, nrow = max.sites, ncol = nyrs, byrow=T) +
-             matrix(b.a2*area2_sc, nrow = max.sites, ncol = nyrs, byrow=T) )
+             matrix(b.lam.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow = F) + # By row has to be false for site covariates that dont change with year!
+             matrix(b.a1*area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) + # For this it doesn't really matter
+             matrix(b.a2*area2_sc, nrow = max.sites, ncol = nyrs, byrow = F) ) 
 
 
-
-# Abundance per site and year
+# Abundance per site year (all species same abundance)
 N <- list()
 
 for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam[1:length(nSites[t]), t])
-} # Here we can have all the sites because its the real abundance (even if we haven't sampled them??)
+  N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t])
+} 
 
 NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
 N3 <- ldply(N,rbind)
 N.sitesYears <- t(N3) # N per site and year stored in a matrix with columns
 
+#I need one of this per species: EXPLANATION = N.sysp[j,t,s]
+N.sysp <- replicate(nSpecies,N.sitesYears) 
+
 # Total number of individuals in all sampled transects per year
-N.tot <- lapply(N,sum)
+N.tot <- lapply(N,sum) # I only need this list for now, is the same abundance
 
 
 # ---- Simulate continuous distance data ----
 
 # Nc = count of individuals detected in each distance interval
+
+# Create list to store the counts:
 yList <- list()
+
 for (i in 1:nyrs){
-  yList[[i]] <- array(0, c(nSites[i], length(dist.breaks)-1))
-}
+  yList[[i]] <- array(0, c(nSites[i], nG, nSpecies)) }
 
 
+# EXPLANATION DIMENSIONS: yList[[t]][[j,k,s]]
+yList[[1]][,,1] # This is the counts for the year 1 for species 1
+yList[[2]][,3,1] # This is the counts for the year 1 for species 1 in bin 3
+N.sysp[,,1] # This is the real number of individuals per stite and year of species 1
+sigma[,,1] # And this is sigma per site and year for species 1
+
+for (s in 1:nSpecies)
 for (t in 1:nyrs){
   for(j in 1:max.sites) {
-    if(N.sitesYears[j,t] == 0 | is.na(N.sitesYears[j,t]))
+    if(N.sysp[j,t,s] == 0 | is.na(N.sysp[j,t,s]))
       next
     # Distance from observer to the individual
-    d <- runif(N.sitesYears[j,t], 0, strip.width) 		# Uniform distribution of animals
+    d <- runif(N.sysp[j,t,s], 0, strip.width) 		# Uniform distribution of animals
     # Simulates one distance for each individual in the site (N[j])
-    p <- g(x=d, sig=sigma[j,t])   		# Detection probability. Sigma is site-time specific
-    seen <- rbinom(N.sitesYears[j,t], 1, p)
+    p <- g(x=d, sig=sigma[j,t,s])   		# Detection probability. Sigma is site-time specific
+    seen <- rbinom(N.sysp[j,t,s], 1, p)
     if(all(seen == 0))
       next
     d1 <- d[seen==1] 				# The distance data for seen individuals
     counts <- table(cut(d1, dist.breaks, include.lowest=TRUE))
-    yList[[t]][j,] <- counts 				# The number of detections in each distance interval
+    yList[[t]][j,,s] <- counts 				# The number of detections in each distance interval per year and species
   }}
 
-y.sum.sites <- lapply(yList, function(x) rowSums(x)) # Total count per site each year
+h <- lapply(yList[[i]], function(x) rowSums(x))
+
+
+y.sum.sysp <- list()
+y.sum.sites <- list()
+
+for (t in 1:nyrs){
+  
+  for(s in 1:nSpecies){
+    y.sum.sysp[[s]] <- rowSums(yList[[t]][,,s]) # List with counts per site in a given year t. Each element is one species
+    }
+  y.sum.sites[[t]] <- y.sum.sysp # Stored by years (y.sum.sites[[t]][[s]]): 8 elements with 15 subelements each
+  }
+
+# Check cosas in loop because I dont want to do a 3diiimensional mistake
+rowSums(yList[[2]][,,2])
+h <- yList[[2]]
+class(h)
+rowSums(h[,,1])
+
+# Arrange it by species (so that each element of the list is a species)
+y.sum.sites.sp <- list()
+for (t in 1:nyrs){
+  y.sum.sites.sp[[t]] <- sapply(y.sum.sites, function(x) x[t]) }
+
+# From here I do the same than in script 8.1 but applied to the list of lists
+
+
 y.sum.sites2 <- ldply(y.sum.sites,rbind)
 y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
 
@@ -173,14 +221,17 @@ for (i in 1:nyrs){
 }
 
 # Create one long vector with covariate values
+a1.m <- matrix(area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) # I need to make it from the same matrix
+a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+
 area1 <- NULL
 for (i in 1:nyrs){
-  area1 <- c(area1,area1_sc[1:nSites[i]])
+  area1 <- c(area1,a1.m[1:nSites[i],i])
 }
 
 area2 <- NULL
 for (i in 1:nyrs){
-  area2 <- c(area2,area2_sc[1:nSites[i]])
+  area2 <- c(area2,a2.m[1:nSites[i],i])
 }
 
 
@@ -236,16 +287,12 @@ m <- data.frame(allyears = allyears)
 m$allyears <- as.factor(m$allyears)
 indexYears <- model.matrix(~ allyears-1, data = m)
 
-# Build occurrence probabilities in each cell depending on area outside jags because it complains
-for(k in 1:nG){ 
-  pi[k] <- int.w[k] / strip.width }
-
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass,# int.w=int.w, strip.width = strip.width, 
-              pi = pi, y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs)
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
+              y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
+              area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks)
 
 # ---- JAGS model ----
 
@@ -281,7 +328,7 @@ cat("model{
     }
     
     for(i in 1:nind){
-    dclass[i] ~ dcat(fc[siteYear.dclass[i], 1:nG])  
+    dclass[i] ~ dcat(fct[siteYear.dclass[i], 1:nG])  
     }
     
     for(j in 1:length(y)){ 
@@ -291,13 +338,19 @@ cat("model{
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
-    log(p[j,k]) <- -midpt[k] * midpt[k] / (2*sigma[j]*sigma[j])
-    #pi[k] <- int.w[k] / strip.width 
-    f[j,k] <- p[j,k] * pi[k] 
-    fc[j,k] <- f[j,k] / pcap[j]
+    
+    up[j,k]<-pnorm(db[k+1], 0, 1/sigma[j]^2) ##db are distance bin limits
+    low[j,k]<-pnorm(db[k], 0, 1/sigma[j]^2) 
+    p[j,k]<- 2 * (up[j,k] - low[j,k])
+    pi[j,k] <- int.w[k] / strip.width 
+    f[j,k]<- p[j,k]/f.0[j]/int.w[k]                   ## detection prob. in distance category k                      
+    fc[j,k]<- f[j,k] * pi[k]                 ## pi=percent area of k; drops out if constant
+    fct[j,k]<-fc[j,k]/pcap[j] 
     }
     
-    pcap[j] <- sum(f[j, 1:nG]) # Different per site and year (sum over all bins)
+    pcap[j] <- sum(fc[j, 1:nG]) # Different per site and year (sum over all bins)
+    
+    f.0[j] <- 2 * dnorm(0,0, 1/sigma[j]^2)
     
     y[j] ~ dbin(pcap[j], N[j]) 
     N[j] ~ dpois(lambda[j]) 
@@ -309,7 +362,7 @@ cat("model{
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt")
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt")
 
 # Inits
 Nst <- yLong + 1
@@ -321,23 +374,30 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
 )}
 
 # Params
-params <- c("Ntotal", "N", "sigma", #"lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
+params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu.lam", "sig.lam", 
             "bzB.lam", "ba1.lam", "ba2.lam",
             "mu.sig", "sig.sig", "bzB.sig"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 50000 ; nb <- 20000 ; nt <- 2
+nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
-out$mean # Doesnt retreive estimates and bad pop.estimates
-summary <- as.data.frame(as.matrix(out$summary)) # Doesnt converge in zones and mu.lambda
-par(mfrow = c(1,1))
-traceplot(out, parameters = c("bzB.lam", "mu.lam")) # Chains didnt converge
+
+summary <- as.data.frame(as.matrix(out$summary))
+
+# To compare:
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
+                  mu.lam.alpha.site = mu.lam.alpha.site,
+                  sig.lam.alpha.site = sig.lam.alpha.site,
+                  b.sig.zoneB = b.sig.zoneB, mu.sig.obs = mu.sig.obs,
+                  sig.sig.obs = sig.sig.obs)
+
+
 
 for (i in 1:nyrs){
   plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
@@ -351,3 +411,7 @@ abline(v = sigma, col = "blue", lwd = 3)
 abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
 
 density(out$sims.list$sigma)
+
+###########################################################################################
+
+
