@@ -1,5 +1,4 @@
 
-
 rm(list=ls())
 
 library(rjags)
@@ -7,9 +6,6 @@ library(jagsUI)
 library(plyr)
 
 set.seed(2013)
-
-# It works and converges, but one value (mean of sigma species intercept) 
-# doesn't super converge (1.1 in 10000 iterations). But the estimate is good
 
 
 # ---- Data simulation ----
@@ -22,7 +18,8 @@ set.seed(2013)
 ### Effect of zone cov(?) (site) 
 ### Random effect in observer (site-year)
 
-# Lambda site-year specific:
+# Lambda site-year specific
+### Random sp-year intercept (include different baseline abundance per species and also per year)
 ### Site effect independent of year
 ### Zone variable (site)
 ### 2 areas variables)
@@ -75,7 +72,7 @@ sig.obs <- rnorm(length(obs), 0, sig.sig.obs) # Mean is 0 because is adding nois
 ob.id <- matrix(sample(1:9, max.sites*nyrs, replace = TRUE), nrow = max.sites, ncol = nyrs) # Matix with IDs
 ob <- matrix(sig.obs[ob.id],  nrow = max.sites, ncol = nyrs) # Matrix with intercept for simulating data
 
-      
+
 #ZONE COVARIATE (SITE)
 b.sig.zoneB <- 0.7
 # Site specific binary co-variate
@@ -163,21 +160,21 @@ N.sysp[,,1] # This is the real number of individuals per stite and year of speci
 sigma[,,1] # And this is sigma per site and year for species 1
 
 for (s in 1:nSpecies)
-for (t in 1:nyrs){
-  for(j in 1:max.sites) {
-    if(N.sysp[j,t,s] == 0 | is.na(N.sysp[j,t,s]))
-      next
-    # Distance from observer to the individual
-    d <- runif(N.sysp[j,t,s], 0, strip.width) 		# Uniform distribution of animals
-    # Simulates one distance for each individual in the site (N[j])
-    p <- g(x=d, sig=sigma[j,t,s])   		# Detection probability. Sigma is site-time specific
-    seen <- rbinom(N.sysp[j,t,s], 1, p)
-    if(all(seen == 0))
-      next
-    d1 <- d[seen==1] 				# The distance data for seen individuals
-    counts <- table(cut(d1, dist.breaks, include.lowest=TRUE))
-    yList[[t]][j,,s] <- counts 				# The number of detections in each distance interval per year and species
-  }}
+  for (t in 1:nyrs){
+    for(j in 1:max.sites) {
+      if(N.sysp[j,t,s] == 0 | is.na(N.sysp[j,t,s]))
+        next
+      # Distance from observer to the individual
+      d <- runif(N.sysp[j,t,s], 0, strip.width) 		# Uniform distribution of animals
+      # Simulates one distance for each individual in the site (N[j])
+      p <- g(x=d, sig=sigma[j,t,s])   		# Detection probability. Sigma is site-time specific
+      seen <- rbinom(N.sysp[j,t,s], 1, p)
+      if(all(seen == 0))
+        next
+      d1 <- d[seen==1] 				# The distance data for seen individuals
+      counts <- table(cut(d1, dist.breaks, include.lowest=TRUE))
+      yList[[t]][j,,s] <- counts 				# The number of detections in each distance interval per year and species
+    }}
 
 h <- lapply(yList[[i]], function(x) rowSums(x))
 
@@ -189,9 +186,9 @@ for (t in 1:nyrs){
   
   for(s in 1:nSpecies){
     y.sum.sysp[[s]] <- rowSums(yList[[t]][,,s]) # List with counts per site in a given year t. Each element is one species
-    }
-  y.sum.sites[[t]] <- y.sum.sysp # Stored by years (y.sum.sites[[t]][[s]]): 8 elements with 15 subelements each
   }
+  y.sum.sites[[t]] <- y.sum.sysp # Stored by years (y.sum.sites[[t]][[s]]): 8 elements with 15 subelements each
+}
 
 # Check cosas in loop because I dont want to do a 3diiimensional mistake
 rowSums(yList[[2]][,,2])
@@ -211,7 +208,7 @@ for (s in 1:nSpecies){
   store <- unlist(y.sum.sites.sp[s], recursive = F) # Convert it into single list to use ldply later
   y.sum.sites2 <- ldply(store,rbind) # Put all together (in rows) 
   y.sum[[s]] <- t(y.sum.sites2)} 
-  
+
 # y.sum is a list of species counts.
 # Contains y per site and year stored in a matrix with columns.
 
@@ -222,8 +219,8 @@ for (s in 1:nSpecies){
 
 nind.sp <- list()
 for (s in 1:nSpecies){
-nind.year.sp <- lapply(y.sum.sites.sp[[s]],sum)
-nind.sp[[s]] <- sum(unlist(nind.year.sp, use.names = F)) # Just to know, but jags only wants the sum
+  nind.year.sp <- lapply(y.sum.sites.sp[[s]],sum)
+  nind.sp[[s]] <- sum(unlist(nind.year.sp, use.names = F)) # Just to know, but jags only wants the sum
 }
 nind <- do.call(sum, nind.sp)
 
@@ -280,19 +277,19 @@ for (i in 1:nyrs){
 site <- dclass <- year <- NULL
 
 for (s in 1:nSpecies){
-for (t in 1:nyrs){
-  for(j in 1:max.sites){
-    if (y.sum[[s]][j,t] == 0 | is.na(y.sum[[s]][j,t])) 
-      next
-    site <- c(site, rep(j, y.sum[[s]][j,t])) # site index: repeat the site as many times as counts in that site (for multi model??)
-    
-    # vector of sites through years (disregarding distance class)
-    year <- c(year, rep(t, y.sum[[s]][j,t]))
-    
-    for (k in 1:nG){
-      if (yList[[t]][j,k,s] == 0) # Refers for the ditance classes to the list with years and bins
-        next 
-      dclass <- c(dclass, rep(k, yList[[t]][j,k,s]))}	# Distance category index
+  for (t in 1:nyrs){
+    for(j in 1:max.sites){
+      if (y.sum[[s]][j,t] == 0 | is.na(y.sum[[s]][j,t])) 
+        next
+      site <- c(site, rep(j, y.sum[[s]][j,t])) # site index: repeat the site as many times as counts in that site (for multi model??)
+      
+      # vector of sites through years (disregarding distance class)
+      year <- c(year, rep(t, y.sum[[s]][j,t]))
+      
+      for (k in 1:nG){
+        if (yList[[t]][j,k,s] == 0) # Refers for the ditance classes to the list with years and bins
+          next 
+        dclass <- c(dclass, rep(k, yList[[t]][j,k,s]))}	# Distance category index
     }}}
 
 # Get one long vector for each site-year combination of each dclass observation
@@ -304,8 +301,8 @@ siteYear.dclass <- NULL
 ###RS: Fixed index to map dclass onto site-year combinations (all species together)
 
 for (s in 1:nSpecies){
-for (i in 1:n.allSiteYear){
-  siteYear.dclass <- c(siteYear.dclass,rep(i, yLong.sp[i,s]))}
+  for (i in 1:n.allSiteYear){
+    siteYear.dclass <- c(siteYear.dclass,rep(i, yLong.sp[i,s]))}
 }
 
 # Fixed index to map dclass in species (so that it matches with the dimensions (s,j,K))
@@ -340,22 +337,22 @@ setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS
-
+    
     #SPECIES SPECIFIC PARAMETERS
-
+    
     # Random effect per species
     for (s in 1:nSpecies){
     asig[s]~dnorm(mu_s, tau_s) # alpha for sigma (dif detection per species)
     }
-
+    
     # Hyperparameters for species random effects
-
+    
     mu_s~dnorm(0,0.01) # Random effects for sigma per species (intercept)
     tau_s<-1/(sig_s*sig_s)
     sig_s~dunif(0,500)
     
     # PRIORS FOR LAMBDA
-
+    
     bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
@@ -363,7 +360,7 @@ cat("model{
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site (intercept)
     sig.lam ~ dunif(0, 10)
     tau.lam <- 1/(sig.lam*sig.lam)
-
+    
     # Random transect level effect for lambda (doesn't change over time).Takes care of the dependence in data when you repeatedly visit the same transect
     
     for (s in 1:max.sites){
@@ -371,14 +368,14 @@ cat("model{
     }
     
     # PRIORS FOR SIGMA
-
+    
     bzB.sig ~ dnorm(0, 0.001)
     
     sig.sig.ob ~ dunif(0, 10) # Random effects for sigma per observer
     tau.sig.ob <- 1/(sig.sig.ob*sig.sig.ob)
     
     #Random observer effect for sigma
-
+    
     for (o in 1:nobs){
     sig.obs[o] ~ dnorm(0, tau.sig.ob)
     }
@@ -388,41 +385,41 @@ cat("model{
     }
     
     for (s in 1:nSpecies){
-
-      for(j in 1:n.allSiteYear){ 
     
-        sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]] + bzB.sig*zoneB[j])
-
-        f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
+    for(j in 1:n.allSiteYear){ 
     
-         # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
+    sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]] + bzB.sig*zoneB[j])
     
-          for(k in 1:nG){ 
+    f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
     
-            up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) ##db are distance bin limits
-            low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
-            p[s,j,k]<- 2 * (up[s,j,k] - low[s,j,k])
-            pi[s,j,k] <- int.w[k] / strip.width 
-            f[s,j,k]<- p[s,j,k]/f.0[s,j]/int.w[k]                   ## detection prob. in distance category k                      
-            fc[s,j,k]<- f[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
-            fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
-              }
+    # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
-        pcap[s,j] <- sum(fc[s,j,1:nG]) # Different per site and year (sum over all bins)
+    for(k in 1:nG){ 
+    
+    up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) ##db are distance bin limits
+    low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
+    p[s,j,k]<- 2 * (up[s,j,k] - low[s,j,k])
+    pi[s,j,k] <- int.w[k] / strip.width 
+    f[s,j,k]<- p[s,j,k]/f.0[s,j]/int.w[k]                   ## detection prob. in distance category k                      
+    fc[s,j,k]<- f[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
+    fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
+    }
+    
+    pcap[s,j] <- sum(fc[s,j,1:nG]) # Different per site and year (sum over all bins)
     
     
-        y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
-        N[j,s] ~ dpois(lambda[j,s]) 
-        lambda[j,s] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j]
-        + ba1.lam*area1[j] + ba2.lam*area2[j]) 
-        } }
+    y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
+    N[j,s] ~ dpois(lambda[j,s]) 
+    lambda[j,s] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j]
+    + ba1.lam*area1[j] + ba2.lam*area2[j]) 
+    } }
     
     # Derived parameters
-
+    
     #for (i in 1:nyears){
     #Ntotal[i] <- sum(N[s]*indexYears[,i]) 
     #}
-
+    
     for (s in 1:nSpecies){
     for (i in 1:nyears){
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) 

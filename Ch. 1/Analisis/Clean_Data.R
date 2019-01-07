@@ -51,8 +51,8 @@ colnames(f)[15] <- "fallow"
 colnames(f)[20] <- "crop_diversity"
 
 f$Zone <- as.character(f$Zone)
-f$Zone[which(f$Zone == "OCCIDENTAL")] <- "East"
-f$Zone[which(f$Zone == "ORIENTAL")] <- "West"
+#f$Zone[which(f$Zone == "OCCIDENTAL")] <- "East"
+#f$Zone[which(f$Zone == "ORIENTAL")] <- "West"
 
 f$agri_practice <- as.character(f$agri_practice)
 f$agri_practice[which(f$agri_practice == "Picar i herbicidar")] <- "S+H"
