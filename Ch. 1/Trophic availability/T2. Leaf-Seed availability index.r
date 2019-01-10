@@ -5,7 +5,7 @@ library (dplyr)
 
 #LEAF AVAILABILITY INDEX
 
-setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados/Consultas")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/First chapter/Datos/Datos barbechos arrendados/Consultas")
 
 #Each plant species will be given a value (INDEX) per FIELD: Cover x Height x SLA
 
@@ -40,7 +40,7 @@ cov<-un[,-c(2:5)] #COVER OF ALL SPECIES
 
 
 
-#Dato bibliográfico para cada especie
+#Dato bibliogr?fico para cada especie
 g<-read.csv("Species_traits_full_FINAL.csv")
 v<-names(fl)[which(names(fl) %in% g$V1)] #Vector with the columns of the species that have information
 data_av<-g[which(g$V1 %in% v), ] #SPECIES WITH DATA AVAILABLE

@@ -147,7 +147,7 @@ writeRaster(irri,filename='irri_15',format='GTiff') #Layer with only % irri in b
 
 #VARIABLE CROP DIVERSITY
 #1. Reclassify
-c15_5<-readOGR("C:/Users/ana.sanz/Documents/GIS Ana/DUN", "clip_b15_5")
+c15_5<-readOGR("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/DUN", "clip_b15_5")
 c15_5$cropdiv<-as.character(c15_5$grup)
 c15_5$cropdiv[c15_5$cultiu == "AMETLLERS"]<-"AMETLLERS"
 c15_5$cropdiv[c15_5$cultiu == "ALFALS"]<-"ALFALS"
@@ -306,7 +306,7 @@ irri<-raster(ir,layer=1)
 
 #VARIABLE CROP DIVERSITY
 #1. Reclassify
-c16_5<-readOGR("C:/Users/ana.sanz/Documents/GIS Ana/DUN", "clip_b16_5")
+c16_5<-readOGR("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/DUN", "clip_b16_5")
 c16_5$cropdiv<-as.character(c16_5$grup)
 c16_5$cropdiv[c16_5$cultiu == "AMETLLERS"]<-"AMETLLERS"
 c16_5$cropdiv[c16_5$cropdiv == "CEREALS D'ESTIU"]<-"BLAT DE MORO"
@@ -456,7 +456,7 @@ irri<-raster(ir,layer=1)
 
 #VARIABLE CROP DIVERSITY
 #1. Reclassify
-c17_5<-readOGR("C:/Users/ana.sanz/Documents/GIS Ana/DUN", "clip_b17_5")
+c17_5<-readOGR("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/DUN", "clip_b17_5")
 c17_5$cropdiv<-as.character(c17_5$grup)
 c17_5$cropdiv[c17_5$cultiu == "ALFALS"]<-"ALFALS"
 c17_5$cropdiv[c17_5$cultiu == "AMETLLERS"]<-"AMETLLERS"
@@ -630,7 +630,11 @@ a$Codi_Finca <- b$fin17.data...c.colnames.fin17.data...in..c..ID....Codi_Finca..
 a$Any <- b$Any
 #write.csv(a,"crop_div_17.csv")
 
+# ---- CHECK THE SIMPLIFIED CLASSIFICATION (FOR CROP DIVERSITY) FOR RESPONSE LETTER ---- #
 
-
-
+us15 <- as.vector(c15_5$cropdiv)
+us16 <- as.vector(c16_5$cropdiv)
+us17 <- as.vector(c17_5$cropdiv)
+all <- c(us15, us16, us17)
+crops <- unique(all)
 
