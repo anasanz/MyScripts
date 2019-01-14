@@ -50,7 +50,7 @@ b.zoneB <- -0.5
 # Site specific binary co-variate
 z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
 z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, z)
+zone <- model.matrix(~ var-1, z) # Sin intercept
 
 
 
@@ -125,6 +125,7 @@ y.sum.sites <- lapply(yList, function(x) rowSums(x)) # Total count per site each
 y.sum.sites2 <- ldply(y.sum.sites,rbind)
 y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
 
+
 # ---- Convert data to JAGS format ----
 
 nind.year <- lapply(yList,sum)
@@ -197,7 +198,7 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.wi
 
 # ---- JAGS model ----
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
 cat("model{
     # Priors
     

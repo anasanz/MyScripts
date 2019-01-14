@@ -9,13 +9,14 @@ library(dplyr)
 # Run model 4.1 in MECAL dataset (1 year)
 # ---- I ignore counts in each observation (cluster size)
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
-
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready.csv")
+
 # To take into account transects with abundance 0
 # 1. Select all transects IDs from all species observations
 # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
 # species was there but it wasnt sampled
+
 d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y"))]
 d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
 
@@ -25,21 +26,68 @@ mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 
 
+absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
+colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
+absent$T_Y <- as.character(absent$T_Y)
+absent$Species <- "MECAL"
 
-absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec?
 
+for (i in 1:nrow(absent)){
+  absent$Year[i] <- substr(absent$T_Y[i], 6,9)
+  absent$transectID[i] <- substr(absent$T_Y[i], 1,4)
+}
+
+all_mec <- rbind(mec,absent) # Include transects with abundance 0
+all_mec <- arrange(all_mec, Year, transectID) # Ordered
 
 
 # ---- Specify data for the model ----
 
-# Bin information
+# Information: bins, years, sites
 strip.width <- 200 				
 dist.breaks <- c(0,25,50,100,200)
 int.w <- diff(dist.breaks) # width of distance categories (v)
 midpt <- diff(dist.breaks)/2+dist.breaks[-5]
-nG <- length(dist.breaks)-1	
+nG <- length(dist.breaks)-1
 
-# Distance observations
+year <- list("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017")
+nyrs <- length(year)
+
+# This is nothing
+#nind.df <- aggregate(Species ~ Year, FUN = length, data = all_mec)
+#nrow(all_mec[which(all_mec$Year == "2010"), ])
+#ninds_year <- nind.df[ ,2]
+#max.sites <- max(nSites)
+
+
+# ---- Distance observations ----
+
+nind <- nrow(mec)
+
+# Format
+
+all.sites <- unique(all_mec$transectID)
+all.sites <- sort(all.sites,descreasing = TRUE)
+
+m <- matrix(NA, nrow = length(all.sites), ncol = nyrs)
+rownames(m) <- all.sites
+colnames(m) <- year
+
+# Add counts > 0
+
+count <- aggregate(Species ~ Year + transectID, FUN = length, data = mec)
+
+for (i in 1:nrow(count)){
+  m[which(rownames(m) %in% count$transectID[i]), which(colnames(m) %in% count$Year[i])] <- count$Species[i]
+}
+
+
+
+
+
+
+
+
 
 y <- as.data.frame(array(0, c(nSites, length(dist.breaks)-1)))
 rownames(y) <- tr2017
