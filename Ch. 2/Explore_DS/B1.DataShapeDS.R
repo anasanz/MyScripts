@@ -246,4 +246,21 @@ dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 dat <- dat[which(dat$Obs_type == "V"), ]
 dat <- dat[ ,-which(colnames(dat) %in% "Obs_type")]
 
-write.csv(dat,"DataDS_ready.csv")
+# Remove AL and AR (Don't have any of the measures in which we are interested)
+
+dat <- dat[-which(dat$Region.Label %in% c("AL", "AR")), ]
+
+
+# Co-variate Zone 
+
+unique(dat$Region.Label)
+dat$Zone <- NA
+dat$Zone[dat$Region.Label == "BA"] <- "OC"
+dat$Zone[dat$Region.Label == "BM"] <- "OR"
+dat$Zone[dat$Region.Label == "SI"] <- "OR"
+dat$Zone[dat$Region.Label == "AF"] <- "OC"
+dat$Zone[dat$Region.Label == "BE"] <- "OR"
+dat$Zone[dat$Region.Label == "GR"] <- "OC"
+
+
+#write.csv(dat,"DataDS_ready.csv")
