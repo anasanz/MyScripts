@@ -6,7 +6,7 @@ rm(list=ls())
 library(dplyr)
 library(stringr)
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 dat <- read.csv("DataDS.csv", sep = ";")
 dat$Especie <- as.character(dat$Especie)
 dat <- dat[ ,-4]
@@ -35,11 +35,16 @@ for (i in 1:nrow(dat)){
   dat$Num_transecte[i] <- paste(0,dat$Num_transecte[i], sep = "")
 }
 
-#2. Keep only the last 2 digits 
-library(stringr)
-for (i in 1:nrow(dat)){ 
-  dat$Num_transecte[i] <- str_sub(dat$Num_transecte[i], start = -2)
-}
+#2. Keep only the last 2 digits (or 3 in the case of the transects that contain 100)
+
+for (i in 1:nrow(dat)) { 
+  cent <- substr(dat$Num_transecte[i], 4,4)
+  cent <- as.numeric(cent) # NA if it doesnt have 4 digits
+  if(is.na(cent)) { # if is NA (has 3 digits)
+    dat$Num_transecte[i] <- str_sub(dat$Num_transecte[i], start = -2) # Keep the last 2
+  } else { dat$Num_transecte[i] <- str_sub(dat$Num_transecte[i], start = -3)} # Otherwise, keep the last 3
+  }
+
 
 # Create variable by pasting it
 for (i in 1:nrow(dat)){ 
@@ -47,7 +52,7 @@ for (i in 1:nrow(dat)){
 }
 
 # ---- Distance ----
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
 colnames(band)[1] <- "Banda"
 
@@ -136,9 +141,9 @@ dat <- dat[-which(dat$transectID %in% irri_all), ]
 
 # Remove the ones irrigated the year it changed (report remove = 1 for the ones to remove)
 
-irri_change <- irri[which(!is.na(irri$X1er.aÃ±o.cambio)), ]
+irri_change <- irri[which(!is.na(irri$X1er.año.cambio)), ]
 irri_change_ID <- irri_change$transectID
-irri_change_year <- irri_change$X1er.aÃ±o.cambio
+irri_change_year <- irri_change$X1er.año.cambio
 dat$remove <- NA
 
 for (i in 1:nrow(dat)){
@@ -241,4 +246,4 @@ dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 dat <- dat[which(dat$Obs_type == "V"), ]
 dat <- dat[ ,-which(colnames(dat) %in% "Obs_type")]
 
-#write.csv(dat,"DataDS_ready.csv")
+write.csv(dat,"DataDS_ready.csv")

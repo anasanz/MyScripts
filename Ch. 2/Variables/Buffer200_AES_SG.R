@@ -45,7 +45,7 @@ sg17 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/SG", lay
 
 # ---- Create buffers and calculate area ----
 
-buf <- gBuffer(tr, byid = TRUE, width = 500)
+buf <- gBuffer(tr, byid = TRUE, width = 200)
 #writeOGR(buf, dsn = "C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS", layer = "Buffer_transects", driver = "ESRI Shapefile")
 
 # Data frame to fill up:
@@ -94,7 +94,7 @@ for (i in 1:length(layers)){
   
   # HERE NOTHING
   # Proportional intersecting area of fallow:
- # poli$ha_intersect_fallow <- poli$ha_intersect_buffer*poli$HA_Fallow/poli$HA_SP 
+  # poli$ha_intersect_fallow <- poli$ha_intersect_buffer*poli$HA_Fallow/poli$HA_SP 
   
   transect_area <- aggregate(ha_intersect_buffer ~ Codi, data = poli, FUN = sum) # Sum area of polygons belonging to a buffer
   
