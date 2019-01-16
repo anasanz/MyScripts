@@ -224,7 +224,8 @@ indexYears <- model.matrix(~ allyears-1, data = ye)
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
               y = yLong, nind = nind, dclass = dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area1 = area_AES, area2 = area_SG, zoneB = zon, ob = ob, nobs = nobs, db = dist.breaks)
+              area1 = area_AES, area2 = area_SG, zoneB = zon, #ob = ob, nobs = nobs, 
+              db = dist.breaks)
 
 # ---- JAGS model ----
 
@@ -255,9 +256,9 @@ cat("model{
     }
     
     #RANDOM OBSERVER EFFECT FOR SIGMA 
-    for (o in 1:nobs){
-    sig.obs[o] ~ dnorm(mu.sig, tau.sig)
-    }
+    #for (o in 1:nobs){
+    #sig.obs[o] ~ dnorm(mu.sig, tau.sig)
+    #}
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[siteYear.dclass[i], 1:nG])  
@@ -265,7 +266,8 @@ cat("model{
     
     for(j in 1:length(y)){ 
     
-    sigma[j] <- exp(sig.obs[ob[j]] + bzB.sig*zoneB[j])
+    sigma[j] <- exp(#sig.obs[ob[j]] + 
+                bzB.sig*zoneB[j])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -295,15 +297,15 @@ cat("model{
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt")
+    }",fill=TRUE, file = "s_sigma(integral)[NO#obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt")
 
 
 # Inits
-Nst <- yLong + 1
+Nst <- yLong_index + 1
 inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0, 50), I dont need sigma because I have already priors for his hyperparameters!!!!!
                          N=Nst,
-                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
-                         mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1)
+                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1)
+                         #, mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1)
                          ###changed inits for mu.sig - don't start too small, better start too large
 )}
 
@@ -311,14 +313,15 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
 params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu.lam", "sig.lam", 
             "bzB.lam", "ba1.lam", "ba2.lam",
-            "mu.sig", "sig.sig", "bzB.sig"
+            #"mu.sig", "sig.sig", 
+            "bzB.sig"
 )
 
 # MCMC settings
 nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[NO#obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
