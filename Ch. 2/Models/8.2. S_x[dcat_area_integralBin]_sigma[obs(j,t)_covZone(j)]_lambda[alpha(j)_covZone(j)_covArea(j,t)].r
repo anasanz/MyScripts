@@ -198,7 +198,8 @@ for (t in 1:nyrs){
 }
 
 # Get one long vector for each site-year combination of each dclass observation
-# (so, at which j, or siteyear is every observation or dclass corresponding?)
+# (so, at which j, or siteyear is every observation or dclass corresponding?) 
+# This new siteyear index is to refer to the prob. of detection at each site (now it is different, because sigma varies per site)
 
 n.allSiteYear <- sum(nSites)
 #seq.allSiteYear <- 1:length(dclass)
@@ -228,7 +229,7 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = sit
 
 # ---- JAGS model ----
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS

@@ -5,7 +5,7 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-# Run model 7.1 in MECAL dataset 
+# Run model 8.2 in MECAL dataset 
 # ---- I ignore counts in each observation (cluster size)
 
 # ---- Data ----
@@ -28,19 +28,30 @@ nyrs <- length(yrs)
 # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
 # species was there but it wasnt sampled
 
-d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y"))]
+d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
 d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
 
 
-mec <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species"))] # Select species MECAL and all years
+# For observer variable
+d_tr$Observer <- as.character(d_tr$Observer)
+d_tr_all_obs <- left_join(d_tr_all, d_tr)
+d_tr_all_obs <- d_tr_all_obs[ ,c(1,4)]
+d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields and which observer sampled it
+d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
+d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
+
+
+mec <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
+mec$Observer <- as.character(mec$Observer) 
 
 
 absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
 absent$Species <- "MECAL"
+absent <- left_join(absent, d_tr_all_obs)
 
 
 for (i in 1:nrow(absent)){ # Format to join absent - detections
@@ -48,9 +59,9 @@ for (i in 1:nrow(absent)){ # Format to join absent - detections
   cent <- as.numeric(cent)
   if(is.na(cent)){
     
-  absent$Year[i] <- substr(absent$T_Y[i], 6,9)
-  absent$transectID[i] <- substr(absent$T_Y[i], 1,4)
-  
+    absent$Year[i] <- substr(absent$T_Y[i], 6,9)
+    absent$transectID[i] <- substr(absent$T_Y[i], 1,4)
+    
   } else { absent$Year[i] <- substr(absent$T_Y[i], 7,10)
   absent$transectID[i] <- substr(absent$T_Y[i], 1,5)}
 }
@@ -120,7 +131,7 @@ sg_sc <- (area_sg - sg_mean) / sg_sd
 # Zone (Occidental = 0; Oriental = 1)
 zone <- order
 for (i in 1:nrow(zone)){
-if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:8] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:8] <- 0}
   if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:8] <- 1}
   if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:8] <- 1}
   if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:8] <- 0}
@@ -128,6 +139,23 @@ if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:8] <- 0}
   if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:8] <- 0}
 }
 zone <- zone[,-9]
+
+# Observer 
+
+# Format
+obs <- matrix(NA, nrow = max.sites, ncol = nyrs)
+rownames(obs) <- all.sites
+colnames(obs) <- yrs
+
+# Add observers for fields with counts > 0
+for (i in 1:nrow(mec)){
+  obs[which(rownames(obs) %in% mec$transectID[i]), which(colnames(obs) %in% mec$Year[i])] <- mec$Observer[i]
+}
+
+# Add observers for fields with absences (0)
+for (i in 1:nrow(absent)){
+  obs[which(rownames(obs) %in% absent$transectID[i]), which(colnames(obs) %in% absent$Year[i])] <- absent$Observer[i]
+}
 
 
 # ---- Specify data in JAGS format ----
@@ -140,9 +168,24 @@ dclass <- mec$Banda
 # Get one long vector with counts per year and site
 yLong <- unlist(as.data.frame(m), use.names = F)
 
+
 sitesYears <- NULL
 for (i in 1:nyrs){
   sitesYears <- c(sitesYears,c(1:length(all.sites)))}
+
+# Get one long vector for each site-year combination of each dclass observation
+
+###RS: Fixed index to map dclass onto site-year combinations
+
+# For the index, create a vector of ylong where NA are 0 (because I need the same length)
+yLong_index <- yLong
+yLong_index[which(is.na(yLong_index))] <- 0
+
+n.allSiteYear <- max.sites*nyrs 
+siteYear.dclass <- NULL
+
+for (i in 1:n.allSiteYear){
+  siteYear.dclass <- c(siteYear.dclass,rep(i, yLong_index[i]))} 
 
 
 # Get one vector per co-variate
@@ -159,62 +202,91 @@ zon <- NULL
 for (i in 1:nyrs){
   zon <- c(zon,zone[1:length(all.sites),i])}
 
+ob <- NULL
+for (i in 1:nyrs){
+  ob <- c(ob,obs[1:length(all.sites),i])}
+ob <- as.numeric(factor(ob)) # JAGS doesn't accept categorical variables
+
 # Create one matrix for indexing year when calculating abundance per year in JAGS
 allyears <- NULL 
 for (i in 1:nyrs){
   allyears <- c(allyears,rep(yrs[i],length(all.sites)))
 }
-m <- data.frame(allyears = allyears)
-m$allyears <- as.factor(m$allyears)
-indexYears <- model.matrix(~ allyears-1, data = m)
+ye <- data.frame(allyears = allyears)
+ye$allyears <- as.factor(ye$allyears)
+indexYears <- model.matrix(~ allyears-1, data = ye)
+
+
+
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, 
-              y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area1 = area_AES, area2 = area_SG, zoneB = zon)
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
+              y = yLong, nind = nind, dclass = dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
+              area1 = area_AES, area2 = area_SG, zoneB = zon, ob = ob, nobs = nobs, db = dist.breaks)
 
 # ---- JAGS model ----
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
 cat("model{
-    # Priors
     
-    # Coefficients for lambda
+    # PRIORS
+    
+    # Priors for lambda
     bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
     
-    
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
-    # I allow it to have negative values because the log of lambda can have
     sig.lam ~ dunif(0, 10)
     tau.lam <- 1/(sig.lam*sig.lam)
-    sigma ~ dunif(0, 1000)
+    
+    # Priors for sigma
+    bzB.sig ~ dnorm(0, 0.001)
+    
+    mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
+    sig.sig ~ dunif(0, 10)
+    tau.sig <- 1/(sig.sig*sig.sig)
     
     #RANDOM TRANSECT LEVEL EFFECT FOR LAMBDA (doesn't change over time) # takes care of the dependence in data when you repeatedly visit the same transect
     for (s in 1:max.sites){
     log.lambda[s] ~ dnorm(mu.lam, tau.lam)
     }
     
+    #RANDOM OBSERVER EFFECT FOR SIGMA 
+    for (o in 1:nobs){
+    sig.obs[o] ~ dnorm(mu.sig, tau.sig)
+    }
+    
     for(i in 1:nind){
-    dclass[i] ~ dcat(fc[]) 
+    dclass[i] ~ dcat(fct[siteYear.dclass[i], 1:nG])  
     }
     
-    # Construct cell probabilities for nG multinomial cells (distance categories)
+    for(j in 1:length(y)){ 
+    
+    sigma[j] <- exp(sig.obs[ob[j]] + bzB.sig*zoneB[j])
+    
+    # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
+    
     for(k in 1:nG){ 
-    log(p[k]) <- -midpt[k] * midpt[k] / (2*sigma*sigma)
-    pi[k] <- int.w[k] / strip.width 
-    f[k] <- p[k] * pi[k] 
-    fc[k] <- f[k] / pcap 
-    }
-    pcap <- sum(f[]) # Same for all sites all years
     
-    for(j in 1:length(y)){ # sites*years. Because in my data there is different number of sites per year
-    y[j] ~ dbin(pcap, N[j]) 
+    up[j,k]<-pnorm(db[k+1], 0, 1/sigma[j]^2) ##db are distance bin limits
+    low[j,k]<-pnorm(db[k], 0, 1/sigma[j]^2) 
+    p[j,k]<- 2 * (up[j,k] - low[j,k])
+    pi[j,k] <- int.w[k] / strip.width 
+    f[j,k]<- p[j,k]/f.0[j]/int.w[k]                   ## detection prob. in distance category k                      
+    fc[j,k]<- f[j,k] * pi[j,k]                 ## pi=percent area of k; drops out if constant
+    fct[j,k]<-fc[j,k]/pcap[j] 
+    }
+    
+    pcap[j] <- sum(fc[j, 1:nG]) # Different per site and year (sum over all bins)
+    
+    f.0[j] <- 2 * dnorm(0,0, 1/sigma[j]^2) # Prob density at 0
+    # To set that prob.of detection at distance 0 is one, you divide by f0 in the loop up
+    
+    y[j] ~ dbin(pcap[j], N[j]) 
     N[j] ~ dpois(lambda[j]) 
-    lambda[j] <- exp(log.lambda[sitesYears[j]]  
-    + bzB.lam*zoneB[j]
+    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j]
     + ba1.lam*area1[j] + ba2.lam*area2[j]) 
     }
     
@@ -222,56 +294,4 @@ cat("model{
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt")
-
-# Inits
-Nst <- yLong + 1
-inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, sigma = runif(1, 20, 100), N=Nst,
-                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1) )}
-
-# Params
-params <- c("Ntotal", "N", "sigma", "lambda", "mu.lam", "sig.lam", 
-            "bzB.lam", "ba1.lam", "ba2.lam")
-
-# MCMC settings
-nc <- 3 ; ni <- 10000 ; nb <- 2000 ; nt <- 2
-
-# With jagsUI 
-out <- jags(data1, inits, params, "s_sigma_lambda[alpha(j)_covZones(j)_covAreas(jt)].txt", n.chain = nc,
-            n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
-print(out)
-
-for (i in 1:nyrs){
-  plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
-       frame = F, main = paste("year",i)) 
-  abline(v = mean(out$sims.list$Ntotal[,i]), col = "red", lwd = 3)
-}
-
-summary <- as.data.frame(as.matrix(out$summary))
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-write.csv(summary, "7.1.Mecal.csv")
-
-##############################################################################
-summary <- read.csv("7.1.Mecal.csv")
-
-
-
-
-results <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "Ntotal[5]", "Ntotal[6]",
-                                                   "Ntotal[7]", "Ntotal[8]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
-
-
-plot(-100,ylim = c(0,1000), xlim=c(0,8),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
-axis(1, at = c(1,2,3,4,5,6,7,8), labels = yrs)
-axis(2)
-points(results[1:8,2],pch = 19)
-x <- seq_along(results[1:8,2])
-low_CI <- as.numeric(results$X2.5.[1:8])
-up_CI <- as.numeric(results$X97.5.[1:8])
-arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04)
-
-results2 <- summary[9:1336, ]
-plot(results2$mean~area_SG, pch = 16, ylab = "Abundance")
-
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt")
