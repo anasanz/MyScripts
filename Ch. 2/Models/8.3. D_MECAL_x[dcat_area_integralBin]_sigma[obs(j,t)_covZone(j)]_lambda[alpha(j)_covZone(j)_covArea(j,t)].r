@@ -207,7 +207,26 @@ for (i in 1:nyrs){
   ob <- c(ob,obs[1:length(all.sites),i])}
 ob <- as.numeric(factor(ob)) # JAGS doesn't accept categorical variables
 
-nobs <- length(unique(ob))-1
+## RS: = observer is a covariate so NAs are a problem because nothing
+# in the model specifies how the NAs can be estimated ( never shows up 
+# on the left hand side of a line of code) So there are two solutions:
+
+### 1.Estimate observer for missing observations
+####### log(sigma[j,k])<-alpha[observer[j,k]] + beta*X  
+####### observer[j,k]~dcat(probs)
+
+### 2. Because there is no data points where observer is NA, and because
+# I am not trying to estimate sigma in every point (only abundance, and in the
+# missing points of data this is estimated using the noNA and the co-variates.
+# i.e., you have covariate information for the abundance component of the missing 
+# year-transect combinations, so you can use that to predict abundance for these missing points)
+# Then, you can fill observer NAs with random IDs and it wont affect the model estimates.
+# (ONLY BECAUSE THERE IS NO DATA ASSOCIATED WITH THE OBSERVER NAs)
+
+obs_id <- unique(ob)[-1]
+ob[which(is.na(ob))] <- sample(obs_id, length(which(is.na(ob))), replace = TRUE)
+
+nobs <- length(unique(ob))
 
 # Create one matrix for indexing year when calculating abundance per year in JAGS
 allyears <- NULL 
@@ -323,3 +342,39 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lamb
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
+
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
+write.csv(summary, "8.2.Mecal.csv")
+
+###################################################################
+
+
+summary <- read.csv("8.2.Mecal.csv")
+
+results <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "Ntotal[5]", "Ntotal[6]",
+                                          "Ntotal[7]", "Ntotal[8]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
+
+# Plot the trend of the population
+plot(-100,ylim = c(0,1000), xlim=c(0,8),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
+axis(1, at = c(1,2,3,4,5,6,7,8), labels = yrs)
+axis(2)
+points(results[1:8,2],pch = 19)
+x <- seq_along(results[1:8,2])
+low_CI <- as.numeric(results$X2.5.[1:8])
+up_CI <- as.numeric(results$X97.5.[1:8])
+arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) # I guess this is ok? But Im sure there are better ways
+# Is it usual to add like a trend line or something like that?
+
+# To plot the relation with the co-variates (then I guess I need to take all the N right?)
+results2 <- summary[9:1336, ]
+plot(results2$mean ~ area_SG, ylab = "Abundance") # Tonta: Here I dont know how to add a line since there is no lm, and I was doing it before as abline(lm(...))
+plot(results2$mean ~ area_AES, pch = 16, ylab = "Abundance")
+
+plot(area_SG,results2$mean, ylab = "Abundance", las = 1)
+
+pred <- exp(results[which(results$X == "bzB.lam"),2]*zon + 
+               results[which(results$X == "ba1.lam"),2]*area_AES +
+               results[which(results$X == "ba2.lam"),2]*area_SG)
+
+points(pred, type = "l", col = "red")
