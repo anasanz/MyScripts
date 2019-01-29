@@ -95,7 +95,9 @@ for (i in 1:nrow(absent)){
   m[which(rownames(m) %in% absent$transectID[i]), which(colnames(m) %in% absent$Year[i])] <- absent$count[i]
 }
 
+# Only to check: Count of individuals per year
 
+count.year <- colSums(m,na.rm = TRUE)
 # ---- Co-variates ----
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
@@ -348,7 +350,7 @@ write.csv(summary, "8.2.Mecal.csv")
 
 ###################################################################
 
-
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
 summary <- read.csv("8.2.Mecal.csv")
 
 results <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "Ntotal[5]", "Ntotal[6]",
@@ -359,22 +361,91 @@ plot(-100,ylim = c(0,1000), xlim=c(0,8),
      pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
 axis(1, at = c(1,2,3,4,5,6,7,8), labels = yrs)
 axis(2)
-points(results[1:8,2],pch = 19)
+points(results[1:8,2],pch = 19) # Plot results
+points(count.year,pch = 19, col = "red") # Plot counts
 x <- seq_along(results[1:8,2])
 low_CI <- as.numeric(results$X2.5.[1:8])
 up_CI <- as.numeric(results$X97.5.[1:8])
-arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) # I guess this is ok? But Im sure there are better ways
-# Is it usual to add like a trend line or something like that?
+arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
 
-# To plot the relation with the co-variates (then I guess I need to take all the N right?)
+
+# To plot the relation with the co-variates 
 results2 <- summary[9:1336, ]
-plot(results2$mean ~ area_SG, ylab = "Abundance") # Tonta: Here I dont know how to add a line since there is no lm, and I was doing it before as abline(lm(...))
-plot(results2$mean ~ area_AES, pch = 16, ylab = "Abundance")
 
-plot(area_SG,results2$mean, ylab = "Abundance", las = 1)
+plot(results2$mean ~ area_AES, ylab = "Abundance") 
 
-pred <- exp(results[which(results$X == "bzB.lam"),2]*zon + 
-               results[which(results$X == "ba1.lam"),2]*area_AES +
-               results[which(results$X == "ba2.lam"),2]*area_SG)
+# Prediction: Fix the rest of the covariates that you dont want to see (to the mean, or zone 1 or 2)
 
-points(pred, type = "l", col = "red")
+# PREDICTION ABUNDANCE - AES
+
+area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
+
+pred <- exp(results[which(results$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+              results[which(results$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+              results[which(results$X == "ba1.lam"),2]*area_AESpred + 
+              results[which(results$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
+
+plot(pred ~ area_AESpred, ylim=c(0,3), type="l")
+
+ 
+pred0 <- exp(results[which(results$X == "mu.lam"),2]+
+              results[which(results$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
+              results[which(results$X == "ba1.lam"),2]*area_AESpred +
+              results[which(results$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
+
+pred0lci <- exp(results[which(results$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
+               results[which(results$X == "bzB.lam"),4]*0 + 
+               results[which(results$X == "ba1.lam"),4]*area_AESpred +
+               results[which(results$X == "ba2.lam"),4]*mean(area_SG)) # How do I add the random effect by sites????
+
+pred0uci <- exp(results[which(results$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
+               results[which(results$X == "bzB.lam"),8]*0 + 
+               results[which(results$X == "ba1.lam"),8]*area_AESpred +
+               results[which(results$X == "ba2.lam"),8]*mean(area_SG)) # How do I add the random effect by sites????
+
+
+points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
+points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
+points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
+
+
+# PREDICTION ABUNDANCE - SG
+
+plot(results2$mean ~ area_SG, ylab = "Abundance") 
+
+area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
+
+pred <- exp(results[which(results$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+              results[which(results$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+              results[which(results$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
+              results[which(results$X == "ba2.lam"),2]*area_SGpred) 
+
+plot(pred ~ area_SGpred, ylim=c(0,10), type="l")
+
+
+pred0 <- exp(results[which(results$X == "mu.lam"),2]+
+               results[which(results$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
+               results[which(results$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
+               results[which(results$X == "ba2.lam"),2]*area_SGpred) 
+
+pred0lci <- exp(results[which(results$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
+                  results[which(results$X == "bzB.lam"),4]*0 + 
+                  results[which(results$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
+                  results[which(results$X == "ba2.lam"),4]*area_SGpred) 
+
+pred0uci <- exp(results[which(results$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
+                  results[which(results$X == "bzB.lam"),8]*0 + 
+                  results[which(results$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
+                  results[which(results$X == "ba2.lam"),8]*area_SGpred) 
+
+points(pred0 ~ area_SGpred, pch=16, type="l", col="red")
+points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
+points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
+
+
+plot(results2$mean ~ area_SG, ylab = "Abundance") 
+points(pred0 ~ area_SGpred, pch=16, type="l", col="red")
+points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
+points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
+
+
