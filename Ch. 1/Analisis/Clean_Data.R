@@ -6,7 +6,7 @@ library(tidyr)
 rm(list=ls())
 
 # Data for submission and cleaned
-setwd("C:/Users/ana.sanz/Documents/First chapter/Datos/Datos barbechos arrendados/Variables")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/First chapter/Datos/Datos barbechos arrendados/Variables")
 #setwd("~/PhD/Datos/Datos barbechos arrendados/Variables")
 
 f <- read.csv("Variables.csv", sep = ",", header=TRUE, fill = TRUE)

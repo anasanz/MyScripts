@@ -75,10 +75,10 @@ dev.off()
 
 #ADD TREATMENTS OF 2017
 library(rgdal)
-g<-readOGR("C:/Users/ana.sanz/Documents/GIS Ana/Finques_ASG_2017 SELECCIÓN","Finques_ASG_2017_seleccio_def_OK")
+g<-readOGR("C:/Users/ana.sanz/OneDrive/PhD/GIS Ana/Finques_ASG_2017 SELECCIÓN","Finques_ASG_2017_seleccio_def_OK")
 g@data
 
-setwd("C:/Users/ana.sanz/Documents/Datos/Datos barbechos arrendados")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/First chapter/Datos/Datos barbechos arrendados/Consultas")
 write.table(g@data,"Treatments_2017.csv") 
 
 d<-read.csv("Treatments_2017.csv",sep = " ",
@@ -99,6 +99,8 @@ d$Tractament[d$Tractament == "GRADA DE DISCOS + CURRO"]<-"Curronar"
 d$Tractament[d$Tractament == "PICAR + HERB"]<-"Picar i herbicidar"
 d$Tractament[d$Descr == "Alfals"]<-"Alfals"
 d$Tractament[is.na(d$Tractament)]<-"Control"
+
+possible_past <- d[which(d$Tractament == "Control" & d$Descr == "Guaret pasturable"), ]
 
 length(which(d$Tractament == "Control" & d$Descr == "Guaret pasturable")) #Hay 50 Guaret pasturable sin tratamiento. Se han pastoreado?
 
