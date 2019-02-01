@@ -1,6 +1,6 @@
 
 # ==================================================================================
-#                        EXTRACT BUFFER CALCULATING % OF AES AND SG
+#                        EXTRACT BUFFER 200 M CALCULATING % OF AES AND SG
 # ==================================================================================
 
 rm(list=ls())
@@ -126,6 +126,6 @@ for (i in 1:length(layers)){
 
 # Save
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-write.csv(management, "management_area.csv")
+write.csv(management, "management_area_200.csv")
 
 
