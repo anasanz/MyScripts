@@ -48,7 +48,7 @@ d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
 d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
 
 
-mec <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
+mec <- d[which(d$Species == "BUOED"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 mec$Observer <- as.character(mec$Observer) 
@@ -57,7 +57,7 @@ mec$Observer <- as.character(mec$Observer)
 absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "MECAL"
+absent$Species <- "BUOED"
 absent <- left_join(absent, d_tr_all_obs)
 
 
@@ -340,7 +340,7 @@ params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt sav
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 50000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
@@ -350,21 +350,21 @@ print(out)
 summary <- as.data.frame(as.matrix(out$summary))
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-write.csv(summary, "8.2.Mecal200_14-17.csv")
+write.csv(summary, "8.2.Buoed200_14-17.csv")
 
 ###################################################################
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-summary <- read.csv("8.2.Mecal200_14-17.csv")
+summary <- read.csv("8.2.Buoed200_14-17.csv") # DID NOT CONVERGE BUT RHAT < 1.15, SO ALMOST. NO PORBLEM, ESTIMATES ARE RELIABLE
 
 results200 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
 
-# AES NONE EFFECT BUT NEGATIVE EFFECT
-# SG NONE EFFECT BUT POSITIVE TREND
+# AES NONE EFFECT BUT POSITIVE (SLIGHT) TREND
+# SG POSITIVE EFFECT
 
 # Plot the trend of the population
-plot(-100,ylim = c(0,1000), xlim=c(0,8),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
+plot(-100,ylim = c(0,120), xlim=c(0,8),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "BUOED")
 axis(1, at = c(1,2,3,4), labels = yrs)
 axis(2)
 points(results200[1:4,2],pch = 19) # Plot results

@@ -387,7 +387,19 @@ pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (
               results500[which(results500$X == "ba1.lam"),2]*area_AESpred + 
               results500[which(results500$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
 
+predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),4]*area_AESpred + 
+                 results500[which(results500$X == "ba2.lam"),4]*mean(area_SG)) # Fixed SG area
+
+preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),8]*area_AESpred + 
+                 results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # Fixed SG area
+
 plot(pred ~ area_AESpred, ylim=c(0,3), type="l", main = "buffer.500")
+points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
+points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
 
  
 pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
@@ -422,7 +434,19 @@ pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (
               results500[which(results500$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
               results500[which(results500$X == "ba2.lam"),2]*area_SGpred) 
 
+predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
+                 results500[which(results500$X == "ba2.lam"),4]*area_SGpred) 
+
+preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
+                 results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
+
 plot(pred ~ area_SGpred, ylim=c(0,10), type="l", main = "buffer.500")
+points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
+points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
 
 
 pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+

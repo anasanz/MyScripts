@@ -48,7 +48,7 @@ d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
 d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
 
 
-mec <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
+mec <- d[which(d$Species == "BUOED"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 mec$Observer <- as.character(mec$Observer) 
@@ -57,7 +57,7 @@ mec$Observer <- as.character(mec$Observer)
 absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "MECAL"
+absent$Species <- "BUOED"
 absent <- left_join(absent, d_tr_all_obs)
 
 
@@ -108,7 +108,7 @@ count.year <- colSums(m,na.rm = TRUE)
 # ---- Co-variates ----
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-manag <- read.csv("management_area_200.csv")
+manag <- read.csv("management_area_500.csv")
 
 manag <- manag[ , c(1,2,7:14)] # Select years 2014 - 2017
 
@@ -350,46 +350,47 @@ print(out)
 summary <- as.data.frame(as.matrix(out$summary))
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-write.csv(summary, "8.2.Mecal200_14-17.csv")
+write.csv(summary, "8.2.Buoed500_14-17.csv")
 
 ###################################################################
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-summary <- read.csv("8.2.Mecal200_14-17.csv")
+summary <- read.csv("8.2.Buoed500_14-17.csv")
 
-results200 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
+results500 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
 
-# AES NONE EFFECT BUT NEGATIVE EFFECT
+# AES NEGATIVE EFFECT
 # SG NONE EFFECT BUT POSITIVE TREND
 
 # Plot the trend of the population
-plot(-100,ylim = c(0,1000), xlim=c(0,8),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
+plot(-100,ylim = c(0,120), xlim=c(0,8),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "BUOED")
 axis(1, at = c(1,2,3,4), labels = yrs)
 axis(2)
-points(results200[1:4,2],pch = 19) # Plot results
+points(results500[1:4,2],pch = 19) # Plot results
 points(count.year,pch = 19, col = "red") # Plot counts
-x <- seq_along(results200[1:4,2])
-low_CI <- as.numeric(results200$X2.5.[1:4])
-up_CI <- as.numeric(results200$X97.5.[1:4])
+x <- seq_along(results500[1:4,2])
+low_CI <- as.numeric(results500$X2.5.[1:4])
+up_CI <- as.numeric(results500$X97.5.[1:4])
 arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
 
 
 # To plot the relation with the co-variates 
-results200_2 <- summary[5:588, ]
+results500_2 <- summary[5:588, ]
 
-plot(results200_2$mean ~ area_AES, ylab = "Abundance") 
+plot(results500_2$mean ~ area_AES, ylab = "Abundance") 
 
 # Prediction: Fix the rest of the covariates that you dont want to see (to the mean, or zone 1 or 2)
 
 # PREDICTION ABUNDANCE - AES
 
-area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 200) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
+area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
-pred <- exp(results200[which(results200$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results200[which(results200$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results200[which(results200$X == "ba1.lam"),2]*area_AESpred + 
-              results200[which(results200$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
+pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+              results500[which(results500$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+              results500[which(results500$X == "ba1.lam"),2]*area_AESpred + 
+              results500[which(results500$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
+
 
 predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
                  results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
@@ -401,32 +402,33 @@ preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercep
                  results500[which(results500$X == "ba1.lam"),8]*area_AESpred + 
                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # Fixed SG area
 
-plot(pred ~ area_AESpred, ylim=c(0,3), type="l", main = "buffer.200")
+plot(pred ~ area_AESpred, ylim=c(0,3), type="l", main = "buffer.500")
 points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
 points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
 
 
-pred0 <- exp(results200[which(results200$X == "mu.lam"),2]+
-               results200[which(results200$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
-               results200[which(results200$X == "ba1.lam"),2]*area_AESpred +
-               results200[which(results200$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
 
-pred0lci <- exp(results200[which(results200$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
-                  results200[which(results200$X == "bzB.lam"),4]*0 + 
-                  results200[which(results200$X == "ba1.lam"),4]*area_AESpred +
-                  results200[which(results200$X == "ba2.lam"),4]*mean(area_SG)) # How do I add the random effect by sites????
+pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
+               results500[which(results500$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
+               results500[which(results500$X == "ba1.lam"),2]*area_AESpred +
+               results500[which(results500$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
 
-pred0uci <- exp(results200[which(results200$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
-                  results200[which(results200$X == "bzB.lam"),8]*0 + 
-                  results200[which(results200$X == "ba1.lam"),8]*area_AESpred +
-                  results200[which(results200$X == "ba2.lam"),8]*mean(area_SG)) # How do I add the random effect by sites????
+pred0lci <- exp(results500[which(results500$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
+                  results500[which(results500$X == "bzB.lam"),4]*0 + 
+                  results500[which(results500$X == "ba1.lam"),4]*area_AESpred +
+                  results500[which(results500$X == "ba2.lam"),4]*mean(area_SG)) 
+
+pred0uci <- exp(results500[which(results500$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
+                  results500[which(results500$X == "bzB.lam"),8]*0 + 
+                  results500[which(results500$X == "ba1.lam"),8]*area_AESpred +
+                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) 
 
 
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
 points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
 points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
 
-plot(results200_2$mean ~ area_AES, ylab = "Abundance")
+plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
 points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
 points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
@@ -434,51 +436,51 @@ points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
 
 # PREDICTION ABUNDANCE - SG
 
-plot(results200_2$mean ~ area_SG, ylab = "Abundance") 
+plot(results500_2$mean ~ area_SG, ylab = "Abundance") 
 
-area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 200) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
+area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
-pred <- exp(results200[which(results200$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results200[which(results200$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results200[which(results200$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
-              results200[which(results200$X == "ba2.lam"),2]*area_SGpred) 
+pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+              results500[which(results500$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+              results500[which(results500$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
+              results500[which(results500$X == "ba2.lam"),2]*area_SGpred) 
 
-predlci <- exp(results200[which(results200$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                 results200[which(results200$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                 results200[which(results200$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
-                 results200[which(results200$X == "ba2.lam"),4]*area_SGpred) 
+predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
+                 results500[which(results500$X == "ba2.lam"),4]*area_SGpred) 
 
-preduci <- exp(results200[which(results200$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                 results200[which(results200$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                 results200[which(results200$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
-                 results200[which(results200$X == "ba2.lam"),8]*area_SGpred) 
+preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
+                 results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
 
-plot(pred ~ area_SGpred, ylim=c(0,10), type="l", main = "buffer.200")
+plot(pred ~ area_SGpred, ylim=c(0,3), type="l", main = "buffer.500")
 points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
 points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
 
 
-pred0 <- exp(results200[which(results200$X == "mu.lam"),2]+
-               results200[which(results200$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
-               results200[which(results200$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
-               results200[which(results200$X == "ba2.lam"),2]*area_SGpred) 
+pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
+               results500[which(results500$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
+               results500[which(results500$X == "ba1.lam"),2]*mean(area_AES) + # Fixed AES area
+               results500[which(results500$X == "ba2.lam"),2]*area_SGpred) 
 
-pred0lci <- exp(results200[which(results200$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
-                  results200[which(results200$X == "bzB.lam"),4]*0 + 
-                  results200[which(results200$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
-                  results200[which(results200$X == "ba2.lam"),4]*area_SGpred) 
+pred0lci <- exp(results500[which(results500$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
+                  results500[which(results500$X == "bzB.lam"),4]*0 + 
+                  results500[which(results500$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
+                  results500[which(results500$X == "ba2.lam"),4]*area_SGpred) 
 
-pred0uci <- exp(results200[which(results200$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
-                  results200[which(results200$X == "bzB.lam"),8]*0 + 
-                  results200[which(results200$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
-                  results200[which(results200$X == "ba2.lam"),8]*area_SGpred) 
+pred0uci <- exp(results500[which(results500$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
+                  results500[which(results500$X == "bzB.lam"),8]*0 + 
+                  results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
+                  results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
 
 points(pred0 ~ area_SGpred, pch=16, type="l", col="red")
 points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
 points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
 
 
-plot(results200_2$mean ~ area_SG, ylab = "Abundance") 
+plot(results500_2$mean ~ area_SG, ylab = "Abundance") 
 points(pred0 ~ area_SGpred, pch=16, type="l", col="red")
 points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
 points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")

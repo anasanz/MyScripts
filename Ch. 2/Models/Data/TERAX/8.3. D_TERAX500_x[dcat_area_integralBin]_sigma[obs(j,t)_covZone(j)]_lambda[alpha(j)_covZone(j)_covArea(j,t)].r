@@ -5,7 +5,7 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-# Run model 8.2 in TERAX dataset 
+# Run model 8.2 in MECAL dataset 
 # ---- I ignore counts in each observation (cluster size)
 
 # ---- Data ----
@@ -25,7 +25,7 @@ nyrs <- length(yrs)
 
 # To take into account transects with abundance 0
 # 1. Select all transects IDs from all species observations
-# 2. Join the observations of TERAX (for example) with all transects so that they remain with NA if the
+# 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
 # species was there but it wasnt sampled
 
 d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
@@ -41,7 +41,7 @@ d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
 d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
 
 
-mec <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species TERAX and all years
+mec <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 mec$Observer <- as.character(mec$Observer) 
@@ -50,7 +50,7 @@ mec$Observer <- as.character(mec$Observer)
 absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "TERAC"
+absent$Species <- "TERAX"
 absent <- left_join(absent, d_tr_all_obs)
 
 
@@ -336,7 +336,7 @@ params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt sav
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 50000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
@@ -387,7 +387,19 @@ pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (
               results500[which(results500$X == "ba1.lam"),2]*area_AESpred + 
               results500[which(results500$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
 
-plot(pred ~ area_AESpred, ylim=c(0,0.5), type="l", main = "buffer.500")
+predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),4]*area_AESpred + 
+                 results500[which(results500$X == "ba2.lam"),4]*mean(area_SG)) # Fixed SG area
+
+preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results500[which(results500$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),8]*area_AESpred + 
+                 results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # Fixed SG area
+
+plot(pred ~ area_AESpred, ylim=c(0,1), type="l", main = "buffer.500")
+points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
+points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
 
 
 pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
@@ -423,16 +435,16 @@ pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (
               results500[which(results500$X == "ba2.lam"),2]*area_SGpred) 
 
 predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results500[which(results500$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
-              results500[which(results500$X == "ba2.lam"),4]*area_SGpred) 
+                 results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),4]*mean(area_AES) + # Fixed AES area
+                 results500[which(results500$X == "ba2.lam"),4]*area_SGpred) 
 
 preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results500[which(results500$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
-              results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
+                 results500[which(results500$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
+                 results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
 
-plot(pred ~ area_SGpred, ylim=c(0,3), type="l", main = "buffer.500")
+plot(pred ~ area_SGpred, ylim=c(0,4), type="l", main = "buffer.500")
 points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
 points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
 
