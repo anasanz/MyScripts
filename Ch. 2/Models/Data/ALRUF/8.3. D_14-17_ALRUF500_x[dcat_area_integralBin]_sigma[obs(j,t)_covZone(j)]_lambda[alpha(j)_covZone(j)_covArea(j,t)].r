@@ -48,7 +48,7 @@ d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
 d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
 
 
-mec <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
+mec <- d[which(d$Species == "ALRUF"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 mec$Observer <- as.character(mec$Observer) 
@@ -57,7 +57,7 @@ mec$Observer <- as.character(mec$Observer)
 absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "MECAL"
+absent$Species <- "ALRUF"
 absent <- left_join(absent, d_tr_all_obs)
 
 
@@ -340,7 +340,7 @@ params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt sav
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 75000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
@@ -350,21 +350,21 @@ print(out)
 summary <- as.data.frame(as.matrix(out$summary))
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-write.csv(summary, "8.2.Mecal500_14-17.csv")
+write.csv(summary, "8.2.Alruf500_14-17.csv")
 
 ###################################################################
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-summary <- read.csv("8.2.Mecal500_14-17.csv")
+summary <- read.csv("8.2.Alruf500_14-17.csv") # Does not converge but with one rhat value = 1.25 (Zone), so not very bad
 
 results500 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
 
-# AES NEGATIVE EFFECT
-# SG NONE EFFECT BUT POSITIVE TREND
+# AES NONE EFFECT NEGATIVE TREND
+# SG NONE EFFECT NEGATIVE TREND
 
 # Plot the trend of the population
-plot(-100,ylim = c(0,1000), xlim=c(0,8),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
+plot(-100,ylim = c(0,120), xlim=c(0,8),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "BUOED")
 axis(1, at = c(1,2,3,4), labels = yrs)
 axis(2)
 points(results500[1:4,2],pch = 19) # Plot results
@@ -384,9 +384,6 @@ plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 
 # PREDICTION ABUNDANCE - AES
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2")
-pdf("Mecal_500_AES_1417.pdf")
-
 area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
 pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
@@ -405,13 +402,9 @@ preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercep
                  results500[which(results500$X == "ba1.lam"),8]*area_AESpred + 
                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # Fixed SG area
 
-plot(pred ~ area_AESpred, ylim=c(0,5), type="l", main = "MECAL buffer.500")
-#points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
-#points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
-polygon( x = c(area_AESpred, rev(area_AESpred)),
-         y = c(predlci, rev(preduci)), 
-         col = adjustcolor(c("grey"),alpha.f = 0.6),
-         border = NA)
+plot(pred ~ area_AESpred, ylim=c(0,0.5), type="l", main = "buffer.500")
+points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
+points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
 
 
 
@@ -432,21 +425,8 @@ pred0uci <- exp(results500[which(results500$X == "mu.lam"),8]+ # PREDICTION UP C
 
 
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
-#points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
-#points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
-polygon( x = c(area_AESpred, rev(area_AESpred)),
-         y = c(pred0lci, rev(pred0uci)), 
-         col = adjustcolor(c("red"),alpha.f = 0.2),
-         border = NA)
-points(pred ~ area_AESpred, pch=16, type="l") # Para recalcar el negro otra vez
-
-
-legend("topright",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
-       border=c("red","black"),legend = c("Occidental", "Oriental"),
-       box.lwd=0.1,
-       bty = "n")
-
-dev.off()
+points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
+points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
 
 plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")

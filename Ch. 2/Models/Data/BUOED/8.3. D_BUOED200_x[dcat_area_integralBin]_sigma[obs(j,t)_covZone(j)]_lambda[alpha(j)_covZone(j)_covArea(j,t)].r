@@ -336,7 +336,7 @@ params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt sav
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 60000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,

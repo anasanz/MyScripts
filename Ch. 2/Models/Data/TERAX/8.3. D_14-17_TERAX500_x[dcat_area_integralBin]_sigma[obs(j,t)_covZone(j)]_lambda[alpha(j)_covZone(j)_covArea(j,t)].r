@@ -384,6 +384,9 @@ plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 
 # PREDICTION ABUNDANCE - AES
 
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2")
+pdf("Terax_500_AES_1417.pdf")
+
 area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
 pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
@@ -402,9 +405,13 @@ preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercep
                  results500[which(results500$X == "ba1.lam"),8]*area_AESpred + 
                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # Fixed SG area
 
-plot(pred ~ area_AESpred, ylim=c(0,1.2), type="l", main = "buffer.500")
-points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
-points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
+plot(pred ~ area_AESpred, ylim=c(0,1), type="l", main = "TERAX buffer.500")
+#points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
+#points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
+polygon( x = c(area_AESpred, rev(area_AESpred)),
+         y = c(predlci, rev(preduci)), 
+         col = adjustcolor(c("grey"),alpha.f = 0.6),
+         border = NA)
 
 
 
@@ -425,8 +432,20 @@ pred0uci <- exp(results500[which(results500$X == "mu.lam"),8]+ # PREDICTION UP C
 
 
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
-points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
-points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
+#points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
+#points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
+polygon( x = c(area_AESpred, rev(area_AESpred)),
+         y = c(pred0lci, rev(pred0uci)), 
+         col = adjustcolor(c("red"),alpha.f = 0.2),
+         border = NA)
+points(pred ~ area_AESpred, pch=16, type="l")
+
+legend("topright",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
+       border=c("red","black"),legend = c("Occidental", "Oriental"),
+       box.lwd=0.1,
+       bty = "n")
+
+dev.off()
 
 plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
@@ -436,7 +455,10 @@ points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
 
 # PREDICTION ABUNDANCE - SG
 
-plot(results500_2$mean ~ area_SG, ylab = "Abundance") 
+plot(results500_2$mean ~ area_SG, ylab = "Abundance")
+
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2")
+pdf("Terax_500_SG_1417.pdf")
 
 area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
@@ -455,9 +477,13 @@ preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercep
                  results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
                  results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
 
-plot(pred ~ area_SGpred, ylim=c(0,4), type="l", main = "buffer.500")
-points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
-points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
+plot(pred ~ area_SGpred, ylim=c(0,4), type="l", main = "TERAX buffer.500")
+#points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
+#points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
+polygon( x = c(area_SGpred, rev(area_SGpred)),
+         y = c(predlci, rev(preduci)), 
+         col = adjustcolor(c("grey"),alpha.f = 0.6),
+         border = NA)
 
 
 pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
@@ -476,9 +502,20 @@ pred0uci <- exp(results500[which(results500$X == "mu.lam"),8]+ # PREDICTION UP C
                   results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
 
 points(pred0 ~ area_SGpred, pch=16, type="l", col="red")
-points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
-points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
+#points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
+#points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
+polygon( x = c(area_SGpred, rev(area_SGpred)),
+         y = c(pred0lci, rev(pred0uci)), 
+         col = adjustcolor(c("red"),alpha.f = 0.2),
+         border = NA)
+legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
+       border=c("red","black"),legend = c("Occidental", "Oriental"),
+       box.lwd=0.1,
+       bty = "n")
 
+points(pred ~ area_SGpred, pch=16, type="l")
+
+dev.off()
 
 plot(results500_2$mean ~ area_SG, ylab = "Abundance") 
 points(pred0 ~ area_SGpred, pch=16, type="l", col="red")

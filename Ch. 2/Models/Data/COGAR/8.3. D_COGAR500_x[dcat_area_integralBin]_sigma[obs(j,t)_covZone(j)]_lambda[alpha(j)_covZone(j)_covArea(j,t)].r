@@ -5,19 +5,12 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-# Run model 8.2 in MECAL dataset 
-
-# Take only 2014-2017 to see what is the trend only when there is the 2 measures (AES and SG)
-#   - If include it before 2014, I am including years when abundance is high in places where there is
-#     no SG (because the measure did not exist), so I am including noise in the model
-
+# Run model 8.2 in COGAR dataset 
 # ---- I ignore counts in each observation (cluster size)
 
 # ---- Data ----
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready.csv")
-
-d <- d[which(d$Year %in% c(2014, 2015, 2016, 2017)), ]
 
 # Information: bins, years, sites
 
@@ -27,7 +20,7 @@ int.w <- diff(dist.breaks) # width of distance categories (v)
 midpt <- diff(dist.breaks)/2+dist.breaks[-5]
 nG <- length(dist.breaks)-1
 
-yrs <- c(2014, 2015, 2016, 2017)
+yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
 nyrs <- length(yrs)
 
 # To take into account transects with abundance 0
@@ -48,7 +41,7 @@ d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
 d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
 
 
-mec <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
+mec <- d[which(d$Species == "COGAR"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 mec$Observer <- as.character(mec$Observer) 
@@ -57,7 +50,7 @@ mec$Observer <- as.character(mec$Observer)
 absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "MECAL"
+absent$Species <- "COGAR"
 absent <- left_join(absent, d_tr_all_obs)
 
 
@@ -110,8 +103,6 @@ count.year <- colSums(m,na.rm = TRUE)
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 manag <- read.csv("management_area_500.csv")
 
-manag <- manag[ , c(1,2,7:14)] # Select years 2014 - 2017
-
 manag <- manag[which(manag$Codi %in% all.sites), ] # Select transects with census
 
 # Be sure the fields are in the same order
@@ -121,14 +112,19 @@ order$Codi <- order_codi
 manag <- left_join(order,manag)
 
 # Area AES
-area_aes <- as.matrix(manag[ ,c(7:10)])
+area_aes <- as.matrix(manag[ ,c(11:18)])
 
 aes_mean <- mean(area_aes)
 aes_sd <- sd(area_aes)
 aes_sc <- (area_aes - aes_mean) / aes_sd
 
 # Area SG
-area_sg <- as.matrix(manag[ ,c(11:14)])
+area_sg <- manag[ ,c(19:22)]
+area_sg$area_sg10 <- 0
+area_sg$area_sg11 <- 0
+area_sg$area_sg12 <- 0
+area_sg$area_sg13 <- 0
+area_sg <- as.matrix(area_sg[ ,c(5:8,1:4)])
 
 sg_mean <- mean(area_sg)
 sg_sd <- sd(area_sg)
@@ -137,14 +133,14 @@ sg_sc <- (area_sg - sg_mean) / sg_sd
 # Zone (Occidental = 0; Oriental = 1)
 zone <- order
 for (i in 1:nrow(zone)){
-  if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:4] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:4] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:4] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:4] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "BE"){zone[i,1:4] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:4] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:8] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:8] <- 1}
+  if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:8] <- 1}
+  if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:8] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BE"){zone[i,1:8] <- 1}
+  if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:8] <- 0}
 }
-zone <- zone[,-5]
+zone <- zone[,-9]
 
 # Observer 
 
@@ -229,7 +225,7 @@ ob <- as.numeric(factor(ob)) # JAGS doesn't accept categorical variables
 # Then, you can fill observer NAs with random IDs and it wont affect the model estimates.
 # (ONLY BECAUSE THERE IS NO DATA ASSOCIATED WITH THE OBSERVER NAs)
 
-obs_id <- unique(ob)[-4]
+obs_id <- unique(ob)[-1]
 ob[which(is.na(ob))] <- sample(obs_id, length(which(is.na(ob))), replace = TRUE)
 
 nobs <- length(unique(ob))
@@ -340,7 +336,7 @@ params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt sav
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 60000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
@@ -350,33 +346,32 @@ print(out)
 summary <- as.data.frame(as.matrix(out$summary))
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-write.csv(summary, "8.2.Mecal500_14-17.csv")
+write.csv(summary, "8.2.Cogar500.csv")
 
 ###################################################################
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
-summary <- read.csv("8.2.Mecal500_14-17.csv")
+summary <- read.csv("8.2.Cogar500.csv") # DOESNT CONVERGE
 
-results500 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
-
-# AES NEGATIVE EFFECT
-# SG NONE EFFECT BUT POSITIVE TREND
+results500 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "Ntotal[5]", "Ntotal[6]",
+                                             "Ntotal[7]", "Ntotal[8]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
+# NONE EFFECT (BUT IT DOESNT CONVERGE)
 
 # Plot the trend of the population
-plot(-100,ylim = c(0,1000), xlim=c(0,8),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
-axis(1, at = c(1,2,3,4), labels = yrs)
+plot(-100,ylim = c(0,120), xlim=c(0,8),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "COGAR")
+axis(1, at = c(1,2,3,4,5,6,7,8), labels = yrs)
 axis(2)
-points(results500[1:4,2],pch = 19) # Plot results
+points(results500[1:8,2],pch = 19) # Plot results
 points(count.year,pch = 19, col = "red") # Plot counts
-x <- seq_along(results500[1:4,2])
-low_CI <- as.numeric(results500$X2.5.[1:4])
-up_CI <- as.numeric(results500$X97.5.[1:4])
+x <- seq_along(results500[1:8,2])
+low_CI <- as.numeric(results500$X2.5.[1:8])
+up_CI <- as.numeric(results500$X97.5.[1:8])
 arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
 
 
 # To plot the relation with the co-variates 
-results500_2 <- summary[5:588, ]
+results500_2 <- summary[9:1336, ]
 
 plot(results500_2$mean ~ area_AES, ylab = "Abundance") 
 
@@ -384,16 +379,12 @@ plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 
 # PREDICTION ABUNDANCE - AES
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2")
-pdf("Mecal_500_AES_1417.pdf")
-
 area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
 pred <- exp(results500[which(results500$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
               results500[which(results500$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
               results500[which(results500$X == "ba1.lam"),2]*area_AESpred + 
               results500[which(results500$X == "ba2.lam"),2]*mean(area_SG)) # Fixed SG area
-
 
 predlci <- exp(results500[which(results500$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
                  results500[which(results500$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
@@ -405,14 +396,9 @@ preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercep
                  results500[which(results500$X == "ba1.lam"),8]*area_AESpred + 
                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # Fixed SG area
 
-plot(pred ~ area_AESpred, ylim=c(0,5), type="l", main = "MECAL buffer.500")
-#points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
-#points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
-polygon( x = c(area_AESpred, rev(area_AESpred)),
-         y = c(predlci, rev(preduci)), 
-         col = adjustcolor(c("grey"),alpha.f = 0.6),
-         border = NA)
-
+plot(pred ~ area_AESpred, ylim=c(0,3), type="l", main = "buffer.500")
+points(predlci ~ area_AESpred, pch=16, type="l",lty=2)
+points(preduci ~ area_AESpred, pch=16,type="l",lty=2)
 
 
 pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
@@ -423,32 +409,14 @@ pred0 <- exp(results500[which(results500$X == "mu.lam"),2]+
 pred0lci <- exp(results500[which(results500$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
                   results500[which(results500$X == "bzB.lam"),4]*0 + 
                   results500[which(results500$X == "ba1.lam"),4]*area_AESpred +
-                  results500[which(results500$X == "ba2.lam"),4]*mean(area_SG)) 
+                  results500[which(results500$X == "ba2.lam"),4]*mean(area_SG)) # How do I add the random effect by sites????
 
 pred0uci <- exp(results500[which(results500$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
                   results500[which(results500$X == "bzB.lam"),8]*0 + 
                   results500[which(results500$X == "ba1.lam"),8]*area_AESpred +
-                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) 
+                  results500[which(results500$X == "ba2.lam"),8]*mean(area_SG)) # How do I add the random effect by sites????
 
 
-points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
-#points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
-#points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
-polygon( x = c(area_AESpred, rev(area_AESpred)),
-         y = c(pred0lci, rev(pred0uci)), 
-         col = adjustcolor(c("red"),alpha.f = 0.2),
-         border = NA)
-points(pred ~ area_AESpred, pch=16, type="l") # Para recalcar el negro otra vez
-
-
-legend("topright",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
-       border=c("red","black"),legend = c("Occidental", "Oriental"),
-       box.lwd=0.1,
-       bty = "n")
-
-dev.off()
-
-plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 points(pred0 ~ area_AESpred, pch=16, type="l", col="red")
 points(pred0lci ~ area_AESpred, pch=16, type="l",lty=2, col="red")
 points(pred0uci ~ area_AESpred, pch=16,type="l",lty=2, col="red")
@@ -475,7 +443,7 @@ preduci <- exp(results500[which(results500$X == "mu.lam"),8]+ # Add the intercep
                  results500[which(results500$X == "ba1.lam"),8]*mean(area_AES) + # Fixed AES area
                  results500[which(results500$X == "ba2.lam"),8]*area_SGpred) 
 
-plot(pred ~ area_SGpred, ylim=c(0,3), type="l", main = "buffer.500")
+plot(pred ~ area_SGpred, ylim=c(0,10), type="l", main = "buffer.500")
 points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
 points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
 

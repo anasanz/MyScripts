@@ -363,12 +363,18 @@ plot(-100,ylim = c(0,1000), xlim=c(0,8),
      pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "MECAL")
 axis(1, at = c(1,2,3,4,5,6,7,8), labels = yrs)
 axis(2)
-points(results[1:8,2],pch = 19) # Plot results
+points(results200[1:8,2],pch = 19) # Plot results
 points(count.year,pch = 19, col = "red") # Plot counts
-x <- seq_along(results[1:8,2])
-low_CI <- as.numeric(results$X2.5.[1:8])
-up_CI <- as.numeric(results$X97.5.[1:8])
+x <- seq_along(results200[1:8,2])
+low_CI <- as.numeric(results200$X2.5.[1:8])
+up_CI <- as.numeric(results200$X97.5.[1:8])
 arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
+
+legend("topright",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
+       border=c("red","black"),legend = c("Counts", "Abundance estimate"),
+       box.lwd=0.1,
+       bty = "n")
+
 
 
 # To plot the relation with the co-variates 

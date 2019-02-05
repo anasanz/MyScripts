@@ -359,6 +359,10 @@ results500 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3
 # SG NONE EFFECT BUT POSITIVE TREND
 
 # Plot the trend of the population
+
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2")
+pdf("Terax.pdf")
+
 plot(-100,ylim = c(0,120), xlim=c(0,8),
      pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "TERAX")
 axis(1, at = c(1,2,3,4,5,6,7,8), labels = yrs)
@@ -370,6 +374,13 @@ low_CI <- as.numeric(results500$X2.5.[1:8])
 up_CI <- as.numeric(results500$X97.5.[1:8])
 arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
 
+legend("topright",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
+       border=c("red","black"),legend = c("Counts", "Abundance estimate"),
+       box.lwd=0.1,
+       bty = "n")
+
+dev.off()
+
 
 # To plot the relation with the co-variates 
 results500_2 <- summary[9:1336, ]
@@ -379,6 +390,7 @@ plot(results500_2$mean ~ area_AES, ylab = "Abundance")
 # Prediction: Fix the rest of the covariates that you dont want to see (to the mean, or zone 1 or 2)
 
 # PREDICTION ABUNDANCE - AES
+
 
 area_AESpred <- seq(min(area_AES), max(area_AES),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
