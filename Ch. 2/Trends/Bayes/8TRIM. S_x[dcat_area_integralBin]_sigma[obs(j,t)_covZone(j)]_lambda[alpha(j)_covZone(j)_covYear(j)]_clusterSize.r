@@ -12,6 +12,8 @@ set.seed(2013)
 # 8 years (unbalanced number of transects per year); lambda site specific(Zone variable)
 # Sigma site-year specific (effect of zone cov(?) and random effect in observer)
 
+
+
 g <- function(x, sig) exp(-x^2/(2*sig^2))
 
 # Number of transects per year (unbalanced)
@@ -94,10 +96,25 @@ for (t in 1:nyrs){
 NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
 N3 <- ldply(N,rbind)
 N.sitesYears <- t(N3) # N per site and year stored in a matrix with columns
-
 # Total number of individuals in all sampled transects per year
 N.tot <- lapply(N,sum)
 
+
+# Cluster size (to correct) per site and year
+clus <- list()
+
+for (t in 1:nyrs){
+  clus[[t]] <- rpois(nSites[t], 1.5)
+} 
+
+clusLong <- ldply(clus,cbind) # 1 long vector with all abundances per site and year
+clus3 <- ldply(clus,rbind)
+clus_size <- t(clus3) # CLUSTER SIZE per site and year stored in a matrix with columns (this is not really necessary to do, with inventing an average would be fine)
+average_clus <- mean(clus_size, na.rm = TRUE)
+
+# Correct N with average cluster size
+Nclus <- N.sitesYears * average_clus
+Nclus.tot <- colSums(Nclus,na.rm = TRUE) # Total pop.abundance corrected by cluster size
 
 # ---- Simulate continuous distance data ----
 
@@ -127,13 +144,6 @@ for (t in 1:nyrs){
 y.sum.sites <- lapply(yList, function(x) rowSums(x)) # Total count per site each year
 y.sum.sites2 <- ldply(y.sum.sites,rbind)
 y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
-
-# Create the cluster size variable (One value per observartion).
-# Im not gonna add it as a covariate for detection, I will just multiply by the mean cluster size
-# 1. Simulate random values with for example rnorm(1.7,0.5)
-# 2. Multiply the total abundance N (simulated) by 1.7. Thats the value I want to retrieve
-# 3. Include the multiplication of N*Clustersize[j] in the model as a derived parameter: Nclus[j] <- N[j]*Clustersize[j]
-# 4. Calculate the N.ttotal in Derived Parameters from Nclus
 
 
 #############################################
@@ -216,7 +226,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
               y = yLong, nind=nind, dclass=dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks, year1 = year1)
+              zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks, year1 = year1, average_clus = average_clus)
 
 # ---- JAGS model ----
 
@@ -285,7 +295,12 @@ cat("model{
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)].txt")
+
+    for (i in 1:nyears){
+    Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
+    }
+
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
 
 # Inits
 Nst <- yLong + 1
@@ -298,7 +313,7 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
 )}
 
 # Params
-params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
+params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu.lam", "sig.lam", 
             "bzB.lam", "bYear.lam",
             "mu.sig", "sig.sig", "bzB.sig"
@@ -308,7 +323,7 @@ params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt sav
 nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
@@ -320,7 +335,8 @@ data_comp <- list(N.tot = N.tot, b.lam.zoneB = b.lam.zoneB,
                   sig.lam.alpha.site = sig.lam.alpha.site,
                   b.sig.zoneB = b.sig.zoneB, mu.sig.obs = mu.sig.obs,
                   b.lam.year = b.lam.year,
-                  sig.sig.obs = sig.sig.obs)
+                  sig.sig.obs = sig.sig.obs,
+                  Nclus.tot = Nclus.tot)
 
 
 
