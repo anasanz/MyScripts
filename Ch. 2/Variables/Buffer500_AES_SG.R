@@ -40,6 +40,7 @@ colnames(sg14@data)[colnames(sg14@data) == "Codi"] <- "Codi.2"
 sg15 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/SG", layer = "SG_2015_EPSG23031")
 sg16 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/SG", layer = "SG_2016_EPSG23031")
 sg17 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/SG", layer = "SG_2017_EPSG23031")
+sg18 <- readOGR("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/GIS/SG", layer = "SG_2018_EPSG23031")
 
 
 
@@ -103,10 +104,10 @@ for (i in 1:length(layers)){
   management[is.na(management)] <- 0 # Substitute NA by 0
 }
 
-# ---- SG 14-17 ----
+# ---- SG 14-18 ----
 
-layers <- list(sg14, sg15, sg16, sg17)
-layers_names <- c("sg14", "sg15", "sg16", "sg17")
+layers <- list(sg14, sg15, sg16, sg17, sg18)
+layers_names <- c("sg14", "sg15", "sg16", "sg17", "sg18")
 
 for (i in 1:length(layers)){
   

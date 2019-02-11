@@ -76,13 +76,13 @@ b.lam.year <- 0.3
 year <- matrix(NA,nrow = max.sites, ncol = nyrs)
 colnames(year) <- yrs
 for (i in 1:nyrs){
-year[ ,yrs[i]] <- rep(yrs[i], max.sites)
+  year[ ,yrs[i]] <- rep(yrs[i], max.sites)
 }
 
 lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
              matrix(b.lam.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow = F) + # By row has to be false for site covariates that dont change with year!
-            b.lam.year*year) 
-              
+             b.lam.year*year) 
+
 
 # Abundance per site and year
 N <- list()
@@ -127,6 +127,14 @@ for (t in 1:nyrs){
 y.sum.sites <- lapply(yList, function(x) rowSums(x)) # Total count per site each year
 y.sum.sites2 <- ldply(y.sum.sites,rbind)
 y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
+
+# Create the cluster size variable (One value per observartion).
+# Im not gonna add it as a covariate for detection, I will just multiply by the mean cluster size
+# 1. Simulate random values with for example rnorm(1.7,0.5)
+# 2. Multiply the total abundance N (simulated) by 1.7. Thats the value I want to retrieve
+# 3. Include the multiplication of N*Clustersize[j] in the model as a derived parameter: Nclus[j] <- N[j]*Clustersize[j]
+# 4. Calculate the N.ttotal in Derived Parameters from Nclus
+
 
 #############################################
 # ---- Convert data to JAGS format ----

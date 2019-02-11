@@ -7,13 +7,31 @@ library(dplyr)
 library(stringr)
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-dat <- read.csv("DataDS.csv", sep = ";")
-dat$Especie <- as.character(dat$Especie)
-dat <- dat[ ,-4]
+setwd("F:/PhD/Second chapter/Data")
+
+dat1 <- read.csv("DataDS.csv", sep = ";")
+dat1$Especie <- as.character(dat1$Especie)
+dat1 <- dat1[ ,-4] 
+colnames(dat1)[which(colnames(dat1) == "Transecte_detall.Id_transecte_detall")] <- "Id_transecte_detall" # To make it equal to 2018
+
+# Join with 2018. 
+
+# I have obtained DataDS2018 by exporting the modified questionary from 2018 because Nuria was sick
+# Nuria has also sent me her version all together (DataDSALL_Nuria_2018.csv), and I have checked that the observations
+# from 2018 are right. However, I still use DataDS and join it with DataDS2018 because I want to make sure
+# that the observations from DataDS have the same order than before.
+
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+dat18 <- read.csv("DataDS2018.csv", sep = ";")
+dat18 <- dat18[ ,-c(2,15)] # To have the same columns than 2010 - 2017
+
+dat <- rbind(dat1,dat18) # All data joined
+f <- dat[which(dat$Any == "2018"), ]
+
 
 # ---- Column names ----
 names(dat)
-colnames(dat)[which(colnames(dat) == "Transecte_detall.Id_transecte_detall")] <- "Sample.Label"
+colnames(dat)[which(colnames(dat) == "Id_transecte_detall")] <- "Sample.Label"
 colnames(dat)[which(colnames(dat) == "Codi_seca")] <- "Region.Label"
 colnames(dat)[which(colnames(dat) == "Any")] <- "Year"
 colnames(dat)[which(colnames(dat) == "Especie")] <- "Species"
@@ -43,7 +61,7 @@ for (i in 1:nrow(dat)) {
   if(is.na(cent)) { # if is NA (has 3 digits)
     dat$Num_transecte[i] <- str_sub(dat$Num_transecte[i], start = -2) # Keep the last 2
   } else { dat$Num_transecte[i] <- str_sub(dat$Num_transecte[i], start = -3)} # Otherwise, keep the last 3
-  }
+}
 
 
 # Create variable by pasting it
@@ -64,13 +82,15 @@ dat$distance <- NA # Medium point of each bin except in bin 4
 
 for (i in 1:nrow(dat)){
   if (dat$Banda[i] == 1) {dat$distance[i] = 12.5}
- else if (dat$Banda[i] == 2) {dat$distance[i] = 37.5}
+  else if (dat$Banda[i] == 2) {dat$distance[i] = 37.5}
   else if (dat$Banda[i] == 3) {dat$distance[i] = 75}
   else  {dat$distance[i] = 150} 
 }
 
 # ---- Repeated observations ----
 # There are few transects that have 2 census in the same year-season.
+# Even when joining with 2018 is okay because the sample label of the repeated ones is the same
+# and there is no repeated transects in 2018
 
 for (i in 1:nrow(dat)){ 
   dat$T_Y[i] <- paste(dat$transectID[i],dat$Year[i], sep = "_")
@@ -82,11 +102,11 @@ trans_rep <- trans[which(duplicated(trans$T_Y)), ]
 # DUPLICATES: The sample label changed when removing observations related bin4. The previous
 # label (data not modified is listed in blue)
 # In some its because census were repeated in january, april and may. Take the ones of late April/May (In AL):
-  # Remove sample.label: 122, 198, 178, 114, 216, 131, 194, 172, 184, 210, 281
+# Remove sample.label: 122, 198, 178, 114, 216, 131, 194, 172, 184, 210, 281
 # In others, 2 of the same season
-  # Remove sample.label: 1505, 1737, 1744. Take the ones I could modify
+# Remove sample.label: 1505, 1737, 1744. Take the ones I could modify
 # In others, different weather conditions. Take good coditions
-  # Remove sample.label: 268, 1350, 1594
+# Remove sample.label: 268, 1350, 1594
 # Comparison with the new data (modified is in excelfile DataDS_comparedup)
 rem <- c(122, 181, 165, 110, 197, 125, 178, 160, 170, 192, 253, 
          1357, 804, 809, 243, 1203, 711)
@@ -114,7 +134,7 @@ dat <- dat[-which(dat$Species %in% sp_scarce), ]
 
 for (i in 1:nrow(dat)){
   if (dat$Species[i] == "PTALC" | dat$Species[i] == "PTORI")
-    {dat[i, which(colnames(dat) %in% "Species")] <- "SAND" }
+  {dat[i, which(colnames(dat) %in% "Species")] <- "SAND" }
 }
 
 
@@ -123,7 +143,7 @@ irri <- read.csv("TransecteAnyReg.csv", sep = ";")
 colnames(irri)[2] <- "Num_transecte"
 colnames(irri)[1] <- "Region.Label"
 
-  # CREATE TRANSECT ID VARIABLE
+# CREATE TRANSECT ID VARIABLE
 # Add a 0 before the transect number
 for (i in 1:nrow(irri)){ 
   irri$Num_transecte[i] <- paste(0,irri$Num_transecte[i], sep = "")}
@@ -141,19 +161,19 @@ dat <- dat[-which(dat$transectID %in% irri_all), ]
 
 # Remove the ones irrigated the year it changed (report remove = 1 for the ones to remove)
 
-irri_change <- irri[which(!is.na(irri$X1er.año.cambio)), ]
+irri_change <- irri[which(!is.na(irri$X1er.a?o.cambio)), ]
 irri_change_ID <- irri_change$transectID
-irri_change_year <- irri_change$X1er.año.cambio
+irri_change_year <- irri_change$X1er.a?o.cambio
 dat$remove <- NA
 
 for (i in 1:nrow(dat)){
   if (sum(dat$transectID[i] == irri_change_ID)>0) { # For the transects that changed from irrigation
-  tmp_change <- irri_change_year[which(irri_change_ID == dat$transectID[i])] # Year of change
-  
+    tmp_change <- irri_change_year[which(irri_change_ID == dat$transectID[i])] # Year of change
+    
     if(dat$Year[i] >= tmp_change){
-  dat[i,which(colnames(dat) %in% "remove")] <- 1 # Data from that year gets a 1 (to be removed)
+      dat[i,which(colnames(dat) %in% "remove")] <- 1 # Data from that year gets a 1 (to be removed)
     }}
-  }
+}
 
 # Remove the ones (1) and column remove
 
@@ -263,4 +283,4 @@ dat$Zone[dat$Region.Label == "BE"] <- "OR"
 dat$Zone[dat$Region.Label == "GR"] <- "OC"
 
 
-#write.csv(dat,"DataDS_ready.csv")
+#write.csv(dat,"DataDS_ready_ALL.csv") # ALL because includes 2018. This is the one that I analyze
