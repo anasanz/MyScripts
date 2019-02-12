@@ -1,4 +1,5 @@
 
+rm(list=ls())
 
 library(rtrim)
 
@@ -9,17 +10,16 @@ colnames(sp)[which(colnames(sp) %in% "Count")] <- "count"
 colnames(sp)[which(colnames(sp) %in% "transectID")] <- "site"
 colnames(sp)[which(colnames(sp) %in% "Year")] <- "year"
 
+sp_year <- aggregate(count ~ year, FUN = sum, data = sp)
 sp <- aggregate(count ~ year + site, FUN = sum, data = sp)
 
 check_observations(sp, model = 2)
 
-#m1 <- trim(count ~ site + time, data=ALRUF,model=2)
-# Site = Transect
-# Time = Year
+# MODEL 2
 
 m1 <- trim(count ~ site + year, data = sp, model = 2)
-confint(m1)
 
+summary(m1)
 
 i1<-index(m1, which="both")
 i1
@@ -32,16 +32,29 @@ totals(m1)
 wald(m1)
 
 #Retrieve goodness-of-fit
-
 gof(m1)
 
 #Extract the coefficients
-
 coefficients(m1)
-index(m1, which="both")
 
 #Plot with overall slope
-
 plot(overall(m1))
+
+plot(i1)
+
+# MODEL 3
+m3 <- trim(count ~ site + year, data = sp, model = 3)
+
+summary(m3)
+
+i1 <- index(m3, which="both")
+
+totals(m3)
+
+wald(m3)
+
+coefficients(m3)
+
+plot(overall(m3))
 
 plot(i1)
