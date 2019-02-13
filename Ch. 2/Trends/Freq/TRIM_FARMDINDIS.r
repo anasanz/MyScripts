@@ -138,7 +138,7 @@ sector <- unique(dat$sector)
 for (i in 1:length(sp)){
   
   par(mfrow = c(2,2))
-  mtext(sp[i], line = 3, side = 3, cex = 1.5)
+  par(mar=c(5, 4, 4, 2) + 0.1, oma = c(0,0,3,0))
   
   for (j in 1:length(sector)){
     
@@ -158,8 +158,15 @@ for (i in 1:length(sp)){
     legend(x=1,y=-0.7, legend = c("Índice poblacional", "IC"),
            horiz = TRUE, lty = c(1,2), lwd = c(3,3), seg.len = 3, bty = "n",
            col = "olivedrab3", pch = 18, cex = 0.9 )
-  } }
+  } 
+  
+  especie <- sp[i]
+  especie <- as.character(especie)
+  mtext(bquote("Tendència poblacional de"~ .(especie)~(italic(.(sp_cientif[i])))), line = 0, side = 3, cex = 1.5, outer = TRUE)
+  
+  }
 
+bquote("sas"~italic(.(sp_cientif[i])))
 
 plot(overall(m1))
 
