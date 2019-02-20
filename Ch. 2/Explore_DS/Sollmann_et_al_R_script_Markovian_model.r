@@ -7,7 +7,7 @@
 library(unmarked)
 library(rjags)
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples/Sollman_data/Open_pop_model")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Examples/Sollman_data/Open_pop_model")
 
 source("data.100m.R")   # load ISSJ data file 
 

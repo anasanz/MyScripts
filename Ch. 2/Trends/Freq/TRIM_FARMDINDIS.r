@@ -17,7 +17,7 @@ oriSG <- read.csv("ZEPA_orientals.csv", header = TRUE, sep = ";")
 count_data <- rbind(ambSG, zepaSG, occSG, oriSG)
 
 sp <- unique(count_data$sp)
-sp <- sp[-which(sp %in% c("CAENS", "PTALC"))] # Quitar las que dan problemas (si el loop no funciona, con el comando )
+sp <- sp[-which(sp %in% c("CAENS", "PTALC"))] # Quitar las que dan problemas (si el loop no funciona, con el comando print(i))
 
 ambit <- unique(count_data$id_ambit)
 
@@ -90,7 +90,7 @@ for (i in 1:length(sp)){
     if(m$ptrend[1] < 0.05 & m$annual_trend[1] < -5) { m$description <- "Disminució forta" } # Si la tendencia es significativa
     if(m$ptrend[1] < 0.05 & m$annual_trend[1] < 0 & m$annual_trend > -5) { m$description <- "Disminució moderada" }
     if(m$ptrend[1] < 0.05 & m$annual_trend[1] > 0 & m$annual_trend < 5) { m$description <- "Augment moderat" }
-    if(m$ptrend[1] < 0.05 & m$annual_trend[1] > 5) { m$description <- "Augment moderat" }
+    if(m$ptrend[1] < 0.05 & m$annual_trend[1] > 5) { m$description <- "Augment fort" }
     
     # Almacenar en lista todos los datos de la especie
     
@@ -101,6 +101,8 @@ for (i in 1:length(sp)){
   all_data <- do.call("rbind", h)
 }
 
+# Quitar LAMIC porque no estima bien el índice
+all_data <- all_data[-which(all_data$sp=="LAMIC"), ]
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/TRIM/Resultats")
 write.csv(all_data, "Farmdindis_TRIM.csv")
 
@@ -125,8 +127,12 @@ dat$sector[which(dat$sector == "ZEPA_oriental")] <- "ZEPAs orientals"
 
 sp_cientif <- c("Alectoris rufa", "Burhinus oedicnemus", "Calandrella brachydactyla", "Clamator glandarius", "Coturnix coturnix",
                 "Coracias garrulus", "Corvus monedula", "Columba oenas", "Galerida cristata", "Galerida theklae", "Lanius meridionalis",
-                "Larus michahellis", "Lanius senator", "Melanocorypha calandra", "Emberiza calandra", "Pica pica",
+                "Lanius senator", "Melanocorypha calandra", "Emberiza calandra", "Pica pica",
                  "Streptopelia turtur", "Tetrax tetrax")
+sp_catala <- c("Perdiu roja", "Torlit", "Terrerola vulgar", "Cucut reial", "Guatlla",
+                "Gaig blau", "Gralla", "Xixella", "Cogullada vulgar", "Cogullada fosca", "Botxí meridional",
+                "Capsigrany", "Calàndria", "Cruixidell", "Garsa",
+                "Tórtora", "Sisó")
 
 yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
 x <- c(0.5,1.5:8.5)
@@ -136,40 +142,46 @@ sp <- unique(dat$sp)
 sector <- unique(dat$sector)
 
 for (i in 1:length(sp)){
-  
+  pdf(paste("TRIM",sp[i],".pdf"))
   par(mfrow = c(2,2))
   par(mar=c(5, 4, 4, 2) + 0.1, oma = c(0,0,3,0))
   
   for (j in 1:length(sector)){
     
     data <- dat[which(dat$sp == sp[i] & dat$sector == sector[j] ), ]
-    plot(-100,ylim = c(0,2), xlim=c(0,9),
+    plot(-100,ylim = c(min(data$IC95low),max(data$IC95up)), xlim=c(0,9),
          pch = 21, ylab = " ", xlab = " ", axes = FALSE)
     mtext(sector[j], line = 2, side = 3, cex = 1)
     mtext(paste(data$description[1],"(",data$annual_trend,"%",")"), line = 1, side = 3, cex = 0.7, col = "olivedrab3")
-    clip(0,9,0,2) # Porque si no las lineas horizontales se añaden en todo el plot
-    abline(h = c(0, 0.5, 1, 1.5, 2), col = "lightgrey")
-    axis(2, at = c(0, 0.5, 1, 1.5, 2), tick = 0)
+    
+    # Para añadir las lineas horizontales
+    clip(0,9,min(data$IC95low),max(data$IC95up)+0.2) # Porque si no las lineas horizontales se añaden en todo el plot
+    dif <- diff(c(round(min(data$IC95low), digits = 1), round(max(data$IC95up), digits = 1))) 
+    div <- dif/4
+    location_lines <- seq(from = round(min(data$IC95low), digits = 1), to = round(max(data$IC95up), digits = 1), by = div)
+    abline(h = location_lines, col = "lightgrey") # Añado lineas (siempre 4 lineas puestas en distintos sitios dependiendo del indice)
+    
+    axis(2, at = seq(round(min(data$IC95low), digits = 0),round(max(data$IC95up), digits = 0), by = 0.5), tick = 0) # Las labels en y cambian segun la especie (distintos indices)
     axis(1, at = x, tick = 0, labels = yrs)
-    points(x,data$index, type = "l", col = "olivedrab3", lwd = 3)
-    points(x,data$IC95up, type = "l", col = "olivedrab3", lwd = 3, lty = 2)
-    points(x,data$IC95low, type = "l", col = "olivedrab3", lwd = 3, lty = 2)
-    par(xpd=T, mar=par()$mar+c(0,0,0,0)) # Para poder poner la leyenda fuera del plot
-    legend(x=1,y=-0.7, legend = c("Índice poblacional", "IC"),
-           horiz = TRUE, lty = c(1,2), lwd = c(3,3), seg.len = 3, bty = "n",
-           col = "olivedrab3", pch = 18, cex = 0.9 )
-  } 
-  
-  especie <- sp[i]
+    
+    points(x,data$index, type = "l", col = "olivedrab3", lwd = 2)
+    points(x,data$IC95up, type = "l", col = "olivedrab3", lwd = 2, lty = 6)
+    points(x,data$IC95low, type = "l", col = "olivedrab3", lwd = 2, lty = 6)
+    
+  }
+  especie <- sp_catala[i]
   especie <- as.character(especie)
-  mtext(bquote("Tendència poblacional de"~ .(especie)~(italic(.(sp_cientif[i])))), line = 0, side = 3, cex = 1.5, outer = TRUE)
-  
+  mtext(bquote("Tendència poblacional de"~ .(especie)~(italic(.(sp_cientif[i])))), 
+        line = 0, side = 3, cex = 1.2, col = "olivedrab", outer = TRUE)
+  dev.off()
   }
 
-bquote("sas"~italic(.(sp_cientif[i])))
-
-plot(overall(m1))
-
-
-
-
+# Plot leyenda para añadir
+par(mfrow = c(1,1))
+pdf("legend.pdf")
+plot(-100,
+     pch = 21, ylab = " ", xlab = " ", axes = FALSE)
+legend("topright", legend = c("Índice poblacional", "IC"),
+       horiz = TRUE, lty = c(1,6), lwd = c(2,2), seg.len = 2,
+       col = "olivedrab3", pch = 18, cex = 0.9, bty = "n")
+dev.off()

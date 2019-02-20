@@ -1,21 +1,14 @@
-
 rm(list=ls())
 
 library(rjags)
 library(jagsUI)
 library(dplyr)
 
-# Run model 8.2 in TERAX dataset 
-
-# 2014 - 2018
-
-# ---- I ignore counts in each observation (cluster size)
+# Run model 8.2 in BUOED dataset 
 
 # ---- Data ----
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
-
-d <- d[which(d$Year %in% c(2014, 2015, 2016, 2017, 2018)), ]
 
 # Information: bins, years, sites
 
@@ -25,12 +18,12 @@ int.w <- diff(dist.breaks) # width of distance categories (v)
 midpt <- diff(dist.breaks)/2+dist.breaks[-5]
 nG <- length(dist.breaks)-1
 
-yrs <- c(2014, 2015, 2016, 2017, 2018)
+yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
 nyrs <- length(yrs)
 
 # To take into account transects with abundance 0
 # 1. Select all transects IDs from all species observations
-# 2. Join the observations of TERAX (for example) with all transects so that they remain with NA if the
+# 2. Join the observations of BUOED (for example) with all transects so that they remain with NA if the
 # species was there but it wasnt sampled
 
 d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
@@ -46,7 +39,8 @@ d_tr_all_obs$Observer <- as.character(d_tr_all_obs$Observer)
 d_tr_all_obs$T_Y <- as.character(d_tr_all_obs$T_Y)
 
 
-mec <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer"))] # Select species MECAL and all years
+mec <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Count"))] # Select species BUOED and all years
+colnames(mec)[which(colnames(mec) == "Count")] <- "Cluster" # To not be confused later
 mec <- arrange(mec, Year, transectID) #Ordered
 mec_detec_transectID <- unique(mec$transectID)
 mec$Observer <- as.character(mec$Observer) 
@@ -56,6 +50,7 @@ absent <- anti_join(d_tr_all,mec) # Transects with 0 abundance, add to mec.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to mec
 absent$T_Y <- as.character(absent$T_Y)
 absent$Species <- "TERAX"
+absent$Cluster <- NA
 absent <- left_join(absent, d_tr_all_obs)
 
 
@@ -101,46 +96,37 @@ for (i in 1:nrow(absent)){
 }
 
 # Only to check: Count of individuals per year
-
 count.year <- colSums(m,na.rm = TRUE)
-# ---- Co-variates ----
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-manag <- read.csv("management_area_200.csv")
+# Count of individuals per year corrected by cluster size
+average_clus <- mean(mec$Cluster) # TO INCLUDE IN THE MODEL
+count.year_clus <- count.year*average_clus
 
-manag <- manag[ , c(1,2,11:15)] # Select years 2014 - 2018
-#manag$area_sg13 <- 0 # Add 13 as a 0
-#manag$area_sg13 <- as.numeric(manag$area_sg13)
-
-#manag <- manag[ ,c(1,2,8,3:7)] # Order years
-
-manag <- manag[which(manag$Codi %in% all.sites), ] # Select transects with census
-
-# Be sure the fields are in the same order
-order <- as.data.frame(m)
-order_codi <- as.vector(rownames(order))
-order$Codi <- order_codi
-manag <- left_join(order,manag)
-
-
-# Area SG
-area_sg <- as.matrix(manag[ ,c(8:12)])
-
-sg_mean <- mean(area_sg)
-sg_sd <- sd(area_sg)
-sg_sc <- (area_sg - sg_mean) / sg_sd
 
 # Zone (Occidental = 0; Oriental = 1)
-zone <- order
+
+zone <- as.data.frame(m)
+zone_codi <- as.vector(rownames(zone))
+zone$Codi <- zone_codi
+
 for (i in 1:nrow(zone)){
-  if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:5] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:5] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:5] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:5] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "BE"){zone[i,1:5] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:5] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:9] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:9] <- 1}
+  if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:9] <- 1}
+  if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:9] <- 0}
+  if(substr(zone$Codi[i], 1,2) == "BE"){zone[i,1:9] <- 1}
+  if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:9] <- 0}
 }
-zone <- zone[,-6]
+zone <- zone[,-10]
+
+# Year
+yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
+year <- matrix(NA,nrow = max.sites, ncol = nyrs)
+colnames(year) <- yrs
+for (i in 1:nyrs){
+  year[ ,which(colnames(year) %in% yrs[i])] <- rep(yrs2[i], max.sites)
+}
+
 
 # Observer 
 
@@ -158,7 +144,6 @@ for (i in 1:nrow(mec)){
 for (i in 1:nrow(absent)){
   obs[which(rownames(obs) %in% absent$transectID[i]), which(colnames(obs) %in% absent$Year[i])] <- absent$Observer[i]
 }
-
 
 # ---- Specify data in JAGS format ----
 
@@ -189,39 +174,22 @@ siteYear.dclass <- NULL
 for (i in 1:n.allSiteYear){
   siteYear.dclass <- c(siteYear.dclass,rep(i, yLong_index[i]))} 
 
-
 # Get one vector per co-variate
-
-area_SG <- NULL
-for (i in 1:nyrs){
-  area_SG <- c(area_SG,sg_sc[1:length(all.sites),i])}
 
 zon <- NULL
 for (i in 1:nyrs){
   zon <- c(zon,zone[1:length(all.sites),i])}
+
+year1 <- NULL
+for (i in 1:nyrs){
+  year1 <- c(year1,year[1:length(all.sites),i])}
 
 ob <- NULL
 for (i in 1:nyrs){
   ob <- c(ob,obs[1:length(all.sites),i])}
 ob <- as.numeric(factor(ob)) # JAGS doesn't accept categorical variables
 
-## RS: = observer is a covariate so NAs are a problem because nothing
-# in the model specifies how the NAs can be estimated ( never shows up 
-# on the left hand side of a line of code) So there are two solutions:
-
-### 1.Estimate observer for missing observations
-####### log(sigma[j,k])<-alpha[observer[j,k]] + beta*X  
-####### observer[j,k]~dcat(probs)
-
-### 2. Because there is no data points where observer is NA, and because
-# I am not trying to estimate sigma in every point (only abundance, and in the
-# missing points of data this is estimated using the noNA and the co-variates.
-# i.e., you have covariate information for the abundance component of the missing 
-# year-transect combinations, so you can use that to predict abundance for these missing points)
-# Then, you can fill observer NAs with random IDs and it wont affect the model estimates.
-# (ONLY BECAUSE THERE IS NO DATA ASSOCIATED WITH THE OBSERVER NAs)
-
-obs_id <- unique(ob)[-4]
+obs_id <- unique(ob)[-1]
 ob[which(is.na(ob))] <- sample(obs_id, length(which(is.na(ob))), replace = TRUE)
 
 nobs <- length(unique(ob))
@@ -235,16 +203,13 @@ ye <- data.frame(allyears = allyears)
 ye$allyears <- as.factor(ye$allyears)
 indexYears <- model.matrix(~ allyears-1, data = ye)
 
-
-
 # ---- Compile data for JAGS model ----
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
               y = yLong, nind = nind, dclass = dclass, midpt = midpt, sitesYears = sitesYears, indexYears = indexYears,
-              area2 = area_SG, zoneB = zon, ob = ob, nobs = nobs, db = dist.breaks)
+              zoneB = zon, ob = ob, nobs = nobs, db = dist.breaks, year1 = year1, average_clus = average_clus)
 
 # ---- JAGS model ----
-
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
 cat("model{
@@ -253,7 +218,7 @@ cat("model{
     
     # Priors for lambda
     bzB.lam ~ dnorm(0, 0.001)
-    ba2.lam ~  dnorm(0, 0.001)
+    bYear.lam ~ dnorm(0, 0.001)
     
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
     sig.lam ~ dunif(0, 10)
@@ -304,112 +269,115 @@ cat("model{
     
     y[j] ~ dbin(pcap[j], N[j]) 
     N[j] ~ dpois(lambda[j]) 
-    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j]
-    + ba2.lam*area2[j]) 
+    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j] + bYear.lam*year1[j]) 
     }
     
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea2(j,t)].txt")
+    
+    for (i in 1:nyears){
+    Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
+    }
+    
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
 
 # Inits
 Nst <- yLong + 1
 inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0, 50), I dont need sigma because I have already priors for his hyperparameters!!!!!
                          N=Nst,
-                         bzB.lam = runif(1), ba2.lam = runif(1),
+                         bzB.lam = runif(1),
+                         bYear.lam = runif(1),
                          mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1)
                          ###changed inits for mu.sig - don't start too small, better start too large
 )}
 
 # Params
-params <- c("Ntotal", "N",# "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
+params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu.lam", "sig.lam", 
-            "bzB.lam", "ba2.lam",
+            "bzB.lam", "bYear.lam",
             "mu.sig", "sig.sig", "bzB.sig"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 65000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea2(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
-
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
-write.csv(summary, "8.3.Terax200_14-18.csv")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
+write.csv(summary, "8.TRIM_Terax.csv")
 
 ###################################################################
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
-summary <- read.csv("8.3.Terax200_14-18.csv")
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
+summary <- read.csv("8.TRIM_Terax.csv")
 
-results200 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "Ntotal[5]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
-
-# SG POSITIVE EFFECT
-
-# To plot the relation with the co-variates 
-results200_2 <- summary[6:735, ]
-plot(results200_2$mean ~ area_AES, ylab = "Abundance") 
-
-# Plot using the un-scaled SG
-# The estimate is in the scale of the variable. So you have to create the predicted abundance with the scale of the variable (area_SGpred)
-# If you want to plot it against the unscaled variable, you need to plot the prediction(obtained with the scaled v.) against the un-scaled variable
-# Both vector should have the same length
-
-area_SG_HA <- NULL
-for (i in 1:nyrs){
-  area_SG_HA <- c(area_SG_HA,area_sg[1:length(all.sites),i])} # Create vector
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2/Report")
-pdf("Terax_200_HA_SG_1418.pdf")
-
-area_SG_HA <- seq(min(area_SG_HA), max(area_SG_HA),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
-area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
+results <- summary[which(summary$X %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "Ntotal_clus[3]", "Ntotal_clus[4]", "Ntotal_clus[5]", "Ntotal_clus[6]", "Ntotal_clus[7]", "Ntotal_clus[8]", "Ntotal_clus[9]",
+                                          "mu.lam", "sig.lam", "bzB.lam", "bYear.lam")), ]
 
 
-pred <- exp(results200[which(results200$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results200[which(results200$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results200[which(results200$X == "ba2.lam"),2]*area_SGpred) 
+# Plot the trend of the population
+plot(-100,ylim = c(0,150), xlim=c(0,9),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE)
+mtext("DS", side = 3, line = 1, cex = 1.5)
+axis(1, at = c(1,2,3,4,5,6,7,8,9), labels = yrs)
+axis(2)
+points(results[1:9,2],pch = 19) # Plot results
+points(count.year_clus,pch = 19, col = "red") # Plot counts
+x <- seq_along(results[1:9,2])
+low_CI <- as.numeric(results$X2.5.[1:9])
+up_CI <- as.numeric(results$X97.5.[1:9])
+arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
 
-predlci <- exp(results200[which(results200$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                 results200[which(results200$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                 results200[which(results200$X == "ba2.lam"),4]*area_SGpred) 
+title("LITTLE BUSTARD", line = -1, cex = 2, outer = TRUE)
 
-preduci <- exp(results200[which(results200$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                 results200[which(results200$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                 results200[which(results200$X == "ba2.lam"),8]*area_SGpred) 
+# Plot YEAR effect
+setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8TRIM")
+pdf("Terax_Year.pdf")
 
-plot(pred ~ area_SG_HA, ylim=c(0,4),xlim = c(0,20), type="l", main = "SIS?", xlab = "Guarets gestionats (HA)", ylab = "Abund?ncia")
+pred <- exp(results[which(results$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+              results[which(results$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+              results[which(results$X == "bYear.lam"),2]*yrs2) 
+
+predlci <- exp(results[which(results$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results[which(results$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results[which(results$X == "bYear.lam"),4]*yrs2) 
+
+preduci <- exp(results[which(results$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                 results[which(results$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                 results[which(results$X == "bYear.lam"),8]*yrs2) 
+
+plot(pred ~ yrs2, ylim=c(0,1), type="l", main = "Little bustard", xlab = "Year", ylab = "Abundance")
 #points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
 #points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
-polygon( x = c(area_SG_HA, rev(area_SG_HA)),
+polygon( x = c(yrs2, rev(yrs2)),
          y = c(predlci, rev(preduci)), 
          col = adjustcolor(c("grey"),alpha.f = 0.6),
          border = NA)
 
 
-pred0 <- exp(results200[which(results200$X == "mu.lam"),2]+
-               results200[which(results200$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
-               results200[which(results200$X == "ba2.lam"),2]*area_SGpred) 
+pred0 <- exp(results[which(results$X == "mu.lam"),2]+
+               results[which(results$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
+               results[which(results$X == "bYear.lam"),2]*yrs2) 
 
-pred0lci <- exp(results200[which(results200$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
-                  results200[which(results200$X == "bzB.lam"),4]*0 + 
-                  results200[which(results200$X == "ba2.lam"),4]*area_SGpred) 
+pred0lci <- exp(results[which(results$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
+                  results[which(results$X == "bzB.lam"),4]*0 + 
+                  results[which(results$X == "bYear.lam"),4]*yrs2) 
 
-pred0uci <- exp(results200[which(results200$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
-                  results200[which(results200$X == "bzB.lam"),8]*0 + 
-                  results200[which(results200$X == "ba2.lam"),8]*area_SGpred) 
+pred0uci <- exp(results[which(results$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
+                  results[which(results$X == "bzB.lam"),8]*0 + 
+                  results[which(results$X == "bYear.lam"),8]*yrs2) 
 
-points(pred0 ~ area_SG_HA, pch=16, type="l", col="red")
+points(pred0 ~ yrs2, pch=16, type="l", col="red")
 #points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
 #points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
-polygon( x = c(area_SG_HA, rev(area_SG_HA)),
+polygon( x = c(yrs2, rev(yrs2)),
          y = c(pred0lci, rev(pred0uci)), 
          col = adjustcolor(c("red"),alpha.f = 0.2),
          border = NA)
@@ -418,7 +386,7 @@ legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
        box.lwd=0.1,
        bty = "n")
 
-points(pred ~ area_SG_HA, pch=16, type="l")
+#points(pred ~ area_SG_HA, pch=16, type="l")
 
 dev.off()
 

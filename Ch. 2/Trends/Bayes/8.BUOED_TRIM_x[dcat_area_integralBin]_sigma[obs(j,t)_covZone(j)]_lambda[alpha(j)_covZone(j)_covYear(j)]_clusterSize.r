@@ -323,8 +323,9 @@ results <- summary[which(summary$X %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "N
 
 
 # Plot the trend of the population
-plot(-100,ylim = c(0,120), xlim=c(0,9),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE, main = "BUOED")
+plot(-100,ylim = c(0,150), xlim=c(0,9),
+     pch = 21, ylab = "N", xlab = " ", axes = FALSE)
+mtext("DS", side = 3, line = 1, cex = 1.5)
 axis(1, at = c(1,2,3,4,5,6,7,8,9), labels = yrs)
 axis(2)
 points(results[1:9,2],pch = 19) # Plot results
@@ -334,12 +335,11 @@ low_CI <- as.numeric(results$X2.5.[1:9])
 up_CI <- as.numeric(results$X97.5.[1:9])
 arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
 
+title("STONE CURLEW", line = -1, cex = 2, outer = TRUE)
 
 # Plot YEAR effect
-
-
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8TRIM")
-#pdf("Mecal_Year.pdf")
+pdf("Buoed_Year.pdf")
 
 pred <- exp(results[which(results$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
               results[which(results$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
@@ -353,7 +353,7 @@ preduci <- exp(results[which(results$X == "mu.lam"),8]+ # Add the intercept (ran
                  results[which(results$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
                  results[which(results$X == "bYear.lam"),8]*yrs2) 
 
-plot(pred ~ yrs2, ylim=c(0,5), type="l", main = "Buoed", xlab = "Year", ylab = "Abundance")
+plot(pred ~ yrs2, ylim=c(0,1), type="l", main = "Stone curlew", xlab = "Year", ylab = "Abundance")
 #points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
 #points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
 polygon( x = c(yrs2, rev(yrs2)),
@@ -386,7 +386,7 @@ legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
        box.lwd=0.1,
        bty = "n")
 
-points(pred ~ area_SG_HA, pch=16, type="l")
+#points(pred ~ area_SG_HA, pch=16, type="l")
 
 dev.off()
 

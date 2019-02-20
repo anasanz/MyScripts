@@ -22,7 +22,7 @@ d_tr_all_obs <- d_tr_all_obs[ ,c(1,4)]
 d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields and which observer sampled it
 
 
-sp <- d[which(d$Species == "BUOED"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
+sp <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
 sp <- arrange(sp, Year, transectID) #Ordered
 sp_detec_transectID <- unique(sp$transectID)
 sp$Observer <- as.character(sp$Observer) 
@@ -30,7 +30,7 @@ sp$Observer <- as.character(sp$Observer)
 absent <- anti_join(d_tr_all,sp) # Transects with 0 abundance, add to sp.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to sp
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "BUOED"
+absent$Species <- "TERAX"
 absent$Cluster <- NA
 absent <- left_join(absent, d_tr_all_obs)
 
@@ -84,23 +84,3 @@ par(mfrow = c(1,2))
 plot(overall(m2))
 mtext("TRIM", side = 3, line = 1, cex = 1.5)
 plot(i2)
-
-
-
-# ----  MODEL 3 ----
-
-m3 <- trim(count ~ site + year, data = sp, model = 3)
-
-summary(m3)
-
-i1 <- index(m3, which="both")
-
-totals(m3)
-
-wald(m3)
-
-coefficients(m3)
-
-plot(overall(m3))
-
-plot(i1)
