@@ -11,6 +11,9 @@ set.seed(2013)
 # ---- Data simulation ----
 
 #### Simulate abundance for one species with a Markovian structure: Abundance in one year depends on the previous year
+# I stopped because of RS comment: If abundance in one year in a site is 0, it will remain 0 for the rest of the study.
+# This means that there is no inmigration in the population and so it is NOT ECOLOGICALLY PLAUSIBLE FOR MY DATA.
+
 # THIS MODEL IS TO CALCULATE TRENDS AND THEN COMPARE IT WITH THE TRIM
   # 8 years (unbalanced number of transects per year); 
     # Lambda site specific (Zone variable)

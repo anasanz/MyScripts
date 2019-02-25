@@ -8,8 +8,10 @@ library(plyr)
 set.seed(2013)
 # ---- Data simulation ----
 #### Simulate abundance for one species:
-# THIS MODEL IS TO CALCULATE TRENDS AND THEN COMPARE IT WITH THE TRIM (IT WORKS)
-# 8 years (unbalanced number of transects per year); lambda site specific(Zone variable)
+# THIS MODEL IS TO CALCULATE TRENDS AND THEN COMPARE IT WITH THE TRIM : NB DISTRIBUTION
+# IT DOESN'T WORK: Error in node N[624] --> Failure to calculate log density
+# Try to look at what Rahel said
+# 8 years (unbalanced number of transects per year); lambda site specific(Zone variable) -> NB DISTRIBUTION
 # Sigma site-year specific (effect of zone cov(?) and random effect in observer)
 
 
@@ -30,7 +32,6 @@ nG <- length(dist.breaks)-1
 yrs <- 1:8 # eight years (for indexing in loops)
 year_number <- 0:7 #(RS: start from 0)
 nyrs <- length(yrs)
-
 
 
 #################################
@@ -90,10 +91,11 @@ lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) +
 
 # Abundance per site and year
 N <- list()
-
+theta <- 0.2 # Dispersion parameter
 for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t])
-} 
+  #N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t])
+  N[[t]] <- rnbinom (n=nSites[t], size = theta, mu=lam[1:nSites[t], t]) # Simulate data with a dispersion parameter of 0.2
+}
 
 NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
 N3 <- ldply(N,rbind)
@@ -244,6 +246,9 @@ cat("model{
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
     sig.lam ~ dunif(0, 10)
     tau.lam <- 1/(sig.lam*sig.lam)
+
+    r ~ dunif(0,5) # Dispersion parameter
+    rout <- log(r)
     
     # Priors for sigma
     bzB.sig ~ dnorm(0, 0.001)
@@ -289,7 +294,8 @@ cat("model{
     # To set that prob.of detection at distance 0 is one, you divide by f0 in the loop up
     
     y[j] ~ dbin(pcap[j], N[j]) 
-    N[j] ~ dpois(lambda[j]) 
+    N[j]~ dnegbin(prob[j], r)
+    prob[j]<- r/(r+lambda[j])
     lambda[j] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j] + bYear.lam*year1[j]) 
     }
     
@@ -297,12 +303,12 @@ cat("model{
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-
+    
     for (i in 1:nyears){
     Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
     }
-
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
+    
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(NB)[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
 
 # Inits
 Nst <- yLong + 1
@@ -310,13 +316,14 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
                          N=Nst,
                          bzB.lam = runif(1),
                          bYear.lam = runif(1),
+                         #r = runif(1), # Problem with initial values? Rahel doesnt calculate r
                          mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1)
                          ###changed inits for mu.sig - don't start too small, better start too large
 )}
 
 # Params
 params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
-            "mu.lam", "sig.lam", 
+            "mu.lam", "sig.lam", "rout",
             "bzB.lam", "bYear.lam",
             "mu.sig", "sig.sig", "bzB.sig"
 )
@@ -325,7 +332,7 @@ params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so tha
 nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(NB)[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 

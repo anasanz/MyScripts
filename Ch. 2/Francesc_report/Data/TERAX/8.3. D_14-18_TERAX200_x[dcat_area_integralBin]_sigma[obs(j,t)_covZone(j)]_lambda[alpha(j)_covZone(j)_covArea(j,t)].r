@@ -12,7 +12,7 @@ library(dplyr)
 # ---- I ignore counts in each observation (cluster size)
 
 # ---- Data ----
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 
 d <- d[which(d$Year %in% c(2014, 2015, 2016, 2017, 2018)), ]
@@ -105,7 +105,8 @@ for (i in 1:nrow(absent)){
 count.year <- colSums(m,na.rm = TRUE)
 # ---- Co-variates ----
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
 manag <- read.csv("management_area_200.csv")
 
 manag <- manag[ , c(1,2,11:15)] # Select years 2014 - 2018
@@ -245,8 +246,8 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = s
 
 # ---- JAGS model ----
 
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS
@@ -338,15 +339,26 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lamb
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 print(out)
+traceplot(out)
+plot(out)
+
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
 write.csv(summary, "8.3.Terax200_14-18.csv")
+save(out, file = "8.3.Terax200_14-18.RData") # Save as RData to be able to access everything
 
 ###################################################################
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
+#                             Plot results                             
+
+#####    Method 1(WRONG?) 
+
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
+
 summary <- read.csv("8.3.Terax200_14-18.csv")
 
 results200 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "Ntotal[5]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
@@ -366,16 +378,18 @@ area_SG_HA <- NULL
 for (i in 1:nyrs){
   area_SG_HA <- c(area_SG_HA,area_sg[1:length(all.sites),i])} # Create vector
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2/Report")
-pdf("Terax_200_HA_SG_1418.pdf")
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2/Report")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/Plots/8.2/Report")
+
+pdf("Terax_200_HA_SG_1418_Method1.pdf")
 
 area_SG_HA <- seq(min(area_SG_HA), max(area_SG_HA),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 500) # Create a sequence of values, from minimum to maximun of the covariate to plot the prediction
 
-
 pred <- exp(results200[which(results200$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results200[which(results200$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results200[which(results200$X == "ba2.lam"),2]*area_SGpred) 
+                   results200[which(results200$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                   results200[which(results200$X == "ba2.lam"),2]*area_SGpred) 
+
 
 predlci <- exp(results200[which(results200$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
                  results200[which(results200$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
@@ -385,7 +399,7 @@ preduci <- exp(results200[which(results200$X == "mu.lam"),8]+ # Add the intercep
                  results200[which(results200$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
                  results200[which(results200$X == "ba2.lam"),8]*area_SGpred) 
 
-plot(pred ~ area_SG_HA, ylim=c(0,4),xlim = c(0,20), type="l", main = "SIS?", xlab = "Guarets gestionats (HA)", ylab = "Abund?ncia")
+plot(pred ~ area_SG_HA, ylim=c(0,5),xlim = c(0,20), type="l", main = "Terax_m1", xlab = "Area_SG", ylab = "Abundance")
 #points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
 #points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
 polygon( x = c(area_SG_HA, rev(area_SG_HA)),
@@ -423,4 +437,86 @@ points(pred ~ area_SG_HA, pch=16, type="l")
 dev.off()
 
 
+####       Method 2 
 
+# RAHEL: PREDICTION FOR N FROM ITERATIONS
+# out$samples contains all the iterations for each of the 3 chains ([1],[2],[3])
+
+outall <- do.call(rbind,out$samples) # Here I put the three chains together
+
+area_SGpred <- seq(min(area_SG), max(area_SG),length.out = 100) 
+area_SG_HA <- seq(min(area_SG_HA), max(area_SG_HA),length.out = 100) # To plot with unscaled values
+
+# 1. Calculate predictions for both zones
+
+# ORIENTALES (ZONE)
+pred <- list()
+for(i in 1:dim(outall)[1]){ # 1:number of rows/iterations
+#plot(-15, xlim=c(min(area_SG_HA),max(area_SG_HA)), ylim=c(0,5)) # area_SG_HA unscaled variable
+#for(i in 1:500){ # To visually see, because there is a lot of iterations
+  pred[[i]] <- exp(outall[i,"mu.lam"]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                     outall[i,"bzB.lam"]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                     outall[i,"ba2.lam"]*area_SGpred) 
+  #points(pred[[i]]~area_SG_HA, type="l" ) # This is just to show visually all lines (prediction per iteration)
+}
+# Pred contains the list of the prediction of abundance N for each iteration 
+#(one prediction line per iteration)
+
+predall <- do.call(rbind,pred) # All predictions/iterations together in one data frame (where columns are the prediction per each predictor (area) values)
+lci <- uci <- mean.pred <- 0 
+for(i in 1:length(area_SGpred)){
+  
+  lci[i]  <- quantile(predall[,i],probs = 0.025) # For each value of area, tells the prediction that is in the position of the lower confidence interval
+                                                # : For the area value 1, sets cutting value below which are the 2.5 % of the predicted abundances (LOWER CI)
+  uci[i]  <- quantile(predall[,i],probs = 0.975)
+  mean.pred[i]  <- mean(predall[,i])
+}
+
+
+#OCCIDENTALES (ZONE)
+pred_oc <- list()
+for(i in 1:dim(outall)[1]){
+  
+  pred_oc[[i]] <- exp(outall[i,"mu.lam"]+ 
+                     outall[i,"bzB.lam"]*0 + 
+                     outall[i,"ba2.lam"]*area_SGpred) 
+}
+
+predall_oc <- do.call(rbind,pred_oc) 
+for(i in 1:length(area_SGpred)){
+  
+  lci_oc[i]  <- quantile(predall_oc[,i],probs = 0.025) 
+  uci_oc[i]  <- quantile(predall_oc[,i],probs = 0.975)
+  mean.pred_oc[i]  <- mean(predall_oc[,i])
+}
+
+# 2. Plot
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/Plots/8.2/Report")
+pdf("Terax_200_HA_SG_1418_Method2.pdf")
+
+plot(-15, xlim=c(min(area_SG_HA),20), ylim=c(0,5), main = "Terax_m2", xlab = "Area_SG", ylab = "Abundance") # area_SG_HA unscaled variable
+
+#points(uci~area_SG_HA, type="l" )
+#points(lci~area_SG_HA, type="l" )
+polygon( x = c(area_SG_HA, rev(area_SG_HA)),
+         y = c(lci, rev(uci)), 
+         col = adjustcolor(c("grey"),alpha.f = 0.6),
+         border = NA)
+points(mean.pred~area_SG_HA, type="l")
+
+
+#points(uci_oc ~ area_SG_HA, type="l", col = "red" )
+#points(lci_oc ~ area_SG_HA, type="l", col = "red" )
+polygon( x = c(area_SG_HA, rev(area_SG_HA)),
+         y = c(lci_oc, rev(uci_oc)), 
+         col = adjustcolor(c("red"),alpha.f = 0.6),
+         border = NA)
+points(mean.pred_oc~area_SG_HA, type="l", col = "red")
+
+legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
+       border=c("red","black"),legend = c("Oc", "Or"),
+       box.lwd=0.1,
+       bty = "n")
+
+dev.off()

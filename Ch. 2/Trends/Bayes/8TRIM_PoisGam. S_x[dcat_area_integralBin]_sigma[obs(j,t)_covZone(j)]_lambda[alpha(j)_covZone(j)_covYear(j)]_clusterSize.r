@@ -9,6 +9,11 @@ set.seed(2013)
 # ---- Data simulation ----
 #### Simulate abundance for one species:
 # THIS MODEL IS TO CALCULATE TRENDS AND THEN COMPARE IT WITH THE TRIM (IT WORKS)
+# TRY TO ACCOUNT FOR OVERDISPERSION BY USING A POISSON-GAMMA MIXTURE DISTRIBUTION AS IN THE SEA BIRD PAPER OF RAHEL (=Negative Binomial)
+# Treat lambda as a random variable: It has to be positive, so a good candidate is the gamma distribution
+# The gamma distribution has the parameters shape (k) and scale (theta): lamda ~ gamma (k,theta)
+# Rahel seems to use the same value (r) for scale and shape??? TRY and ask. Simulate data as in the script S3. NegBin.r
+#####AQUI
 # 8 years (unbalanced number of transects per year); lambda site specific(Zone variable)
 # Sigma site-year specific (effect of zone cov(?) and random effect in observer)
 
@@ -89,10 +94,23 @@ lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) +
 
 
 # Abundance per site and year
-N <- list()
+# Negative binomial written as a poisson-gamma mixture
+# # Dispersion parameter rho from gamma distribution with r=shape=scale
+r <- 2 # Same scale and shape? THE DISPERSION PARAMETER IS RHO OR R???
 
+rho <- list()
 for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t])
+  rho[[t]] <- rgamma(nSites[t], scale = r, shape = r)
+}
+rhoLong <- ldply(rho,cbind) 
+rho3 <- ldply(rho,rbind)
+rho.sitesYears <- t(rho3)
+
+lam.star <- lam*rho.sitesYears
+
+N <- list()
+for (t in 1:nyrs){
+  N[[t]] <- rpois(nSites[t],lam.star[1:nSites[t], t])
 } 
 
 NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
@@ -232,7 +250,7 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = sit
 
 # ---- JAGS model ----
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS
@@ -244,6 +262,8 @@ cat("model{
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
     sig.lam ~ dunif(0, 10)
     tau.lam <- 1/(sig.lam*sig.lam)
+
+    r ~ dunif(0,100) # Scale and shape from dgamma
     
     # Priors for sigma
     bzB.sig ~ dnorm(0, 0.001)
@@ -289,20 +309,22 @@ cat("model{
     # To set that prob.of detection at distance 0 is one, you divide by f0 in the loop up
     
     y[j] ~ dbin(pcap[j], N[j]) 
-    N[j] ~ dpois(lambda[j]) 
-    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j] + bYear.lam*year1[j]) 
+    N[j] ~ dpois(lambda.star[j]) 
+    lambda[j] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j] + bYear.lam*year1[j])
+    rho[j] ~ dgamma(r,r) # Dispersion parameter
+    lambda.star[j] <- rho[j]*lambda[j] # Lambda corrected by dispersion parameter(?)
     }
     
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
     }
-
+    
     for (i in 1:nyears){
     Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
     }
-
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
+    
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
 
 # Inits
 Nst <- yLong + 1
@@ -312,11 +334,11 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
                          bYear.lam = runif(1),
                          mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1)
                          ###changed inits for mu.sig - don't start too small, better start too large
-)}
+)} # FOR R NO INITIAL VALUES??
 
 # Params
 params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
-            "mu.lam", "sig.lam", 
+            "mu.lam", "sig.lam", 'r',
             "bzB.lam", "bYear.lam",
             "mu.sig", "sig.sig", "bzB.sig"
 )
@@ -325,7 +347,7 @@ params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so tha
 nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
@@ -338,6 +360,7 @@ data_comp <- list(N.tot = N.tot, b.lam.zoneB = b.lam.zoneB,
                   b.sig.zoneB = b.sig.zoneB, mu.sig.obs = mu.sig.obs,
                   b.lam.year = b.lam.year,
                   sig.sig.obs = sig.sig.obs,
+                  r = r,
                   Nclus.tot = Nclus.tot)
 
 

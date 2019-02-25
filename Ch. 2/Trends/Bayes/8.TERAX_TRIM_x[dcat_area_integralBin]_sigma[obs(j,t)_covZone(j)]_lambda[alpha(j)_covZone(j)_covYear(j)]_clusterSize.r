@@ -8,6 +8,8 @@ library(dplyr)
 
 # ---- Data ----
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+
 d <- read.csv("DataDS_ready_ALL.csv")
 
 # Information: bins, years, sites
@@ -18,7 +20,7 @@ int.w <- diff(dist.breaks) # width of distance categories (v)
 midpt <- diff(dist.breaks)/2+dist.breaks[-5]
 nG <- length(dist.breaks)-1
 
-yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
 nyrs <- length(yrs)
 
 # To take into account transects with abundance 0
@@ -212,6 +214,8 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = s
 # ---- JAGS model ----
 
 setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+
 cat("model{
     
     # PRIORS
@@ -315,7 +319,7 @@ write.csv(summary, "8.TRIM_Terax.csv")
 
 ###################################################################
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/TRIM")
 summary <- read.csv("8.TRIM_Terax.csv")
 
 results <- summary[which(summary$X %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "Ntotal_clus[3]", "Ntotal_clus[4]", "Ntotal_clus[5]", "Ntotal_clus[6]", "Ntotal_clus[7]", "Ntotal_clus[8]", "Ntotal_clus[9]",
