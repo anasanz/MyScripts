@@ -352,9 +352,12 @@ save(out, file = "8.3.Terax200_14-18.RData") # Save as RData to be able to acces
 
 ###################################################################
 
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
+load("8.3.Terax200_14-18.RData")
+
 #                             Plot results                             
 
-#####    Method 1(WRONG?) 
+#####    Method 1 -> Wrong, it gives very wide confidence intervals
 
 #setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/8.2.Francesc13-18")
@@ -380,6 +383,9 @@ for (i in 1:nyrs){
 
 #setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8.2/Report")
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/Plots/8.2/Report")
+
+par(mfrow = c(1,2)) # Save comparison
+pdf("Terax_200_HA_SG_1418_CiCompare2.pdf")
 
 pdf("Terax_200_HA_SG_1418_Method1.pdf")
 

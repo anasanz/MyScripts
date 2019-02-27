@@ -4,7 +4,7 @@ rm(list=ls())
 library(rtrim)
 library(dplyr)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
@@ -82,8 +82,11 @@ coefficients(m2)
 #Plot with overall slope
 par(mfrow = c(1,2))
 plot(overall(m2))
-mtext("TRIM", side = 3, line = 1, cex = 1.5)
+mtext("Population count and trend (red)", side = 3, line = 1, cex = 1.2)
+
 plot(i2)
+mtext("Population index", side = 3, line = 1, cex = 1.2)
+title("CALANDRA LARK TRIM", line = -1, cex = 2, outer = TRUE)
 
 
 # ----  MODEL 3 ----

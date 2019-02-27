@@ -8,7 +8,7 @@ library(dplyr)
 # ---- I ignore counts in each observation (cluster size)
 
 # ---- Data ----
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 
 # Information: bins, years, sites
@@ -309,90 +309,127 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lamb
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
-summary <- as.data.frame(as.matrix(out$summary))
-
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
-write.csv(summary, "8.TRIM_Mecal.csv")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/TRIM")
+save(out, file = "8.TRIM_Mecal.RData")
 
 ###################################################################
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
-summary <- read.csv("8.TRIM_Mecal.csv")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/TRIM")
+load("8.TRIM_Mecal.RData")
 
-results <- summary[which(summary$X %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "Ntotal_clus[3]", "Ntotal_clus[4]", "Ntotal_clus[5]", "Ntotal_clus[6]", "Ntotal_clus[7]", "Ntotal_clus[8]", "Ntotal_clus[9]",
+# Plot trend
+summary <- as.data.frame(as.matrix(out$summary))
+results <- summary[which(rownames(summary) %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "Ntotal_clus[3]", "Ntotal_clus[4]", "Ntotal_clus[5]", "Ntotal_clus[6]", "Ntotal_clus[7]", "Ntotal_clus[8]", "Ntotal_clus[9]",
                                              "mu.lam", "sig.lam", "bzB.lam", "bYear.lam")), ]
 
-
+par(mfrow = c(1,2))
 # Plot the trend of the population
 plot(-100,ylim = c(0,1100), xlim=c(0,9),
      pch = 21, ylab = "N", xlab = " ", axes = FALSE)
-mtext("DS", side = 3, line = 1, cex = 1.5)
+mtext("Population counts and abundance", side = 3, line = 1, cex = 1.2)
 axis(1, at = c(1,2,3,4,5,6,7,8,9), labels = yrs)
 axis(2)
-points(results[1:9,2],pch = 19) # Plot results
+points(results[1:9,1],pch = 19) # Plot results
 points(count.year_clus,pch = 19, col = "red") # Plot counts
-x <- seq_along(results[1:9,2])
-low_CI <- as.numeric(results$X2.5.[1:9])
-up_CI <- as.numeric(results$X97.5.[1:9])
-arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
+x <- seq_along(results[1:9,1])
+low_CI <- as.numeric(results$`2.5%`[1:9])
+up_CI <- as.numeric(results$`97.5%`[1:9])
+arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04)
+legend("bottomright",fill=adjustcolor(c("black","red"),alpha.f = 0.8),
+       border=c("black","red"),legend = c("N", "Counts"),
+       box.lwd=0.1,
+       bty = "n")
 
-title("CALANDRA LARK", line = -1, cex = 2, outer = TRUE)
+title("CALANDRA LARK HDS", line = -1, cex = 2, outer = TRUE)
 
 
 # Plot YEAR effect
 
+yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8TRIM")
+# PREDICTION FOR N FROM ITERATIONS
+# out$samples contains all the iterations for each of the 3 chains ([1],[2],[3])
+
+outall <- do.call(rbind,out$samples) # Here I put the three chains together
+
+
+# 1. Calculate predictions for both zones
+
+# ORIENTALES (ZONE)
+pred <- list()
+
+for(i in 1:dim(outall)[1]){ # 1:number of rows/iterations
+  #plot(-15, xlim=c(min(area_SG_HA),max(area_SG_HA)), ylim=c(0,5)) # area_SG_HA unscaled variable
+  #for(i in 1:500){ # To visually see, because there is a lot of iterations
+  pred[[i]] <- exp(outall[i,"mu.lam"]+ # Add the intercept (random effect), also fixed to the mean of the random effect
+                     outall[i,"bzB.lam"]*1 + # Prediction for fixed zone 1 (ORIENTAL)
+                     outall[i,"bYear.lam"]*yrs2) 
+  #points(pred[[i]]~area_SG_HA, type="l" ) # This is just to show visually all lines (prediction per iteration)
+}
+
+# Pred contains the list of the prediction of abundance N for each iteration 
+#(one prediction line per iteration)
+
+predall <- do.call(rbind,pred) # All predictions/iterations together in one data frame (where columns are the prediction per each predictor (area) values)
+lci <- uci <- mean.pred <- 0 
+for(i in 1:length(yrs2)){
+  
+  lci[i]  <- quantile(predall[,i],probs = 0.025) # For each value of area, tells the prediction that is in the position of the lower confidence interval
+  # : For the area value 1, sets cutting value below which are the 2.5 % of the predicted abundances (LOWER CI)
+  uci[i]  <- quantile(predall[,i],probs = 0.975)
+  mean.pred[i]  <- mean(predall[,i])
+}
+
+
+#OCCIDENTALES (ZONE)
+pred_oc <- list()
+for(i in 1:dim(outall)[1]){
+  
+  pred_oc[[i]] <- exp(outall[i,"mu.lam"]+ 
+                        outall[i,"bzB.lam"]*0 + 
+                        outall[i,"bYear.lam"]*yrs2) 
+}
+
+predall_oc <- do.call(rbind,pred_oc) 
+lci_oc <- uci_oc <- mean.pred_oc <- 0 
+
+for(i in 1:length(yrs2)){
+  
+  lci_oc[i]  <- quantile(predall_oc[,i],probs = 0.025) 
+  uci_oc[i]  <- quantile(predall_oc[,i],probs = 0.975)
+  mean.pred_oc[i]  <- mean(predall_oc[,i])
+}
+
+# 2. Plot
+
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8TRIM")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/Plots/8TRIM")
 pdf("Mecal_Year.pdf")
 
-pred <- exp(results[which(results$X == "mu.lam"),2]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-              results[which(results$X == "bzB.lam"),2]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-              results[which(results$X == "bYear.lam"),2]*yrs2) 
-
-predlci <- exp(results[which(results$X == "mu.lam"),4]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                 results[which(results$X == "bzB.lam"),4]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                 results[which(results$X == "bYear.lam"),4]*yrs2) 
-
-preduci <- exp(results[which(results$X == "mu.lam"),8]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                 results[which(results$X == "bzB.lam"),8]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                 results[which(results$X == "bYear.lam"),8]*yrs2) 
-
-plot(pred ~ yrs2, ylim=c(0,5), type="l", main = "CALANDRA LARK", xlab = "Year", ylab = "Abundance")
-#points(predlci ~ area_SGpred, pch=16, type="l",lty=2)
-#points(preduci ~ area_SGpred, pch=16,type="l",lty=2)
+plot(-15, xlim=c(0,8), ylim=c(0,4), main = " ", xlab = "Year", ylab = "Abundance", axes = FALSE)
+mtext("Year effect", side = 3, line = 1, cex = 1.2)
+axis(1, at = c(0,1,2,3,4,5,6,7,8), labels = yrs)
+axis(2)
+#points(uci~area_SG_HA, type="l" )
+#points(lci~area_SG_HA, type="l" )
 polygon( x = c(yrs2, rev(yrs2)),
-         y = c(predlci, rev(preduci)), 
+         y = c(lci, rev(uci)), 
          col = adjustcolor(c("grey"),alpha.f = 0.6),
          border = NA)
+points(mean.pred~yrs2, type="l")
 
 
-pred0 <- exp(results[which(results$X == "mu.lam"),2]+
-               results[which(results$X == "bzB.lam"),2]*0 + # Prediction fixed for zone 0 (occidental)
-               results[which(results$X == "bYear.lam"),2]*yrs2) 
-
-pred0lci <- exp(results[which(results$X == "mu.lam"),4]+ # PREDICTION LOW CI FOR OCCIDENTAL
-                  results[which(results$X == "bzB.lam"),4]*0 + 
-                  results[which(results$X == "bYear.lam"),4]*yrs2) 
-
-pred0uci <- exp(results[which(results$X == "mu.lam"),8]+ # PREDICTION UP CI FOR OCCIDENTAL
-                  results[which(results$X == "bzB.lam"),8]*0 + 
-                  results[which(results$X == "bYear.lam"),8]*yrs2) 
-
-points(pred0 ~ yrs2, pch=16, type="l", col="red")
-#points(pred0lci ~ area_SGpred, pch=16, type="l",lty=2, col="red")
-#points(pred0uci ~ area_SGpred, pch=16,type="l",lty=2, col="red")
+#points(uci_oc ~ area_SG_HA, type="l", col = "red" )
+#points(lci_oc ~ area_SG_HA, type="l", col = "red" )
 polygon( x = c(yrs2, rev(yrs2)),
-         y = c(pred0lci, rev(pred0uci)), 
-         col = adjustcolor(c("red"),alpha.f = 0.2),
+         y = c(lci_oc, rev(uci_oc)), 
+         col = adjustcolor(c("blue"),alpha.f = 0.3),
          border = NA)
-legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
-       border=c("red","black"),legend = c("Occidentals", "Orientals"),
+points(mean.pred_oc~yrs2, type="l", col = "blue")
+
+legend("bottomright",fill=adjustcolor(c("blue","black"),alpha.f = 0.8),
+       border=c("blue","black"),legend = c("Zone 1", "Zone 2"),
        box.lwd=0.1,
        bty = "n")
 
-#points(pred ~ area_SG_HA, pch=16, type="l")
-
 dev.off()
-
-
-

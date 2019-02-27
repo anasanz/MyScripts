@@ -6,17 +6,17 @@ library(plyr)
 
 
 set.seed(2013)
+
 # ---- Data simulation ----
 #### Simulate abundance for one species:
-# THIS MODEL IS TO CALCULATE TRENDS AND THEN COMPARE IT WITH THE TRIM (IT WORKS)
+
 # TRY TO ACCOUNT FOR OVERDISPERSION BY USING A POISSON-GAMMA MIXTURE DISTRIBUTION AS IN THE SEA BIRD PAPER OF RAHEL (=Negative Binomial)
 # Treat lambda as a random variable: It has to be positive, so a good candidate is the gamma distribution
 # The gamma distribution has the parameters shape (k) and scale (theta): lamda ~ gamma (k,theta)
-# Rahel seems to use the same value (r) for scale and shape??? TRY and ask. Simulate data as in the script S3. NegBin.r
-#####AQUI
+# Rahel seems to use the same value (r) for scale and shape??? 
+
 # 8 years (unbalanced number of transects per year); lambda site specific(Zone variable)
 # Sigma site-year specific (effect of zone cov(?) and random effect in observer)
-
 
 
 g <- function(x, sig) exp(-x^2/(2*sig^2))
@@ -100,7 +100,7 @@ r <- 2 # Same scale and shape? THE DISPERSION PARAMETER IS RHO OR R???
 
 rho <- list()
 for (t in 1:nyrs){
-  rho[[t]] <- rgamma(nSites[t], scale = r, shape = r)
+  rho[[t]] <- rgamma(nSites[t], rate = r, shape = r)
 }
 rhoLong <- ldply(rho,cbind) 
 rho3 <- ldply(rho,rbind)

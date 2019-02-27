@@ -4,7 +4,7 @@ rm(list=ls())
 library(rtrim)
 library(dplyr)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
