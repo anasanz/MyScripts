@@ -321,7 +321,7 @@ save(out, file = "8.TRIM_Terax.RData")
 
 ###################################################################
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/TRIM")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
 load("8.TRIM_Terax.RData")
 yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
 
@@ -484,9 +484,9 @@ for(i in 1:length(yrs2)){
 
 # Transects per zone all years or in general?
 sum(zon)
-Jzone1 <- 873 # Intercept. Occidental (0)
 length(zon) - sum(zon)
-Jzone2 <- 621 # Oriental (1)
+Jzone1 <- 621 # Intercept. Occidental (0)
+Jzone2 <- 873 # Oriental (1)
 clust <- average_clus
 
 sum(zone[,1])
@@ -542,17 +542,6 @@ points(yrs2, out$summary[grep("Ntotal_clus", rownames(out$summary)),1])
 #       bty = "n")
 
 ##########################################################################################
-##### plot expected abundance
-plot(-15, xlim=c(0,8), ylim=c(0,200), main = "Terax_HDS_expectedN", xlab = "Year", ylab = "Abundance")
-
-polygon( x = c(yrs2, rev(yrs2)),
-         y = c(lci.exp, rev(uci.exp)), 
-         col = adjustcolor(c("grey"),alpha.f = 0.6),
-         border = NA)
-points(mean.pred.exp~yrs2, type="l")
-
-##add in actual abundance estimates from the model
-points(yrs2, out$summary[grep("Ntotal_clus", rownames(out$summary)),1], pch=19)
-
+ 
 
 
