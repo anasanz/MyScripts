@@ -280,10 +280,18 @@ cat("model{
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
+    ### RS: added this in to calculate total expected abundance for the Poisson mean
+    ###    and the effective NegBin mean
+    lamtotal[i]<- sum(lambda.star*indexYears[,i]) 
+    lamtotal.P[i]<- sum(lambda*indexYears[,i])
     }
     
     for (i in 1:nyears){
     Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
+    ### RS: added this in to calculate total expected abundance for the Poisson mean
+    ###    and the effective NegBin mean
+    lamtotal_clus[i] <- average_clus*(lamtotal[i])
+    lamtotal_clus.P[i] <- average_clus*(lamtotal.P[i])
     }
     
     }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha(j)_covZone(j)_year(j)]_clustersize.txt")
@@ -302,20 +310,22 @@ inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0
 params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu.lam", "sig.lam", 'r',
             "bzB.lam", "bYear.lam",
-            "mu.sig", "sig.sig", "bzB.sig"
+            "mu.sig", "sig.sig", "bzB.sig",
+            #### RS: added these in so you can plot them and compare to Ntotal
+            "lamtotal_clus", "lamtotal_clus.P",
+            "lamtotal", "lamtotal.P"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 30000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
-            n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
-print(out)
-
-#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/TRIM")
-save(out, file = "8.TRIM_Terax.RData")
+out2 <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
+             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+print(out2)
+#s2 <- as.data.frame(out2$summary)
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
+save(out2, file = "8.TRIM_Terax.RData")
 
 
 # ---- Results ----
@@ -323,57 +333,67 @@ save(out, file = "8.TRIM_Terax.RData")
 setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
 load("8.TRIM_Terax.RData")
 
-summary <- as.data.frame(as.matrix(out$summary))
+summary <- as.data.frame(as.matrix(out2$summary))
 
 results <- summary[which(rownames(summary) %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "Ntotal_clus[3]", "Ntotal_clus[4]", "Ntotal_clus[5]", "Ntotal_clus[6]", "Ntotal_clus[7]", "Ntotal_clus[8]", "Ntotal_clus[9]",
+                                                  "lam.star.tot[1]", "lam.star.tot[2]", "lam.star.tot[3]", "lam.star.tot[4]", "lam.star.tot[5]", "lam.star.tot[6]", "lam.star.tot[7]", "lam.star.tot[8]", "lam.star.tot[9]",
                                                   "mu.lam", "sig.lam", "bzB.lam", "bYear.lam")), ]
 
 ## ---- POPULATION TREND PLOT ---- ##
 
-# Based on N (REAL ABUNDANCE)
+# Based on expected N
 
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
+load("8.TRIM_Terax.RData")
 yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) 
 
 # 1. Calculate predictions for both zones
 
-outall <- do.call(rbind,out$samples) 
+outall <- do.call(rbind,out2$samples) 
 
 # Total population (since both follow the same trend)
-pred <- matrix(NA, dim(outall)[1], length(yrs2))
+pred.exp <- matrix(NA, dim(outall)[1], length(yrs2))
 for(i in 1:dim(outall)[1]){ 
   ##calculate population, year 1
-  pred[i,1] <- as.vector(outall[i,"Ntotal_clus[1]"])
+  pred.exp[i,1] <- as.vector(outall[i,"lamtotal_clus[1]"])
   ##calculate populations, year 2-8, based on beta(Year)
   for (t in 2:length(yrs2)){
-    pred[i,t] <- pred[i,(t-1)] * # Here I add the starting population size as a baseline for the trend 
+    pred.exp[i,t] <- pred.exp[i,(t-1)] * # Here I add the starting population size as a baseline for the trend 
       exp(outall[i,"bYear.lam"])
   }
 }
 
-predall <- pred
-lci <- uci <- mean.pred <- 0 
+predall.exp <- pred.exp
+lci.exp <- uci.exp <- mean.pred.exp <- 0 
 
 for(i in 1:length(yrs2)){
-  lci[i]  <- quantile(predall[,i],probs = 0.025) 
-  uci[i]  <- quantile(predall[,i],probs = 0.975)
-  mean.pred[i]  <- mean(predall[,i])
+  lci.exp[i]  <- quantile(predall.exp[,i],probs = 0.025) 
+  uci.exp[i]  <- quantile(predall.exp[,i],probs = 0.975)
+  mean.pred.exp[i]  <- mean(predall.exp[,i])
 }
+
 
 # 2. Plot
 
-par(mfrow = c(1,2)) # To have hds at the left and trim at the right
-plot(-15, xlim=c(0,8), ylim=c(0,max(uci)+30), main = " ", xlab = "Year", ylab = "Abundance")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Plots/8TRIM")
+pdf("LB_TrimComp.pdf", height = 5, width = 9)
+
+par(mfrow = c(1,2))
+
+plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = "Year", ylab = "Abundance")
 mtext("HDS", side = 3, line = 1, cex = 1.2)
 
+
 polygon( x = c(yrs2, rev(yrs2)),
-         y = c(lci, rev(uci)), 
+         y = c(lci.exp, rev(uci.exp)), 
          col = adjustcolor(c("grey"),alpha.f = 0.6),
          border = NA)
-points(mean.pred~yrs2, type="l")
+points(mean.pred.exp ~ yrs2, type="l", col = "red")
 
 ##add in actual abundance estimates to check
 
-points(yrs2, out$summary[grep("Ntotal_clus", rownames(out$summary)),1], pch = 19)
+points(yrs2, out2$summary[grep("Ntotal_clus", rownames(out2$summary)),1], pch = 19, type = "l", col = "blue")
+points(yrs2, out2$summary[grep("Ntotal_clus", rownames(out2$summary)),1], pch = 19)
 
 # Print estimate
 est <- round(results[13,1],2)
@@ -383,7 +403,7 @@ significance_est <- ifelse(results[13,10] == 0,
                   est)
 col_est <- ifelse(est>0, "blue", "red")
 
-text(7,max(uci)+20, significance_est, col = col_est)
+text(7,max(uci.exp)+10, significance_est, col = col_est)
 
 ###################################################################
 ##                       TRIM ANALYSIS                          ###
@@ -430,5 +450,5 @@ text(2017,max(tot$imputed)+10, significance_est, col = col_est)
 title("TERAX", line = -1, cex = 2, outer = TRUE)
 
 
-
+dev.off()
 

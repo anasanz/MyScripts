@@ -4,9 +4,13 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
+###################################################################
+##                      PART 1: MODEL                           ###
+###################################################################
 
 # ---- Data ----
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 
 d <- read.csv("DataDS_ready_ALL.csv")
 
@@ -203,6 +207,17 @@ ye <- data.frame(allyears = allyears)
 ye$allyears <- as.factor(ye$allyears)
 indexYears <- model.matrix(~ allyears-1, data = ye)
 
+
+###RS trial to set up yr matrix
+indexYears2<-matrix(0, length(yLong), 9)
+
+for (i in 1:9){
+  ysub<-yLong[(i*max.sites-(max.sites-1)) :(i*max.sites)]
+  indexYears2[(i*max.sites-(max.sites-1)) :(i*max.sites),i]<-ifelse(is.na(ysub), 0, 1)
+}
+
+
+
 # ---- Compile data for JAGS model ----
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
@@ -279,16 +294,16 @@ cat("model{
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
-    ### RS: added this in to calculate total expected abundance for the Poisson mean
-    ###    and the effective NegBin mean
+ ### RS: added this in to calculate total expected abundance for the Poisson mean
+ ###    and the effective NegBin mean
     lamtotal[i]<- sum(lambda.star*indexYears[,i]) 
     lamtotal.P[i]<- sum(lambda*indexYears[,i])
     }
     
     for (i in 1:nyears){
     Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
-    ### RS: added this in to calculate total expected abundance for the Poisson mean
-    ###    and the effective NegBin mean
+ ### RS: added this in to calculate total expected abundance for the Poisson mean
+ ###    and the effective NegBin mean
     lamtotal_clus[i] <- average_clus*(lamtotal[i])
     lamtotal_clus.P[i] <- average_clus*(lamtotal.P[i])
     }
@@ -310,7 +325,7 @@ params <- c("Ntotal", "Ntotal_clus", #"N", "sigma", "lambda", I remove it so tha
             "mu.lam", "sig.lam", 'r',
             "bzB.lam", "bYear.lam",
             "mu.sig", "sig.sig", "bzB.sig",
-            #### RS: added these in so you can plot them and compare to Ntotal
+      #### RS: added these in so you can plot them and compare to Ntotal
             "lamtotal_clus", "lamtotal_clus.P",
             "lamtotal", "lamtotal.P"
 )
@@ -320,133 +335,20 @@ nc <- 3 ; ni <- 30000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out2 <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha(j)_covZone(j)_year(j)]_clustersize.txt", n.chain = nc,
-             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+            n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 s2 <- as.data.frame(out2$summary)
 #setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/TRIM")
 setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/TRIM")
-save(out, file = "8.TRIM_Terax.RData")
+save(out, file = "8.TRIM_Terax2.RData")
 
 
 
 ###################################################################
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
-load("8.TRIM_Terax.RData")
-yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
-
-summary <- as.data.frame(as.matrix(out$summary))
-
-results <- summary[which(rownames(summary) %in% c("Ntotal_clus[1]", "Ntotal_clus[2]", "Ntotal_clus[3]", "Ntotal_clus[4]", "Ntotal_clus[5]", "Ntotal_clus[6]", "Ntotal_clus[7]", "Ntotal_clus[8]", "Ntotal_clus[9]",
-                                          "mu.lam", "sig.lam", "bzB.lam", "bYear.lam")), ]
-
-
-# ---- Plot the trend of the population ----
-
-plot(-100,ylim = c(0,150), xlim=c(0,9),
-     pch = 21, ylab = "N", xlab = " ", axes = FALSE)
-mtext("HDS", side = 3, line = 1, cex = 1.5)
-axis(1, at = c(1,2,3,4,5,6,7,8,9), labels = yrs)
-axis(2)
-points(results[1:9,1],pch = 19) # Plot results
-points(count.year_clus,pch = 19, col = "red") # Plot counts
-x <- seq_along(results[1:9,1])
-low_CI <- as.numeric(results$`2.5%`[1:9])
-up_CI <- as.numeric(results$`97.5%`[1:9])
-arrows(x, low_CI,x, up_CI, code=3, angle=90, length=0.04) 
-
-title("LITTLE BUSTARD", line = -1, cex = 2, outer = TRUE)
-
-
-# ---- Plot YEAR effect ----
-
-yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
-
-# PREDICTION FOR N FROM ITERATIONS
-# out$samples contains all the iterations for each of the 3 chains ([1],[2],[3])
-
-outall <- do.call(rbind,out$samples) # Here I put the three chains together
-
-
-# 1. Calculate predictions for both zones
-
-# ORIENTALES (ZONE)
-pred <- list()
-
-for(i in 1:dim(outall)[1]){ # 1:number of rows/iterations
-  #plot(-15, xlim=c(min(area_SG_HA),max(area_SG_HA)), ylim=c(0,5)) # area_SG_HA unscaled variable
-  #for(i in 1:500){ # To visually see, because there is a lot of iterations
-  pred[[i]] <- exp(outall[i,"mu.lam"]+ # Add the intercept (random effect), also fixed to the mean of the random effect
-                     outall[i,"bzB.lam"]*1 + # Prediction for fixed zone 1 (ORIENTAL)
-                     outall[i,"bYear.lam"]*yrs2) 
-  #points(pred[[i]]~area_SG_HA, type="l" ) # This is just to show visually all lines (prediction per iteration)
-}
-
-# Pred contains the list of the prediction of abundance N for each iteration 
-#(one prediction line per iteration)
-
-predall <- do.call(rbind,pred) # All predictions/iterations together in one data frame (where columns are the prediction per each predictor (area) values)
-lci <- uci <- mean.pred <- 0 
-for(i in 1:length(yrs2)){
-  
-  lci[i]  <- quantile(predall[,i],probs = 0.025) # For each value of area, tells the prediction that is in the position of the lower confidence interval
-  # : For the area value 1, sets cutting value below which are the 2.5 % of the predicted abundances (LOWER CI)
-  uci[i]  <- quantile(predall[,i],probs = 0.975)
-  mean.pred[i]  <- mean(predall[,i])
-}
-
-
-#OCCIDENTALES (ZONE)
-pred_oc <- list()
-for(i in 1:dim(outall)[1]){
-  
-  pred_oc[[i]] <- exp(outall[i,"mu.lam"]+ 
-                        outall[i,"bzB.lam"]*0 + 
-                        outall[i,"bYear.lam"]*yrs2) 
-}
-
-predall_oc <- do.call(rbind,pred_oc) 
-lci_oc <- uci_oc <- mean.pred_oc <- 0 
-
-for(i in 1:length(yrs2)){
-  
-  lci_oc[i]  <- quantile(predall_oc[,i],probs = 0.025) 
-  uci_oc[i]  <- quantile(predall_oc[,i],probs = 0.975)
-  mean.pred_oc[i]  <- mean(predall_oc[,i])
-}
-
-# 2. Plot
-
-#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results/Plots/8TRIM")
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Results/Plots/8TRIM")
-pdf("Terax_Year2.pdf")
-
-plot(-15, xlim=c(0,8), ylim=c(0,1), main = "Terax_TRIM", xlab = "Year", ylab = "Abundance")
-
-#points(uci~area_SG_HA, type="l" )
-#points(lci~area_SG_HA, type="l" )
-polygon( x = c(yrs2, rev(yrs2)),
-         y = c(lci, rev(uci)), 
-         col = adjustcolor(c("grey"),alpha.f = 0.6),
-         border = NA)
-points(mean.pred~yrs2, type="l")
-
-
-#points(uci_oc ~ area_SG_HA, type="l", col = "red" )
-#points(lci_oc ~ area_SG_HA, type="l", col = "red" )
-polygon( x = c(yrs2, rev(yrs2)),
-         y = c(lci_oc, rev(uci_oc)), 
-         col = adjustcolor(c("red"),alpha.f = 0.6),
-         border = NA)
-points(mean.pred_oc~yrs2, type="l", col = "red")
-
-legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
-       border=c("red","black"),legend = c("Oc", "Or"),
-       box.lwd=0.1,
-       bty = "n")
-
-dev.off()
-
+###################################################################
+##                      PART 2: RESULT                          ###
+###################################################################
 
 ## ---- POPULATION TREND PLOT ---- ##
 
@@ -481,39 +383,39 @@ for(i in 1:length(yrs2)){
   mean.pred[i]  <- mean(predall[,i])
 }
 
+par(mfrow = c(1,2))
+
+# 2. Plot
+
+plot(-15, xlim=c(0,8), ylim=c(0,200), main = "Terax_HDS_N", xlab = "Year", ylab = "Abundance")
+
+polygon( x = c(yrs2, rev(yrs2)),
+         y = c(lci, rev(uci)), 
+         col = adjustcolor(c("grey"),alpha.f = 0.6),
+         border = NA)
+points(mean.pred~yrs2, type="l")
+
+##add in actual abundance estimates to check
+
+points(yrs2, out$summary[grep("Ntotal_clus", rownames(out$summary)),1])
 
 # Based on expected N
 
-##technically, you'd want to start the population at the expected population size, 
-##so technically you'd want to base your plot on lambda. not N.
-##Calculate total exp pop size based on exp(lam) times number of sites surveyed in each zone
-##times number of animals in a cluster (see code below)
-##I don't know how many sites you simulated in each zone so I am making up numbers here
-##I also don't know the average cluster size, so I also made that up
-##You'd have to substitute these with the real values
 
-# Transects per zone all years or in general?
-sum(zon)
-length(zon) - sum(zon)
-Jzone1 <- 621 # Intercept. Occidental (0)
-Jzone2 <- 873 # Oriental (1)
-clust <- average_clus
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
+load("8.TRIM_Terax.RData")
+yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) 
 
-sum(zone[,1])
-nrow(zone)-sum(zone[,1])
-Jzone1 <- 69 # Intercept. Occidental (0)
-Jzone2 <- 97 # Oriental (1)
-clust <- average_clus
+# 1. Calculate predictions for both zones
 
-# Total expected population
+outall <- do.call(rbind,out2$samples) 
 
+# Total population (since both follow the same trend)
 pred.exp <- matrix(NA, dim(outall)[1], length(yrs2))
 for(i in 1:dim(outall)[1]){ 
-  pred.exp[i,1] <- ( exp(outall[i,"mu.lam"]+ 
-                           outall[i,"bzB.lam"] )*Jzone2 + ##exp pop size in zone 1 yr 1
-                       exp(outall[i,"mu.lam"])*Jzone1) * clust  ##exp pop size in zone 2 yr 1
-  ###this piece calculates the expected populations in year 2-8 based on
-  ###beta(Year)
+  ##calculate population, year 1
+  pred.exp[i,1] <- as.vector(outall[i,"lamtotal_clus[1]"])
+  ##calculate populations, year 2-8, based on beta(Year)
   for (t in 2:length(yrs2)){
     pred.exp[i,t] <- pred.exp[i,(t-1)] * # Here I add the starting population size as a baseline for the trend 
       exp(outall[i,"bYear.lam"])
@@ -532,26 +434,17 @@ for(i in 1:length(yrs2)){
 
 # 2. Plot
 
-plot(-15, xlim=c(0,8), ylim=c(0,200), main = "Terax_HDS_N", xlab = "Year", ylab = "Abundance")
+plot(-15, xlim=c(0,8), ylim=c(0,200), main = "Terax_HDS_expectedN", xlab = "Year", ylab = "Abundance")
 
 polygon( x = c(yrs2, rev(yrs2)),
-         y = c(lci, rev(uci)), 
+         y = c(lci.exp, rev(uci.exp)), 
          col = adjustcolor(c("grey"),alpha.f = 0.6),
          border = NA)
-points(mean.pred~yrs2, type="l")
+points(mean.pred.exp ~ yrs2, type="l")
 
 ##add in actual abundance estimates to check
 
-points(yrs2, out$summary[grep("Ntotal_clus", rownames(out$summary)),1])
+points(yrs2, out2$summary[grep("Ntotal_clus", rownames(out2$summary)),1], pch = 19)
 
-
-###not adjusted to new plot
-#legend("topleft",fill=adjustcolor(c("red","black"),alpha.f = 0.8),
-#       border=c("red","black"),legend = c("Oc", "Or"),
-#       box.lwd=0.1,
-#       bty = "n")
-
-##########################################################################################
- 
 
 

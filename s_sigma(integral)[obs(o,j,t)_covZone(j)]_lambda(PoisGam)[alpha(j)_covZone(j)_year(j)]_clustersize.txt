@@ -9,7 +9,7 @@ model{
     mu.lam ~ dunif(-10, 10) # Random effects for lambda per site
     sig.lam ~ dunif(0, 10)
     tau.lam <- 1/(sig.lam*sig.lam)
-
+    
     r ~ dunif(0,100) # Scale and shape from dgamma
     
     # Priors for sigma
@@ -65,10 +65,18 @@ model{
     # Derived parameters
     for (i in 1:nyears){
     Ntotal[i] <- sum(N*indexYears[,i]) 
+    ### RS: added this in to calculate total expected abundance for the Poisson mean
+    ###    and the effective NegBin mean
+    lamtotal[i]<- sum(lambda.star*indexYears[,i]) 
+    lamtotal.P[i]<- sum(lambda*indexYears[,i])
     }
     
     for (i in 1:nyears){
     Ntotal_clus[i] <- average_clus*(sum(N*indexYears[,i]))
+    ### RS: added this in to calculate total expected abundance for the Poisson mean
+    ###    and the effective NegBin mean
+    lamtotal_clus[i] <- average_clus*(lamtotal[i])
+    lamtotal_clus.P[i] <- average_clus*(lamtotal.P[i])
     }
     
     }
