@@ -66,7 +66,7 @@ zone <- model.matrix(~ var-1, z)
 sigma <- exp(ob + matrix(b.sig.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow = FALSE) )# HERE IT SHOULD BE FALSE :o!
 
 
-# ----  Abundance component: random effect accross sites, zone covariate and 2 area covariates
+# ----  Abundance component: random effect accross sites, zone covariate and year effect
 
 # RANDOM EFFECT IN SITE (INDEPENDENT OF THE YEAR)
 # Mean abundance and sd across sites

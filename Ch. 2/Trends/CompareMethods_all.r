@@ -22,7 +22,7 @@ colnames(d)[which(colnames(d) == "Count")] <- "Cluster"
 # Load species names
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-s_good <- s_good[26:42]
+s_good <- s_good[42]
 s_doubt <- as.vector(s$Species[which(s$Doubt_samplesize == 1)])
 
 # Start loop
