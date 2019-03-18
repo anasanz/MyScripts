@@ -10,7 +10,7 @@ set.seed(2013)
 
 # ---- Data simulation ----
 
-# 1.2. Try random intercept in site to see if it converges and also random intercept in year
+# From 2.TRIM: random intercept in site and random effect in year
 
 # 9 years of data
 # Balanced number of transects per year (NA in not sampled ones)
@@ -21,7 +21,7 @@ set.seed(2013)
 # Sigma[jt] <- obs[jt] + zone[jt]
 
 # N[jt] ~ Pois(lambda[jt])
-# log(lambda[jt]) <- site.alpha.ran[j] + year.ran[t] + beta*yr[t]
+# log(lambda[jt]) <- site.alpha.ran[j] + year.ran[t] + beta*yr[t-1] + W
 
 ######################################################################################
 # ---- Distance sampling data ----
@@ -137,20 +137,18 @@ lam.tot <- colSums(lam)
 # ---- Generate ABUNDANCE per site and year ----
 
 # Abundance
-N <- list()
-for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam.star[1:nSites[t], t])
-} 
+N <- matrix(NA,nrow = max.sites, ncol = nyrs) 
+for (j in 1:max.sites){
+  for (t in 1:nyrs){
+    N[j,t] <- rpois(1,lam[j,t])
+  }}
 
-NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
-N3 <- ldply(N,rbind)
-N.sitesYears <- t(N3) # N per site and year stored in a matrix with columns
-N.tot <- lapply(N,sum)
+N.tot <- colSums(N)
 
 # Introduce NA (not sampled)
-vec <- seq(1,length(N.sitesYears))
+vec <- seq(1,length(N))
 na <- sample(vec, 100)
-N.sitesYears[na]<-NA
+N[na]<-NA
 
 # Cluster size (to correct) per site and year
 clus <- list()
@@ -163,7 +161,7 @@ clus_size <- t(clus3) # CLUSTER SIZE per site and year stored in a matrix with c
 average_clus <- mean(clus_size, na.rm = TRUE)
 
 # Correct N with average cluster size
-Nclus <- N.sitesYears * average_clus
+Nclus <- N * average_clus
 Nclus.tot <- colSums(Nclus,na.rm = TRUE) # Total pop.abundance corrected by cluster size
 
 
@@ -178,13 +176,13 @@ for (i in 1:nyrs){
 
 for (t in 1:nyrs){
   for(j in 1:max.sites) {
-    if(N.sitesYears[j,t] == 0 | is.na(N.sitesYears[j,t]))
+    if(N[j,t] == 0 | is.na(N[j,t]))
       next
     # Distance from observer to the individual
-    d <- runif(N.sitesYears[j,t], 0, strip.width) 		# Uniform distribution of animals
+    d <- runif(N[j,t], 0, strip.width) 		# Uniform distribution of animals
     # Simulates one distance for each individual in the site (N[j])
     p <- g(x=d, sig=sigma[j,t])   		# Detection probability. Sigma is site-time specific
-    seen <- rbinom(N.sitesYears[j,t], 1, p)
+    seen <- rbinom(N[j,t], 1, p)
     if(all(seen == 0))
       next
     d1 <- d[seen==1] 				# The distance data for seen individuals
@@ -195,7 +193,7 @@ for (t in 1:nyrs){
 y.sum.sites <- lapply(yList, function(x) rowSums(x)) # Total count per site each year
 y.sum.sites2 <- ldply(y.sum.sites,rbind)
 y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
-y.sum[na] <- NA # Add what are real NA generated from Na in N.sitesYears (not 0)
+y.sum[na] <- NA # Add what are real NA generated from Na in N (not 0)
 
 
 ####
@@ -252,7 +250,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
               year.dclass = year.dclass, site.dclass = site.dclass, y = y.sum, nind=nind, dclass=dclass,
-              zoneB = zB, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year = year)
+              zoneB = zB, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year = year, year_index = yrs)
 
 # ---- JAGS model ----
 
@@ -262,7 +260,9 @@ cat("model{
     # PRIORS
     
     # Priors for lambda
-    r ~ dunif(0,100) # Scale and shape from dgamma
+    rho ~ dunif(-1,1) # Autorregresive parameter (serial AC)
+    tau <- pow(sd, -2) # Prior for overdispersion in eps
+    sd ~ dunif(0, 3)
     
     bYear.lam ~ dnorm(0, 0.001) # Prior for the trend
     
@@ -279,7 +279,8 @@ cat("model{
     sig.lam.year ~ dunif(0, 10) 
     tau.lam.year <- 1/(sig.lam.year*sig.lam.year)
     
-    for (t in 1:nyears){
+    log.lambda.year[1] <- 0
+    for (t in 2:nyears){
     log.lambda.year[t] ~ dnorm(0, tau.lam.year)
     }
     
@@ -296,58 +297,92 @@ cat("model{
     sig.obs[o] ~ dnorm(mu.sig, tau.sig)
     }
     
+
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
     }
     
+    # LIKELIHOOD
+
+    # FIRST YEAR
     for(j in 1:nsites){ 
+      
+      sigma[j,1] <- exp(sig.obs[ob[j,1]] + bzB.sig*zoneB[j])
     
-    for (t in 1:nyears){
+        # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
-    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bzB.sig*zoneB[j])
+         for(k in 1:nG){ 
     
-    # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
+          up[j,1,k]<-pnorm(db[k+1], 0, 1/sigma[j,1]^2) ##db are distance bin limits
+          low[j,1,k]<-pnorm(db[k], 0, 1/sigma[j,1]^2) 
+          p[j,1,k]<- 2 * (up[j,1,k] - low[j,1,k])
+          pi[j,1,k] <- int.w[k] / strip.width 
+          f[j,1,k]<- p[j,1,k]/f.0[j,1]/int.w[k]                   ## detection prob. in distance category k                      
+          fc[j,1,k]<- f[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
+          fct[j,1,k]<-fc[j,1,k]/pcap[j,1] 
+          }
     
-    for(k in 1:nG){ 
+      pcap[j,1] <- sum(fc[j,1, 1:nG]) # Different per site and year (sum over all bins)
     
-    up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
-    low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
-    p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
-    pi[j,t,k] <- int.w[k] / strip.width 
-    f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
-    fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
-    fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
-    }
-    
-    pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
-    
-    f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
+      f.0[j,1] <- 2 * dnorm(0,0, 1/sigma[j,1]^2) # Prob density at 0
     
     
-    y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
-    N[j,t] ~ dpois(lambda.star[j,t]) 
+      y[j,1] ~ dbin(pcap[j,1], N[j,1]) 
+      N[j,1] ~ dpois(lambda[j,1]) 
     
-    lambda[j,t] <- exp(log.lambda.site[site[j]] + log.lambda.year[year[t]] + bYear.lam*year1[t])
-    rho[j,t] ~ dgamma(r,r) # Dispersion parameter
-    lambda.star[j,t] <- rho[j,t]*lambda[j,t] # Lambda corrected by dispersion parameter
-    }
+      lambda[j,1] <- exp(log.lambda.site[site[j]] + log.lambda.year[year_index[1]] + bYear.lam*year1[1] + w[j,1]) # year1 is t-1; year_index is t (to index properly the random effect)
+      w[j,1] <- eps[j,1] / sqrt(1 - rho * rho)
+      eps[j,1] ~ dnorm(0, tau)
+      }
+
+    # LATER YEARS
+    for(j in 1:nsites){ 
+      for (t in 2:nyears){
+    
+      sigma[j,t] <- exp(sig.obs[ob[j,t]] + bzB.sig*zoneB[j])
+    
+        # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
+    
+         for(k in 1:nG){ 
+    
+          up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
+          low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
+          p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
+          pi[j,t,k] <- int.w[k] / strip.width 
+          f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
+          fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
+          fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
+          }
+    
+      pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
+    
+      f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
+    
+    
+      y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
+      N[j,t] ~ dpois(lambda[j,t]) 
+    
+      lambda[j,t] <- exp(log.lambda.site[site[j]] + log.lambda.year[year_index[t]] + bYear.lam*year1[t] + w[j,t])
+      w[j,t] <- rho * w[j,t-1] + eps[j,t]
+      eps[j,t] ~ dnorm(0, tau)
+      }
     }
     
     # Derived parameters
     
     for(t in 1:nyears){
-    popindex[t] <- sum(lambda.star[,t])
+    popindex[t] <- sum(lambda[,t])
     }
     
     # Expected abundance per year inside model
     
-    lam.star.tot[1] <- popindex[1] # Expected abundance in year 1
+    lam.tot[1] <- popindex[1] # Expected abundance in year 1
     for (i in 2:nyears){
-    lam.star.tot[i] <- lam.star.tot[i-1] * # Here I add the starting population size as a baseline for the trend 
+    lam.tot[i] <- lam.tot[i-1] * # Here I add the starting population size as a baseline for the trend 
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha.site.random(j)_year.random(t)_beta.year(j)].txt")
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w].txt")
 
 
 # Inits
@@ -359,17 +394,17 @@ inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1)
 # Params
 params <- c( "mu.sig", "sig.sig", "bzB.sig", "sig.obs", # Save also observer effect
              "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
-             "popindex", 'r', "lam.star.tot"
+             "popindex", "sd", "rho", "lam.tot"
 )
 
 # MCMC settings
 nc <- 3 ; ni <- 60000 ; nb <- 4000 ; nt <- 4
 
 # With jagsUI 
-out2 <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha.site.random(j)_year.random(t)_beta.year(j)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w].txt", n.chain = nc,
              n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
-print(out2)
+print(out)
 
 
 setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
@@ -385,5 +420,5 @@ data_comp <- list(lam.tot = lam.tot,
                   sig.lam.alpha.site = sig.lam.alpha.site,
                   sig.lam.year = sig.lam.year,
                   b.lam.year = b.lam.year,
-                  r = r)
+                  rho = rho, sig.lam.eps)
 out2$summary
