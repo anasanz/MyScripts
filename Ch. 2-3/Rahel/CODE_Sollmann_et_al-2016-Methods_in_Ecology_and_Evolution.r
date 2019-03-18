@@ -679,7 +679,7 @@ write.csv(round(Nout, dig=3),paste('BetaByN_', n.spec, '.csv', sep='' ))
 
 library(rjags)
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Examples/Sollman_data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Examples/Sollman_data/Hierarchical_community_model")
 sbdata <- readRDS("sbdata.rds")
 #sbdata<-dget("sbdata.R")  			# holds all data necessary for analysis below, available on Dryad
 
@@ -732,7 +732,8 @@ sm<-summary(out)
 
 ###chain convergence
 gelman.diag(out)
-
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Examples/Sollman_data/Hierarchical_community_model")
+save(out, "out_community.RData")
 
 
 #######################################################################################################################

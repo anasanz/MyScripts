@@ -14,7 +14,7 @@ set.seed(2013)
 
 # 9 years of data
 # Balanced number of transects per year (NA in not sampled ones)
-# TRY TO ACCOUNT FOR OVERDISPERSION BY USING A POISSON-GAMMA MIXTURE DISTRIBUTION 
+# OVERDISPERSION AND SERIAL AUTOCORRELATION: W
 # Model:
 
 # y[jt] ~ bin(p(sigma),N[jt])
@@ -87,6 +87,7 @@ lam.year <- rnorm(nyrs, 0, sig.lam.year)
 
 
 #TIME CO-VARIATE (YEAR)
+
 b.lam.year <- 0.3
 year <- matrix(NA,nrow = max.sites, ncol = nyrs)
 colnames(year) <- yrs
@@ -94,26 +95,46 @@ for (i in 0:nyrs){
   year[ ,yrs[i]] <- rep(year_number[i], max.sites)
 }
 
-lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
-             matrix(rep(lam.year,each = max.sites), nrow = max.sites, ncol = nyrs) + 
-             b.lam.year*year) 
+# AUTOCORRELATION AND OVERDISPERSION TERM
+
+rho <- 0.5 # Autoregressive parameter
+
+sig.lam.eps <- 0.2 
+eps <- matrix(NA,nrow = max.sites, ncol = nyrs) # Unstructured random variation for overdispersion
+for (j in 1:max.sites){
+  for (t in 1:nyrs){
+    eps[j,t] <- rnorm(1,0,sig.lam.eps)
+  }
+}
+
+w <- matrix(NA,nrow = max.sites, ncol = nyrs)
+lam <- matrix(NA,nrow = max.sites, ncol = nyrs) 
+
+# First year
+for(j in 1:max.sites){
+  w[j,1] <- eps[j,1] / sqrt(1 - rho * rho)
+  lam[j,1] <- exp(lam.alpha.site[j] + 
+                    lam.year[1] + 
+                    b.lam.year*year[j,1] +
+                    w[j,1])
+}
+
+# Later years
+for (j in 1:max.sites){
+  for (t in 2:nyrs){
+    w[j,t] <- rho * w[j,t-1] + eps[j,t]
+    lam[j,t] <- exp(lam.alpha.site[j] + 
+                      lam.year[t] + 
+                      b.lam.year*year[j,t] +
+                      w[j,t])
+  }
+}
+
+lam.tot <- colSums(lam)
 
 
 #######################################
-# ---- Generate ABUNDANCE per site and year: Negative binomial written as a poisson-gamma mixture ----
-
-# Dispersion parameter rho from gamma distribution with r=shape=scale
-r <- 2 
-rho <- list()
-for (t in 1:nyrs){
-  rho[[t]] <- rgamma(nSites[t], rate = r, shape = r) # Outside jags, it is the scale parameter is RATE
-}
-rhoLong <- ldply(rho,cbind) 
-rho3 <- ldply(rho,rbind)
-rho.sitesYears <- t(rho3)
-
-lam.star <- lam*rho.sitesYears
-lam.tot <- colSums(lam.star)
+# ---- Generate ABUNDANCE per site and year ----
 
 # Abundance
 N <- list()
@@ -242,18 +263,18 @@ cat("model{
     
     # Priors for lambda
     r ~ dunif(0,100) # Scale and shape from dgamma
-
+    
     bYear.lam ~ dnorm(0, 0.001) # Prior for the trend
-
+    
     # Random effects for lambda per site
     mu.lam.site ~ dunif(-10, 10) 
     sig.lam.site ~ dunif(0, 10)
     tau.lam.site <- 1/(sig.lam.site*sig.lam.site)
-
+    
     for (j in 1:nsites){
     log.lambda.site[j] ~ dnorm(mu.lam.site, tau.lam.site)
     }
-
+    
     # Random effects for lambda per year
     sig.lam.year ~ dunif(0, 10) 
     tau.lam.year <- 1/(sig.lam.year*sig.lam.year)
@@ -261,8 +282,8 @@ cat("model{
     for (t in 1:nyears){
     log.lambda.year[t] ~ dnorm(0, tau.lam.year)
     }
-
-
+    
+    
     # Priors for sigma
     bzB.sig ~ dnorm(0, 0.001)
     
@@ -280,51 +301,51 @@ cat("model{
     }
     
     for(j in 1:nsites){ 
-
-      for (t in 1:nyears){
     
-      sigma[j,t] <- exp(sig.obs[ob[j,t]] + bzB.sig*zoneB[j])
+    for (t in 1:nyears){
     
-      # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
+    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bzB.sig*zoneB[j])
     
-        for(k in 1:nG){ 
+    # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
-          up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
-          low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
-          p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
-          pi[j,t,k] <- int.w[k] / strip.width 
-          f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
-          fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
-          fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
-          }
+    for(k in 1:nG){ 
     
-      pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
+    up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
+    low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
+    p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
+    pi[j,t,k] <- int.w[k] / strip.width 
+    f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
+    fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
+    fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
+    }
     
-      f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
+    pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
+    
+    f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
     
     
-      y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
-      N[j,t] ~ dpois(lambda.star[j,t]) 
-
-      lambda[j,t] <- exp(log.lambda.site[site[j]] + log.lambda.year[year[t]] + bYear.lam*year1[t])
-      rho[j,t] ~ dgamma(r,r) # Dispersion parameter
-      lambda.star[j,t] <- rho[j,t]*lambda[j,t] # Lambda corrected by dispersion parameter
-        }
-      }
+    y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
+    N[j,t] ~ dpois(lambda.star[j,t]) 
+    
+    lambda[j,t] <- exp(log.lambda.site[site[j]] + log.lambda.year[year[t]] + bYear.lam*year1[t])
+    rho[j,t] ~ dgamma(r,r) # Dispersion parameter
+    lambda.star[j,t] <- rho[j,t]*lambda[j,t] # Lambda corrected by dispersion parameter
+    }
+    }
     
     # Derived parameters
-
+    
     for(t in 1:nyears){
     popindex[t] <- sum(lambda.star[,t])
     }
-
+    
     # Expected abundance per year inside model
-
+    
     lam.star.tot[1] <- popindex[1] # Expected abundance in year 1
     for (i in 2:nyears){
-      lam.star.tot[i] <- lam.star.tot[i-1] * # Here I add the starting population size as a baseline for the trend 
-        exp(bYear.lam)}
-
+    lam.star.tot[i] <- lam.star.tot[i-1] * # Here I add the starting population size as a baseline for the trend 
+    exp(bYear.lam)}
+    
     
     }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha.site.random(j)_year.random(t)_beta.year(j)].txt")
 

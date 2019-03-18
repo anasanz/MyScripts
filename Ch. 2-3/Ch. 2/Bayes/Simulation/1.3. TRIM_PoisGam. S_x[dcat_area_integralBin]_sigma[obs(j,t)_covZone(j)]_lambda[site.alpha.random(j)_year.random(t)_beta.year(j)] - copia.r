@@ -113,7 +113,6 @@ rho3 <- ldply(rho,rbind)
 rho.sitesYears <- t(rho3)
 
 lam.star <- lam*rho.sitesYears
-lam.tot <- colSums(lam.star)
 
 # Abundance
 N <- list()
@@ -336,13 +335,13 @@ inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1)
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig", "sig.sig", "bzB.sig", "sig.obs", # Save also observer effect
-             "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
+params <- c( "mu.sig", "sig.sig", "bzB.sig",
+             "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam",
              "popindex", 'r', "lam.star.tot"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 60000 ; nb <- 4000 ; nt <- 4
+nc <- 3 ; ni <- 30000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out2 <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)]_lambda(PoisGam)[alpha.site.random(j)_year.random(t)_beta.year(j)].txt", n.chain = nc,
@@ -352,17 +351,4 @@ print(out2)
 
 
 setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
-save(out2, file = "1.3.TRIM_iter.RData") # 60000 iter, 4 thining
-
-load("1.3.TRIM.RData")
-traceplot(out2)
-
-data_comp <- list(lam.tot = lam.tot, 
-                  mu.sig.obs = mu.sig.obs, sig.sig.obs = sig.sig.obs,
-                  b.sig.zoneB = b.sig.zoneB, 
-                  mu.lam.alpha.site = mu.lam.alpha.site,
-                  sig.lam.alpha.site = sig.lam.alpha.site,
-                  sig.lam.year = sig.lam.year,
-                  b.lam.year = b.lam.year,
-                  r = r)
-out2$summary
+save(out2, file = "1.3.TRIM.RData")
