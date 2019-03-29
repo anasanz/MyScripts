@@ -6,7 +6,7 @@ library(dplyr)
 # ---- 1. Calculate mean vegetation per field
 # ------ CEREAL ----
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("S:/PhD/Second chapter/Data")
 cer <- read.csv("DataCEREAL.csv", sep = ";") 
 
 names(cer)
@@ -60,8 +60,8 @@ covCereal <- covCereal[ ,c(1,4,3,2)]
 # --- Height
 
 cer_h <- cer[ ,which(colnames(cer) %in% c("transectID","T_Y", "Region.Label", "Num_transecte", 
-                                            "Year", "Codi_cereal","Alçada_1","Alçada_2", 
-                                            "Alçada_3", "Alçada_4", "Alçada_5"))]
+                                            "Year", "Codi_cereal","Al.ada_1","Al.ada_2", 
+                                            "Al.ada_3", "Al.ada_4", "Al.ada_5"))]
 cer_h$field_cov <- apply(cer_h[5:9], 1, mean, na.rm=TRUE) # Mean per field
 heightCereal <- aggregate(cer_h$field_cov, list(cer_h$T_Y), mean, na.rm=TRUE)
 colnames(heightCereal)[1] <- "T_Y"
@@ -119,8 +119,8 @@ colnames(covFallow)[2] <- "covFallow"
 # --- Height
 
 fal_h <- fal[ ,which(colnames(fal) %in% c("transectID","T_Y", "Region.Label", "Num_transecte", 
-                                          "Year", "Codi_guaret","Alçada_1_g","Alçada_2_g", 
-                                          "Alçada_3_g", "Alçada_4_g", "Alçada_5_g"))]
+                                          "Year", "Codi_guaret","Al.ada_1_g","Al.ada_2_g", 
+                                          "Al.ada_3_g", "Al.ada_4_g", "Al.ada_5_g"))]
 fal_h$field_cov <- apply(fal_h[5:9], 1, mean, na.rm=TRUE) # Mean per field
 heightFallow <- aggregate(fal_h$field_cov, list(fal_h$T_Y), mean, na.rm=TRUE)
 colnames(heightFallow)[1] <- "T_Y"
@@ -130,6 +130,8 @@ vegFallow <- left_join(covFallow, heightFallow, by = "T_Y")
 
 veg <- left_join(vegCereal, vegFallow, by = "T_Y")
 
+setwd("S:/PhD/Second chapter/Data")
+write.csv(veg,"veg_variable.csv")
 
 # 
 

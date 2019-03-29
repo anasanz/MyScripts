@@ -4,7 +4,7 @@ rm(list=ls())
 library(rtrim)
 library(dplyr)
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("S:/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
@@ -22,7 +22,7 @@ d_tr_all_obs <- d_tr_all_obs[ ,c(1,4)]
 d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields and which observer sampled it
 
 
-sp <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
+sp <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
 sp <- arrange(sp, Year, transectID) #Ordered
 sp_detec_transectID <- unique(sp$transectID)
 sp$Observer <- as.character(sp$Observer) 
@@ -30,7 +30,7 @@ sp$Observer <- as.character(sp$Observer)
 absent <- anti_join(d_tr_all,sp) # Transects with 0 abundance, add to sp.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to sp
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "TERAX"
+absent$Species <- "MECAL"
 absent$Cluster <- NA
 absent <- left_join(absent, d_tr_all_obs)
 
@@ -60,7 +60,7 @@ sp$year <- as.integer(sp$year)
 g <- aggregate(count ~ year, FUN = sum, data = sp)
 sp <- aggregate(count ~ year + site, FUN = sum, data = sp)
 
-check_observations(sp, model = 2)
+check_observations(sp, model = 3)
 
 # ---- MODEL 2 ----
 
@@ -84,3 +84,28 @@ par(mfrow = c(1,2))
 plot(overall(m2))
 mtext("TRIM", side = 3, line = 1, cex = 1.5)
 plot(i2)
+
+# ---- MODEL 3 ----
+
+m3 <- trim(count ~ site + year, data = sp, model = 3)
+coefficients(m3)
+i3<-index(m3, which="both")
+
+# summarize the model
+summary(m3)
+
+wald(m3)
+
+#Retrieve goodness-of-fit
+gof(m3)
+
+#Extract the coefficients
+coefficients(m3)
+m3_trend <- coefficients(m3, representation = c("trend"))
+m3_dev <- coefficients(m3, representation = c("deviations"))
+
+#Plot with overall slope
+par(mfrow = c(1,2))
+plot(overall(m3))
+mtext("TRIM", side = 3, line = 1, cex = 1.5)
+plot(i3)
