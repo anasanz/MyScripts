@@ -89,7 +89,15 @@ plot(i2)
 
 m3 <- trim(count ~ site + year, data = sp, model = 3)
 coefficients(m3)
-i3<-index(m3, which="both")
+coef <- coefficients(m3, representation = c("trend"))
+
+# Calculate 95% CI from se
+lci <- coef$add - 2*coef$se_add
+uci <- coef$add + 2*coef$se_add
+ci <- matrix(c(lci, uci), nrow = 1, ncol = 2) # Create interval to see if it contains 0
+is_sig <- apply(ci, 1, findInterval, x=0) # If its 0, doesn't contain 0 (0 = significant)
+
+
 
 # summarize the model
 summary(m3)
@@ -109,3 +117,18 @@ par(mfrow = c(1,2))
 plot(overall(m3))
 mtext("TRIM", side = 3, line = 1, cex = 1.5)
 plot(i3)
+
+
+
+
+
+
+mat <- matrix(c(22.2,  25.5,
+                23.1 , 25.9,
+                23.4,  26.1), ncol=2, byrow=TRUE)
+trueval <- 23.3
+apply(mat, 1, findInterval, x=trueval)
+#[1] 1 1 0
+which( apply(mat, 1, findInterval, x=trueval) == 1)
+#[1] 1 2
+apply(mat, 1, findInterval, x=trueval) == 1

@@ -11,7 +11,10 @@ library(plyr)
 # ---- Data simulation ----
 
 # From 1.3.TRIM: Abundance: random intercept in site and random effect in year
-#               Detection: random intercept in observer, random year effect and vegetation covariate (substituting ZONE)
+#                Detection: random intercept in observer, random year effect and vegetation covariate (substituting ZONE)
+
+# Finally I don't use this one with the vegetation variable because it is not relevant, but I can use this model 
+# to run it with the temperature variable by just changing the name in this script
 
 # 9 years of data
 # Balanced number of transects per year (NA in not sampled ones)
@@ -19,7 +22,7 @@ library(plyr)
 # Model:
 
 # y[jt] ~ bin(p(sigma),N[jt])
-# Sigma[jt] <- obs[jt] + zone[jt]
+# Sigma[jt] <- obs[jt] + veg[jt]
 
 # N[jt] ~ Pois(lambda[jt])
 # log(lambda[jt]) <- site.alpha.ran[j] + year.ran[t] + beta*yr[t-1] + W

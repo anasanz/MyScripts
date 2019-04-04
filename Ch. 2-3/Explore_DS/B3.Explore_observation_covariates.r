@@ -3,10 +3,10 @@ rm(list=ls())
 
 
 # ---- Load ----
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
-dat <- read.csv("DataDS_ready.csv") # All data
+setwd("S:/PhD/Second chapter/Data")
+dat <- read.csv("DataDS_ready_ALL.csv") # All data
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Explore_species_occurrence/All")
+setwd("S:/PhD/Second chapter/Data/Explore_species_occurrence/All")
 num <- read.csv("NumberTrans_sp_year.csv") # Data to see most frequent species
 prop <- read.csv("PropTrans_sp_year.csv")
 
@@ -18,6 +18,11 @@ other <- c("GACRI", "MICAL", "PIPIC", "COPAL", "HIRUS", "PADOM")
 interesting <- c("MEAPI", "ALRUF", "UPEPO", "COGAR", "CABRA", "PTALC")
 
 # ---- Temperature ----
+# Check outliers
+hist(dat$Temp)
+dat[which(dat$Temp < 2), ]
+dat[which(dat$Temp > 40), ]
+
 # A. All Species 
 dat_temp <- dat[-which(dat$Temp > 40),] # Remove from 40, its mistakes
 hist(dat_temp$Temp, main = "All sp - Temperature") # 15ºC looks like the best

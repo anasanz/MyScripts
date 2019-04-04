@@ -6,8 +6,8 @@ rm(list=ls())
 library(dplyr)
 library(stringr)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-setwd("F:/PhD/Second chapter/Data")
+#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("S:/PhD/Second chapter/Data")
 
 dat1 <- read.csv("DataDS.csv", sep = ";")
 dat1$Especie <- as.character(dat1$Especie)
@@ -21,7 +21,7 @@ colnames(dat1)[which(colnames(dat1) == "Transecte_detall.Id_transecte_detall")] 
 # from 2018 are right. However, I still use DataDS and join it with DataDS2018 because I want to make sure
 # that the observations from DataDS have the same order than before.
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("S:/PhD/Second chapter/Data")
 dat18 <- read.csv("DataDS2018.csv", sep = ";")
 dat18 <- dat18[ ,-c(2,15)] # To have the same columns than 2010 - 2017
 
@@ -70,7 +70,7 @@ for (i in 1:nrow(dat)){
 }
 
 # ---- Distance ----
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("S:/PhD/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
 colnames(band)[1] <- "Banda"
 
@@ -161,9 +161,9 @@ dat <- dat[-which(dat$transectID %in% irri_all), ]
 
 # Remove the ones irrigated the year it changed (report remove = 1 for the ones to remove)
 
-irri_change <- irri[which(!is.na(irri$X1er.a?o.cambio)), ]
+irri_change <- irri[which(!is.na(irri$X1er.año.cambio)), ]
 irri_change_ID <- irri_change$transectID
-irri_change_year <- irri_change$X1er.a?o.cambio
+irri_change_year <- irri_change$X1er.año.cambio
 dat$remove <- NA
 
 for (i in 1:nrow(dat)){
@@ -281,6 +281,28 @@ dat$Zone[dat$Region.Label == "SI"] <- "OR"
 dat$Zone[dat$Region.Label == "AF"] <- "OC"
 dat$Zone[dat$Region.Label == "BE"] <- "OR"
 dat$Zone[dat$Region.Label == "GR"] <- "OC"
+
+# FIX OBSERVATION CO-VARIATES
+# Temperature: mistakes typing
+dat$Temp[which(dat$Temp == 0)] <- 10
+dat$Temp[which(dat$Temp == 100)] <- 10
+
+# Na (cojo el valor de el transecto anterior realizado o algo fiable)
+unique(dat$Temp)
+dat[which(is.na(dat$Temp)), ] 
+dat$Temp[which(dat$T_Y == "AF09_2018")] <- 20
+dat$Temp[which(dat$T_Y == "GR13_2011")] <- 10
+
+#Wind
+unique(dat$Wind)
+dat[which(is.na(dat$Wind)), ] 
+dat$Wind[which(dat$T_Y == "BM06_2010")] <- 1
+
+
+# JOIN SPECIES FROM STURNUS (STVUL + STUNI = STSSP). Because it is very difficult to tell the difference
+dat[which(dat$Species == "STSSP"), ]
+dat$Species[which(dat$Species == "STVUL")] <- "STSSP" 
+dat$Species[which(dat$Species == "STUNI")] <- "STSSP" 
 
 
 #write.csv(dat,"DataDS_ready_ALL.csv") # ALL because includes 2018. This is the one that I analyze

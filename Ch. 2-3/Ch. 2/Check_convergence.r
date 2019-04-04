@@ -4,9 +4,10 @@ library(dplyr)
 
 
 ########################################################
-####                  Check convergence           #####
+####          Save to Check convergence           #####
 ########################################################
 
+# ---- Save with MCMC ----
 
 rm(list=ls())
 
@@ -112,7 +113,7 @@ for (xxx in 1:length(s_good)){
 save(species, file = "spConvergence.RData")
 
 
-# LIGHT (WITH ONLY SUMMARY)
+# ---- Save LIGHT (with only summary) ----
 
 species <- list()
 at <- list()
@@ -200,5 +201,13 @@ save(species, file = "spConvergence_light.RData")
 
 
 
+#####
+########################################################
+####               Check convergence               #####
+########################################################
 
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/3autoreg_simple")
 
+load("spConvergence_light.RData")  # STR: # 1. SPECIES; 2. JAGS SUMMARY; 3. CONVERGENCE; 4. COUNTS PER YEAR
+
+species[[37]]

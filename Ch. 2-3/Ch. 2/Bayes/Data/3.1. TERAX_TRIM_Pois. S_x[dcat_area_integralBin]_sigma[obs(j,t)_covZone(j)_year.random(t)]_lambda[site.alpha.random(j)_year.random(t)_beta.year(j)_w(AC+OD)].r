@@ -8,6 +8,7 @@ library(jagsUI)
 library(dplyr)
 library(rtrim)
 
+# 3.1. Tries to add vegetation height as covariate, bit is not finished because I decided to not do it
 
 ###################################################################
 ##                       Prepare data                           ###

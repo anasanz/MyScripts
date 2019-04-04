@@ -311,7 +311,15 @@ cat("model{
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
+    
+    # Bayesian p-value for detection component (Bp.Obs)
+
+    dclassnew[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) # generate new observations
+    Tobsp[i]<- pow(1- sqrt(fct[site.dclass[i], year.dclass[i],dclass[i]]),2) # Test for observed data
+    Tobspnew[i]<- pow(1- sqrt(fct[site.dclass[i], year.dclass[i],dclassnew[i]]),2) # Test for new data
     }
+      
+    Bp.Obs <- sum(Tobspnew[1:nind]) > sum(Tobsp[1:nind]) 
     
     # LIKELIHOOD
     
@@ -345,13 +353,12 @@ cat("model{
     w[j,1] <- eps[j,1] / sqrt(1 - rho * rho)
     eps[j,1] ~ dnorm(0, tau)
 
-     ###create replicate abundances for Bayesian p-value on abundance component
+    # Bayesian p-value on abundance component 
       
-    Nnew[j,1]~dpois(lambda[j,1])
+    Nnew[j,1]~dpois(lambda[j,1]) ##Create replicate abundances for year 1
       
-    ### residuals for 'observed' and new abundances 
-      FT1[j,1]<-pow(sqrt(N[j,1])-sqrt(lambda[j,1]),2)
-      FT1new[j,1]<-pow(sqrt(Nnew[j,1])-sqrt(lambda[j,1]),2)
+    FT1[j,1]<-pow(sqrt(N[j,1])-sqrt(lambda[j,1]),2) ### residuals for 'observed' and new abundances in year 1
+    FT1new[j,1]<-pow(sqrt(Nnew[j,1])-sqrt(lambda[j,1]),2)
     }
     
     #############
@@ -386,18 +393,20 @@ cat("model{
     w[j,t] <- rho * w[j,t-1] + eps[j,t]
     eps[j,t] ~ dnorm(0, tau)
 
-    ###create replicate abundances for Bayesian p-value on abundance component
+    # Bayesian p-value on abundance component (rest of years)
       
-    Nnew[j,t]~dpois(lambda[j,t])
-      
-    ### residuals for 'observed' and new abundances 
-      FT1[j,t]<-pow(sqrt(N[j,t])-sqrt(lambda[j,t]),2)
-      FT1new[j,t]<-pow(sqrt(Nnew[j,t])-sqrt(lambda[j,t]),2)
+    Nnew[j,t]~dpois(lambda[j,t]) # create replicate abundances for rest of the years
+    
+    FT1[j,t]<-pow(sqrt(N[j,t])-sqrt(lambda[j,t]),2) # residuals for 'observed' and new abundances for the rest of the years
+    FT1new[j,t]<-pow(sqrt(Nnew[j,t])-sqrt(lambda[j,t]),2)
     }
     }
-
-    T1p <- sum(FT1[1:nsites,1:nyears])
-    T1newp <- sum(FT1new[1:nsites,1:nyears])
+    
+    T1p <- sum(FT1[1:nsites,1:nyears]) #Sum of squared residuals for actual data set (RSS test)
+    T1newp <- sum(FT1new[1:nsites,1:nyears]) # Sum of squared residuals for new data set (RSS test)
+    # Rahel test it for each species    
+    # I do it for all sites and year because I want to test it for all years, and not for every year specifically
+    
 
     # Bayesian p-value
     Bp.N <- T1newp > T1p
@@ -428,11 +437,11 @@ inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1)
 # Params
 params <- c( "mu.sig", "sig.sig", "bzB.sig", "sig.obs", "log.sigma.year", # Save also observer effect
              "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
-             "popindex", "sd", "rho", "lam.tot"
+             "popindex", "sd", "rho", "lam.tot", 'Bp.Obs', 'Bp.N'
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 60000 ; nb <- 4000 ; nt <- 4
+nc <- 3 ; ni <- 40000 ; nb <- 5000 ; nt <- 5
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w].txt", n.chain = nc,
