@@ -27,8 +27,9 @@ problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL")
 s_good <- s_good[-which(s_good %in% problems)]
 s_doubt <- as.vector(s$Species[which(s$Doubt_samplesize == 1)])
 s_good <- s_doubt
+
 # Start loop
-for (xxx in 1:length(s_good)){
+for (xxx in 8:length(s_good)){
   
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
@@ -187,7 +188,7 @@ for (xxx in 1:length(s_good)){
   m  # Counts per year and site
   
   # Co-variates
-
+  
   yrs <- 1:9 
   year_number <- 0:8
   
@@ -502,9 +503,9 @@ for (xxx in 1:length(s_good)){
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
   
   # Print estimate
-  est <- round(results[4,1],2)
+  est <- round(results[3,1],2)
   
-  significance_est <- ifelse(results[4,10] == 0, 
+  significance_est <- ifelse(results[3,10] == 0, 
                              paste(est,"*"), 
                              est)
   col_est <- ifelse(est>0, "blue", "red")
@@ -545,7 +546,7 @@ for (xxx in 1:length(s_good)){
   lci <- coef$add - 2*coef$se_add
   uci <- coef$add + 2*coef$se_add
   ci <- matrix(c(lci, uci), nrow = 1, ncol = 2) # Create interval to see if it contains 0
-  is_sig <- apply(ci, 1, findInterval, x=0) # If its 0, doesn't contain 0 (0 = significant)
+  is_sig <- apply(ci, 1, findInterval, x=0) # If its 2, doesn't contain 0 (2 = significant)
   
   # Save deviations
   setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
@@ -561,7 +562,7 @@ for (xxx in 1:length(s_good)){
   # Print estimate
   est <- round(coef$add[1], 2)
   
-  significance_est_ci <- ifelse(is_sig = 0, 
+  significance_est_ci <- ifelse(is_sig == 2, 
                                 paste(est,"*"), 
                                 est)
   
@@ -577,6 +578,12 @@ for (xxx in 1:length(s_good)){
   title(s_good[xxx], line = -1, cex = 2, outer = TRUE)
   
   dev.off()
+  
+  # Save TRIM estimate + CI
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
+  results_TRIM <- matrix (c(est, lci, uci, is_sig), ncol = 4, nrow = 1)
+  colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
+  write.csv(results_TRIM, file = paste("res_trim_doubt",s_good[xxx],".csv", sep = ""))
   
   print(s_good[xxx])
   

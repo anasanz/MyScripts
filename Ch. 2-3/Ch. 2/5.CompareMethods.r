@@ -23,9 +23,8 @@ s <- read.csv("sp_trend_dg.csv", sep = ";")
 unique(s$Species)
 s[which(s$Species == "STTUR"), ]
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL")
+problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORIORI", "LUARB", "LUMEG")
 s_good <- s_good[-which(s_good %in% problems)]
-s_doubt <- as.vector(s$Species[which(s$Doubt_samplesize == 1)])
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -187,7 +186,6 @@ for (xxx in 1:length(s_good)){
   m  # Counts per year and site
   
   # Co-variates
-  zon <- as.vector(zone[,1])
   
   yrs <- 1:9 
   year_number <- 0:8
@@ -503,9 +501,9 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_cov
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
   
   # Print estimate
-  est <- round(results[4,1],2)
+  est <- round(results[3,1],2)
   
-  significance_est <- ifelse(results[4,10] == 0, 
+  significance_est <- ifelse(results[3,10] == 0, 
                              paste(est,"*"), 
                              est)
   col_est <- ifelse(est>0, "blue", "red")
@@ -546,9 +544,9 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_cov
   lci <- coef$add - 2*coef$se_add
   uci <- coef$add + 2*coef$se_add
   ci <- matrix(c(lci, uci), nrow = 1, ncol = 2) # Create interval to see if it contains 0
-  is_sig <- apply(ci, 1, findInterval, x=0) # If its 0, doesn't contain 0 (0 = significant)
+  is_sig <- apply(ci, 1, findInterval, x=0) # If its 2, doesn't contain 0 (2 = significant)
   
-  # Save deviations
+   # Save deviations
   setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
@@ -562,7 +560,7 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_cov
   # Print estimate
   est <- round(coef$add[1], 2)
   
-  significance_est_ci <- ifelse(is_sig = 0, 
+  significance_est_ci <- ifelse(is_sig == 2, 
                                 paste(est,"*"), 
                                 est)
   
@@ -578,6 +576,12 @@ out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_cov
   title(s_good[xxx], line = -1, cex = 2, outer = TRUE)
   
   dev.off()
+  
+  # Save TRIM estimate + CI
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
+  results_TRIM <- matrix (c(est, lci, uci, is_sig), ncol = 4, nrow = 1)
+  colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
+  write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
   
   print(s_good[xxx])
   

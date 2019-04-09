@@ -33,7 +33,7 @@ lci <- summary[grep("log.sigma.year", rownames(summary)), 3]
 uci <- summary[grep("log.sigma.year", rownames(summary)), 7]
 arrows(x,lci,x,uci, code=3, angle=90, length=0.04)       
 
-# EFFECT CO-VARIATES IN LAMBDA: Maybe not necessary to put it if I have the hds plot of the trend?
+# EFFECT CO-VARIATES IN LAMBDA: Maybe not necessary to put it if I have the hds plot of the trend? YES
 par(mfrow = c(1,1))
 plot(-21, xlim = c(1,9), ylim = c(-1,1), ylab = "lambda", xlab = "Year")
 points(summary[grep("log.lambda.year", rownames(summary)), 1], pch = 16)
