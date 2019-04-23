@@ -7,25 +7,24 @@ library(jagsUI)
 library(dplyr)
 library(rtrim)
 
-# Compare methods using the HDS model 5.1 (temperature, wind) and the se as a measure of significance of model 3 (TRIM)
-# From script 5. Comparemethods but removing wind co-variate (less important) and scaling temperature.
+# Model 3 (autoregressive simple), adding the calculation of the Bayesian p-values
 
 ###################################################################
 ##                       Prepare data                           ###
 ###################################################################
 
+#setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 setwd("S:/PhD/Second chapter/Data")
 
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
-unique(d$Species)
-# Load species names
+
+
 s <- read.csv("sp_trend_dg.csv", sep = ";")
-unique(s$Species)
-s[which(s$Species == "STTUR"), ]
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG")
 s_good <- s_good[-which(s_good %in% problems)]
+s_good <- s_good[16:31]
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -34,16 +33,16 @@ for (xxx in 1:length(s_good)){
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
   # species was there but it wasnt sampled
-  
-  d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer", "Temp", "Wind"))]
+  d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
   d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
   
   d_tr$Observer <- as.character(d_tr$Observer) 
   d_tr_all_obs <- left_join(d_tr_all, d_tr)
-  d_tr_all_obs <- d_tr_all_obs[ ,c(1,4,5,6)]
-  d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields, which observer sampled it and wind and temperature
+  d_tr_all_obs <- d_tr_all_obs[ ,c(1,4)]
+  d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields and which observer sampled it
   
-  sp <- d[which(d$Species == s_good[xxx]), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster", "Wind", "Temp"))] # Select species spAL and all years
+  
+  sp <- d[which(d$Species == s_good[xxx]), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
   sp <- arrange(sp, Year, transectID) #Ordered
   sp_detec_transectID <- unique(sp$transectID)
   sp$Observer <- as.character(sp$Observer) 
@@ -73,8 +72,6 @@ for (xxx in 1:length(s_good)){
   all_sp <- arrange(all_sp, Year, transectID) # Ordered
   
   absent$count <- 0
-  
-  
   
   ###################################################################
   ##                       HDS ANALYSIS                           ###
@@ -122,6 +119,21 @@ for (xxx in 1:length(s_good)){
   count.year_clus <- count.year*average_clus
   
   
+  # Zone (Occidental = 0; Oriental = 1)
+  zone <- as.data.frame(m)
+  zone_codi <- as.vector(rownames(zone))
+  zone$Codi <- zone_codi
+  
+  for (i in 1:nrow(zone)){
+    if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:9] <- 0}
+    if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:9] <- 1}
+    if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:9] <- 1}
+    if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:9] <- 0}
+    if(substr(zone$Codi[i], 1,2) == "BE"){zone[i,1:9] <- 1}
+    if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:9] <- 0}
+  }
+  zone <- zone[,-10]
+  
   # Year
   yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
   year <- matrix(NA,nrow = max.sites, ncol = nyrs)
@@ -146,38 +158,6 @@ for (xxx in 1:length(s_good)){
     obs[which(rownames(obs) %in% absent$transectID[i]), which(colnames(obs) %in% absent$Year[i])] <- absent$Observer[i]
   }
   
-  # Temperature
-  # Format
-  temp <- matrix(NA, nrow = max.sites, ncol = nyrs)
-  rownames(temp) <- all.sites
-  colnames(temp) <- yrs
-  
-  # Add temper for fields with counts > 0
-  for (i in 1:nrow(sp)){
-    temp[which(rownames(temp) %in% sp$transectID[i]), which(colnames(temp) %in% sp$Year[i])] <- sp$Temp[i]
-  }
-  
-  # Add temper for fields with absences (0)
-  for (i in 1:nrow(absent)){
-    temp[which(rownames(temp) %in% absent$transectID[i]), which(colnames(temp) %in% absent$Year[i])] <- absent$Temp[i]
-  }
-  
-  # Wind
-  # Format
-  wind <- matrix(NA, nrow = max.sites, ncol = nyrs)
-  rownames(wind) <- all.sites
-  colnames(wind) <- yrs
-  
-  # Add wind for fields with counts > 0
-  for (i in 1:nrow(sp)){
-    wind[which(rownames(wind) %in% sp$transectID[i]), which(colnames(wind) %in% sp$Year[i])] <- sp$Wind[i] 
-  }
-  
-  # Add wind for fields with absences (0)
-  for (i in 1:nrow(absent)){
-    wind[which(rownames(wind) %in% absent$transectID[i]), which(colnames(wind) %in% absent$Year[i])] <- absent$Wind[i]
-  }
-  
   # ---- Specify data in JAGS format ----
   
   # Distance class and ind
@@ -185,8 +165,9 @@ for (xxx in 1:length(s_good)){
   dclass <- sp$Banda
   
   m  # Counts per year and site
-  
+  colSums(m, na.rm = TRUE)
   # Co-variates
+  zon <- as.vector(zone[,1])
   
   yrs <- 1:9 
   year_number <- 0:8
@@ -199,17 +180,6 @@ for (xxx in 1:length(s_good)){
   ob[which(is.na(ob))] <- sample(obs_id, length(which(is.na(ob))), replace = TRUE) # No NA in covariate
   
   nobs <- length(unique(factor(ob)))
-  
-  # Matrix with temperature (put random values where NA)
-  unique(factor(temp))
-  temp_id <- unique(factor(temp))[-1]
-  temp[which(is.na(temp))] <- sample(temp_id, length(which(is.na(temp))), replace = TRUE) # No NA in covariate
-  
-  # Matrix with wind (put random values where NA)
-  unique(factor(wind))
-  wind_id <- unique(factor(wind))[-1]
-  wind[which(is.na(wind))] <- sample(wind_id, length(which(is.na(wind))), replace = TRUE) # No NA in covariate
-  
   
   # Index for random effects
   site <- c(1:max.sites)
@@ -234,12 +204,11 @@ for (xxx in 1:length(s_good)){
     } }
   
   
-  ####
   # ---- Compile data for JAGS model ----
   
   data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
-                year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-                tempCov = temp, windCov = wind, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+                year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind = nind, dclass = dclass,
+                zoneB = zon, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
   
   # ---- JAGS model ----
   
@@ -248,7 +217,7 @@ for (xxx in 1:length(s_good)){
       
       # PRIORS
       
-      # PRIORS FOR LAMBDA
+      # Priors for lambda
       rho ~ dunif(-1,1) # Autorregresive parameter (serial AC)
       tau <- pow(sd, -2) # Prior for overdispersion in eps
       sd ~ dunif(0, 3)
@@ -274,9 +243,8 @@ for (xxx in 1:length(s_good)){
       }
       
       
-      # PRIORS FOR SIGMA
-      bTemp.sig ~ dnorm(0, 0.001)
-      bWind.sig ~ dnorm(0, 0.001)
+      # Priors for sigma
+      bzB.sig ~ dnorm(0, 0.001)
       
       mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
       sig.sig ~ dunif(0, 10)
@@ -312,7 +280,7 @@ for (xxx in 1:length(s_good)){
       # FIRST YEAR
       for(j in 1:nsites){ 
       
-      sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + bWind.sig*windCov[j,1] + log.sigma.year[year_index[1]])
+      sigma[j,1] <- exp(sig.obs[ob[j,1]] + bzB.sig*zoneB[j] + log.sigma.year[year_index[1]])
       
       # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
       
@@ -352,7 +320,7 @@ for (xxx in 1:length(s_good)){
       for(j in 1:nsites){ 
       for (t in 2:nyears){
       
-      sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + bWind.sig*windCov[j,t] + log.sigma.year[year_index[t]])
+      sigma[j,t] <- exp(sig.obs[ob[j,t]] + bzB.sig*zoneB[j] + log.sigma.year[year_index[t]])
       
       # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
       
@@ -408,44 +376,44 @@ for (xxx in 1:length(s_good)){
       exp(bYear.lam)}
       
       
-}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_covWind(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covZone(j)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
 
   
   # Inits
   Nst <- m + 1
-  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1), # If I put the initial values from vegetation and wind here it doesn't work
+  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1),
                            mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                            N = Nst)} 
   
   # Params
-  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "bWind.sig", "sig.obs", "log.sigma.year", # Save also observer effect
+  params <- c( "mu.sig", "sig.sig", "bzB.sig", "sig.obs", "log.sigma.year", # Save also observer effect
                "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
-               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
+               "popindex", "sd", "rho", "lam.tot", 'Bp.Obs', 'Bp.N'
   )
   
   # MCMC settings
   nc <- 3 ; ni <- 70000 ; nb <- 5000 ; nt <- 5
   
   # With jagsUI 
-  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_covWind(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covZone(j)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
               n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
   summary <- out$summary
   print(out)
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
-  save(out, file = paste("5HDS_",s_good[xxx],".RData", sep = ""))
+  setwd("S:/TRIM/results")
+  save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
-  load(paste("5HDS_",s_good[xxx],".RData", sep = ""))
+  setwd("S:/TRIM/results")
+  load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   summary <- as.data.frame(as.matrix(out$summary))
   
   results <- summary[which(rownames(summary) %in% c("popindex[1]", "popindex[2]", "popindex[3]", "popindex[4]", "popindex[5]", "popindex[6]", "popindex[7]", "popindex[8]", "popindex[9]",
-                                                    "mu.lam.site", "sig.lam.site", "bYear.lam")), ]
+                                                    "mu.lam.site", "sig.lam.site", "bzB.sig" , "bYear.lam")), ]
   
   ## ---- POPULATION TREND PLOT ---- ##
   
@@ -481,8 +449,8 @@ for (xxx in 1:length(s_good)){
   
   # 2. Plot
   
-  setwd("S:/PhD/Second chapter/Data/Results/Plots/5allcov")
-  pdf(paste(s_good[xxx],"_TrimComp5.pdf", sep = ""), height = 5, width = 9)
+  setwd("S:/TRIM/results")
+  pdf(paste(s_good[xxx],"_TrimComp3.pdf", sep = ""), height = 5, width = 9)
   
   par(mfrow = c(1,2))
   
@@ -502,9 +470,9 @@ for (xxx in 1:length(s_good)){
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
   
   # Print estimate
-  est <- round(results[3,1],2)
+  est <- round(results[4,1],2)
   
-  significance_est <- ifelse(results[3,10] == 0, 
+  significance_est <- ifelse(results[4,10] == 0, 
                              paste(est,"*"), 
                              est)
   col_est <- ifelse(est>0, "blue", "red")
@@ -535,6 +503,7 @@ for (xxx in 1:length(s_good)){
   #Extract the coefficients
   coef <- coefficients(m3, representation = c("trend"))
   sig_dev <- wald(m3) 
+  tot <- totals(m3)
   sig <- overall(m3) # The p-value of this is the significant value for the overall trend in m3, = p value of the slope of m2 with all change points
   
   # Calculate 95% CI from se
@@ -544,7 +513,7 @@ for (xxx in 1:length(s_good)){
   is_sig <- apply(ci, 1, findInterval, x=0) # If its 2, doesn't contain 0 (2 = significant)
   
   # Save deviations
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
+  setwd("S:/TRIM/results")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
@@ -561,24 +530,18 @@ for (xxx in 1:length(s_good)){
                                 paste(est,"*"), 
                                 est)
   
-  significance_est_waldM2 <- ifelse(sig$slope$p < 0.05, 
+  significance_est_waldM3 <- ifelse(sig$slope$p < 0.05, 
                                     paste(est,"*"), 
                                     est)
   
   col_est <- ifelse(est > 0, "blue", "red")
   
   text(2017.5,1.5, significance_est_ci, col = col_est) # Significance for the ci in the right and 
-  text(2011,1.5, significance_est_waldM2, col = col_est) # significance for the wald test of m3 in the left
+  text(2011,1.5, significance_est_waldM3, col = col_est) # significance for the wald test of m3 in the left
   
   title(s_good[xxx], line = -1, cex = 2, outer = TRUE)
   
   dev.off()
-  
-  # Save TRIM estimate + CI
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/5allcov")
-  results_TRIM <- matrix (c(est, lci, uci, is_sig), ncol = 4, nrow = 1)
-  colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
-  write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
   
   print(s_good[xxx])
   

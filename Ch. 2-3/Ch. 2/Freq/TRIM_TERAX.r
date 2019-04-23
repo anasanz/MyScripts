@@ -22,7 +22,7 @@ d_tr_all_obs <- d_tr_all_obs[ ,c(1,4)]
 d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields and which observer sampled it
 
 
-sp <- d[which(d$Species == "MECAL"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
+sp <- d[which(d$Species == "TERAX"), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
 sp <- arrange(sp, Year, transectID) #Ordered
 sp_detec_transectID <- unique(sp$transectID)
 sp$Observer <- as.character(sp$Observer) 
@@ -30,7 +30,7 @@ sp$Observer <- as.character(sp$Observer)
 absent <- anti_join(d_tr_all,sp) # Transects with 0 abundance, add to sp.
 colnames(absent)[2] <- "Banda" # Format it to add the rows to sp
 absent$T_Y <- as.character(absent$T_Y)
-absent$Species <- "MECAL"
+absent$Species <- "TERAX"
 absent$Cluster <- NA
 absent <- left_join(absent, d_tr_all_obs)
 
@@ -64,7 +64,8 @@ check_observations(sp, model = 3)
 
 # ---- MODEL 2 ----
 
-m2 <- trim(count ~ site + year, data = sp, model = 2)
+m2 <- trim(count ~ site + year, data = sp, model = 2, changepoints = c(1,2,3,4,5,6,7,8))
+m2_s <- trim(count ~ site + year, data = sp, model = 2)
 coefficients(m2)
 i2<-index(m2, which="both")
 
@@ -72,6 +73,9 @@ i2<-index(m2, which="both")
 summary(m2)
 
 wald(m2)
+overall(m2)
+overall(m2_s)
+
 
 #Retrieve goodness-of-fit
 gof(m2)
@@ -90,6 +94,7 @@ plot(i2)
 m3 <- trim(count ~ site + year, data = sp, model = 3)
 coefficients(m3)
 coef <- coefficients(m3, representation = c("trend"))
+overall(m3)
 
 # Calculate 95% CI from se
 lci <- coef$add - 2*coef$se_add

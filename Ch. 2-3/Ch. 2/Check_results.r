@@ -1,10 +1,14 @@
 
 
+rm(list=ls())
 
 ########################################################
 ####                  Check results                #####
 ######################################################## 
-
+#??? Check results
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/3.2autoreg_simple")
+load("spConvergence_light.RData")
+species[[31]]
 # Check results for important species
 
 # ---- BUOED ----
