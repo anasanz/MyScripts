@@ -143,7 +143,7 @@ plot.trim.hds.overall_yo2 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   # Print estimates
   par(xpd = TRUE)
   legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
-         fill = c("red", "black"), bg = "white",
+         fill = c("black", "red"), bg = "white"
          #inset = c(0,-0.5)
          )
 }

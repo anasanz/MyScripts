@@ -22,9 +22,9 @@ colnames(d)[which(colnames(d) == "Count")] <- "Cluster"
 # Load species names
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG", "CACHL", "CAINA", "MIMIG")
+problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG")
 s_good <- s_good[-which(s_good %in% problems)]
-s_good <- s_good[21:25]
+s_good <- c("CIAER")
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -405,7 +405,7 @@ for (xxx in 1:length(s_good)){
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 90000 ; nb <- 5000 ; nt <- 5
+  nc <- 3 ; ni <- 160000 ; nb <- 5000 ; nt <- 5
   
   # With jagsUI 
   out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,

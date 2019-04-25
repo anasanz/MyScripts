@@ -2,8 +2,8 @@
 ### Plot 2 results ####
 
 # Significant species model 3.2: 
-# From: COPAL, FATIN, MEAPI, MICAL, MIMIG, PADOM, TERAX
-# From these, the ones with differences in both (wald and CI): FATIN, MICAL
+# From: COPAL, FATIN, MEAPI, MICAL, PADOM, TERAX
+# From these, the ones with differences in both (wald and CI): FATIN, MICAL, PADOM
 
 
 ##############################################################################################################
@@ -25,10 +25,9 @@ colnames(d)[which(colnames(d) == "Count")] <- "Cluster"
 # Load species names
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG")
 s_good <- c("FATIN", "MICAL", "PADOM")
 
-setwd("S:/PhD/Second chapter/Data/Results/TRIM/3.2autoreg_simple")
+setwd("S:/PhD/Second chapter/Data/Results/Plots/3.2autoreg_simple")
 pdf("3.2_sig.pdf")
 
 par(mfrow = c(3,1),
