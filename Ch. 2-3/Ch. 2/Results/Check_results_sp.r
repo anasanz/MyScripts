@@ -23,8 +23,9 @@ setwd("S:/PhD/Second chapter/Data")
 # Load species names
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG")
-s_good <- s_good[-which(s_good %in% problems)]
+remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
+
+s_good <- s_good[-which(s_good %in% remove_6)]
 
 
 setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")

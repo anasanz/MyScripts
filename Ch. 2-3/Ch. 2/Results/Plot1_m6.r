@@ -26,9 +26,6 @@ trim <- data.frame(matrix(NA, ncol = 5,nrow = length(s_good)))
 colnames(trim) <- c("method", "sp", "est", "lci", "uci")
 trim$method <- "trim"
 
-# Make s_good with the same order than species[[]]
-# 1. Remove from species the ones that dont converge to make it 26
-species <- species[-c(4, 5, 19, 24, 25)]
 
 for (i in 1:length(s_good)){
   #HDS
@@ -45,7 +42,7 @@ for (i in 1:length(s_good)){
   
 # Plot:
 
-setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp")
+setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("6.pdf")
 par(mfrow = c(2,2),
     mar = c(2,1,2,1),

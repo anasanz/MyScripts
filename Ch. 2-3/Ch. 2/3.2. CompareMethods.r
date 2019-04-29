@@ -24,7 +24,6 @@ s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG", "CACHL", "CAINA", "MIMIG")
 s_good <- s_good[-which(s_good %in% problems)]
-s_good <- s_good[26:31]
 
 # Start loop
 for (xxx in 1:length(s_good)){

@@ -26,7 +26,7 @@ s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 s_good <- c("FATIN", "MICAL", "PADOM")
 
-setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp")
+setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("6_sig.pdf")
 
 par(mfrow = c(3,1),
@@ -164,7 +164,7 @@ for (xxx in 1:2){
   yrs2 <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
   
   # Load function with both graphs. You should have loaded first all results from both trim and hds and then load this function
-  setwd("S:/PhD/MyScripts/Ch. 2-3/Ch. 2")
+  setwd("S:/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
   source("plot_trim_hds1.R")
   plot.trim.hds.overall_yo1(overall(m3), yrange = c(0, max_range))
   
@@ -316,7 +316,7 @@ max_range <- max(uci.exp,tot$imputed, out$summary[grep("popindex", rownames(out$
 yrs2 <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
 
 # Load function with both graphs. You should have loaded first all results from both trim and hds to run this function
-setwd("S:/PhD/MyScripts/Ch. 2-3/Ch. 2")
+setwd("S:/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
 source("plot_trim_hds2.R")
 plot.trim.hds.overall_yo2(overall(m3), yrange = c(0, max_range))
 

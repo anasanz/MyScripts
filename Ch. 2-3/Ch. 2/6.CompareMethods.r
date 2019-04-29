@@ -24,7 +24,6 @@ s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 problems <- c("CIJUN", "COCOT", "OEHIS", "TUMER", "TUVIS", "STUNI", "STVUL", "COLIV", "ORORI", "LUARB", "LUMEG")
 s_good <- s_good[-which(s_good %in% problems)]
-s_good <- c("CIAER")
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -144,7 +143,7 @@ for (xxx in 1:length(s_good)){
   for (i in 1:nrow(absent)){
     obs[which(rownames(obs) %in% absent$transectID[i]), which(colnames(obs) %in% absent$Year[i])] <- absent$Observer[i]
   }
-  
+  unique(obs)
   # Temperature
   # Format
   temp <- matrix(NA, nrow = max.sites, ncol = nyrs)
