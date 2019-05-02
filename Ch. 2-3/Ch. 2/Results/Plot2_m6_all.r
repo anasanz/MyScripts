@@ -24,18 +24,18 @@ colnames(d)[which(colnames(d) == "Count")] <- "Cluster"
 # Load species names
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-s_good <- c("FATIN", "MICAL", "PADOM")
+s_good <- c("FATIN", "MICAL", "PADOM", "COPAL", "MEAPI")
 
 setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
-pdf("6_sig.pdf")
+pdf("6_sig4.pdf")
 
-par(mfrow = c(3,1),
-    mar = c(1,2.5,1,2.5),
+par(mfrow = c(3,2),
+    mar = c(1,1.5,1,1.5),
     oma = c(3,3,2,3))
 
 #1. Plot 2 first plots
 
-for (xxx in 1:2){
+for (xxx in 1:3){
   d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
   d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
   
@@ -203,7 +203,7 @@ for (xxx in 1:2){
 
 #1. Plot last plot with function plot.trim.hds.overall_yo2 (that contains x-axes)
 
-xxx = 3
+for (xxx in 4:5){
 d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
 d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
 
@@ -370,6 +370,6 @@ plot.trim.hds.overall_yo2(overall(m3), yrange = c(0, max_range))
 
 mtext("Number of individuals", side = 2, line = 1, cex = 0.8, outer = TRUE)
 mtext("Year", side = 1, line = 2, cex = 0.8, outer = TRUE)
-
+}
 
 dev.off()

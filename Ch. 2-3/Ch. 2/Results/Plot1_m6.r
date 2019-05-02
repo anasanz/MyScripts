@@ -45,14 +45,14 @@ for (i in 1:length(s_good)){
 setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("6.pdf")
 par(mfrow = c(2,2),
-    mar = c(2,1,2,1),
+    mar = c(2.5,1,2,1),
     oma = c(2,1,2,1)
 )
 
 # RESULTS for 1:10 species:
 
 plot(511, xlim = c(-0.7, 1), ylim = c(0,30), xlab = "Estimate", ylab = "Species", axes = FALSE)
-axis(1, at = c(-0.5, -0.2, 0.2, 0.5), labels = c("-0.5", "-0.2", "0.2", "0.5"), cex = 0.8)
+axis(1, at = c(-0.5, -0.2, 0.2, 0.5), labels = c("-0.5", "-0.2", "0.2", "0.5"), cex.axis = 0.9)
 abline(v = 0)
 y <- sort(seq(1:30), decreasing = TRUE)
 
@@ -90,7 +90,8 @@ text(0.75,y_sp,labels = txt, cex = 0.9)
 # RESULTS for 11:20 species:
 
 plot(511, xlim = c(-0.7, 1), ylim = c(0,30), xlab = "Estimate", ylab = "Species", axes = FALSE)
-axis(1, at = c(-0.5, -0.2, 0.2, 0.5), labels = c("-0.5", "-0.2", "0.2", "0.5"), cex = 0.8)
+mtext("Trend coefficient", side = 1, line = 2.5, cex = 0.8, at = c(0))
+axis(1, at = c(-0.5, -0.2, 0.2, 0.5), labels = c("-0.5", "-0.2", "0.2", "0.5"), cex.axis = 0.9)
 abline(v = 0)
 y <- sort(seq(1:30), decreasing = TRUE)
 
@@ -127,7 +128,8 @@ text(0.75,y_sp,labels = txt, cex = 0.9)
 # RESULTS for 21:26 species:
 
 plot(511, xlim = c(-0.7, 1), ylim = c(0,30), xlab = "Estimate", ylab = "Species", axes = FALSE)
-axis(1, at = c(-0.5, -0.2, 0.2, 0.5), labels = c("-0.5", "-0.2", "0.2", "0.5"), cex = 0.8)
+mtext("Trend coefficient", side = 1, line = 2.5, cex = 0.8, at = c(0))
+axis(1, at = c(-0.5, -0.2, 0.2, 0.5), labels = c("-0.5", "-0.2", "0.2", "0.5"), cex.axis = 0.9)
 abline(v = 0)
 y <- sort(seq(1:30), decreasing = TRUE)
 

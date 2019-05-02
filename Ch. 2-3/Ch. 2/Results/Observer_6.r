@@ -130,7 +130,7 @@ setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("Yearsig_1.pdf")
 
 par(mfrow = c(3,2),
-    mar = c(2,2,3,2),
+    mar = c(3,2,3,2),
     oma = c(2,3,1,2))
 
 for (i in 1:6){
@@ -141,14 +141,17 @@ for (i in 1:6){
   lci <- summary[grep("log.sigma.year", rownames(summary)), 3]
   uci <- summary[grep("log.sigma.year", rownames(summary)), 7]
   
-  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year")
-  points(summary[grep("log.sigma.year", rownames(summary)), 1], pch = 16)
-  arrows(x,lci,x,uci, code=3, angle=90, length=0.04)
+  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year", axes = FALSE)
+  axis(1, at = c(1, 3, 5, 7, 9), labels = c("2010", "2012", "2014", "2016", "2018"))
+  axis(2)
+  
+  points(summary[grep("log.sigma.year", rownames(summary)), 1], pch = 16) 
+  arrows(x,lci,x,uci, code=3, angle=90, length=0.04) 
   mtext(s_good[i], side = 3, line = 1, cex = 0.8)
 }
 
-mtext("Coefficient", side = 2, line = 1, cex = 0.8, outer = TRUE)
-mtext("Observer ID", side = 1, line = 1, cex = 0.8, outer = TRUE)
+mtext("Coefficient", side = 2, line = 1, cex = 0.8, outer = TRUE) 
+mtext("Year", side = 1, line = 1, cex = 0.8, outer = TRUE) 
 
 dev.off()
 
@@ -157,7 +160,7 @@ setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("Yearsig_2.pdf")
 
 par(mfrow = c(3,2),
-    mar = c(2,2,3,2),
+    mar = c(3,2,3,2),
     oma = c(2,3,1,2))
 
 for (i in 7:12){
@@ -167,14 +170,18 @@ for (i in 7:12){
   lci <- summary[grep("log.sigma.year", rownames(summary)), 3]
   uci <- summary[grep("log.sigma.year", rownames(summary)), 7]
   
-  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year")
+  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year", axes = FALSE)
+  
+  axis(1, at = c(1, 3, 5, 7, 9), labels = c("2010", "2012", "2014", "2016", "2018"))
+  axis(2)
+  
   points(summary[grep("log.sigma.year", rownames(summary)), 1], pch = 16)
   arrows(x,lci,x,uci, code=3, angle=90, length=0.04)
   mtext(s_good[i], side = 3, line = 1, cex = 0.8)
 }
 
 mtext("Coefficient", side = 2, line = 1, cex = 0.8, outer = TRUE)
-mtext("Observer ID", side = 1, line = 1, cex = 0.8, outer = TRUE)
+mtext("Year", side = 1, line = 1, cex = 0.8, outer = TRUE)
 
 dev.off()
 
@@ -183,7 +190,7 @@ setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("Yearsig_3.pdf")
 
 par(mfrow = c(3,2),
-    mar = c(2,2,3,2),
+    mar = c(3,2,3,2),
     oma = c(2,3,1,2))
 
 for (i in 13:18){
@@ -193,14 +200,18 @@ for (i in 13:18){
   lci <- summary[grep("log.sigma.year", rownames(summary)), 3]
   uci <- summary[grep("log.sigma.year", rownames(summary)), 7]
   
-  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year")
+  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year", axes = FALSE)
+  
+  axis(1, at = c(1, 3, 5, 7, 9), labels = c("2010", "2012", "2014", "2016", "2018"))
+  axis(2)
+  
   points(summary[grep("log.sigma.year", rownames(summary)), 1], pch = 16)
   arrows(x,lci,x,uci, code=3, angle=90, length=0.04)
   mtext(s_good[i], side = 3, line = 1, cex = 0.8)
 }
 
 mtext("Coefficient", side = 2, line = 1, cex = 0.8, outer = TRUE)
-mtext("Observer ID", side = 1, line = 1, cex = 0.8, outer = TRUE)
+mtext("Year", side = 1, line = 1, cex = 0.8, outer = TRUE)
 
 dev.off()
 
@@ -209,7 +220,7 @@ setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("Yearsig_4.pdf")
 
 par(mfrow = c(4,2),
-    mar = c(2,2,3,2),
+    mar = c(3,2,3,2),
     oma = c(2,3,1,2))
 
 for (i in 19:26){
@@ -219,14 +230,18 @@ for (i in 19:26){
   lci <- summary[grep("log.sigma.year", rownames(summary)), 3]
   uci <- summary[grep("log.sigma.year", rownames(summary)), 7]
   
-  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year")
+  plot(-21, xlim = c(1,9), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Year", axes = FALSE)
+  
+  axis(1, at = c(1, 3, 5, 7, 9), labels = c("2010", "2012", "2014", "2016", "2018"))
+  axis(2)
+  
   points(summary[grep("log.sigma.year", rownames(summary)), 1], pch = 16)
   arrows(x,lci,x,uci, code=3, angle=90, length=0.04)
   mtext(s_good[i], side = 3, line = 1, cex = 0.8)
 }
 
 mtext("Coefficient", side = 2, line = 1, cex = 0.8, outer = TRUE)
-mtext("Observer ID", side = 1, line = 1, cex = 0.8, outer = TRUE)
+mtext("Year", side = 1, line = 1, cex = 0.8, outer = TRUE)
 
 dev.off()
 

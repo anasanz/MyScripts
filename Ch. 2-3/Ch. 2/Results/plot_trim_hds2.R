@@ -133,6 +133,12 @@ plot.trim.hds.overall_yo2 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   lines(trendline, col= "red", lwd = 2) # trendline
   #segments(tpt,y0, tpt,y1, lwd=3, col=gray(0.5))
   
+  # Significant deviations trim
+  x_dev_trim <- tpt*cont_zero_dev
+  x_dev_trim <- x_dev_trim[x_dev_trim != 0]  # To put it on the right side
+  y_dev_trim <- ydata*cont_zero_dev
+  y_dev_trim <- y_dev_trim[y_dev_trim != 0]
+  
   # Points and lines hds
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col= adjustcolor("black",alpha.f = 0.4))
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "p", col= "white", cex = 1.5)
@@ -140,10 +146,20 @@ plot.trim.hds.overall_yo2 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   
   points(mean.pred.exp ~ yrs2, type="l", col= "black", lwd = 2)
   
+  # Significant deviations hds
+  x_dev_hds <- yrs2*year_dev_hds 
+  x_dev_hds <- x_dev_hds[x_dev_hds != 0]  # To put it on the left side
+  y_dev_hds <- out$summary[grep("popindex", rownames(out$summary)),1]*year_dev_hds
+  y_dev_hds <- y_dev_hds[y_dev_hds != 0]
+  
+  # Print both significant deviations
+  points(x_dev_hds, y_dev_hds, col= adjustcolor("black",alpha.f = 0.8), type='p', pch = 8, cex = 1.7)
+  points(x_dev_trim, y_dev_trim, col= adjustcolor("red",alpha.f = 0.8), type='p', pch = 8, cex = 1.7) 
+  
   # Print estimates
   par(xpd = TRUE)
   legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
-         fill = c("black", "red"), bg = "white"
-         #inset = c(0,-0.5)
-         )
+         fill = c("black", "red"), bg = "white", box.lty=0, xpd = TRUE, xjust = 0, yjust =5
+  )
+
 }
