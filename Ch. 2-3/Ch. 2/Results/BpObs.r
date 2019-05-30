@@ -56,3 +56,22 @@ for (i in 1:length(s_good)) {
 }
 
 Bp6_bad <- Bp6[which(Bp6$Bp.Obs < 0.1 | Bp6$Bp.Obs > 0.9), ]
+
+# For the bad Bayesian Bp. I have runned the 6 model with another detection function (6.1)
+# Check if the Bayesian p-values improved
+
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+
+load("spConvergence_light.RData")
+
+Bp6 <- data.frame(matrix(NA,ncol = 5,nrow = length(s_good)))
+colnames(Bp6) <- c("sp", "Bp.Obs", "lci", "uci", "over_0")
+
+for (i in 1:length(s_good)) {
+  sum <- data.frame(species[[i]][[2]]) 
+  est_Bp6 <- sum[which(rownames(sum) %in% "Bp.Obs"), c(1,3,7,10)]
+  Bp6[i,1] <- s_good[i]
+  Bp6[i,c(2:5)] <- est_Bp6 
+}
+
+Bp6_bad <- Bp6[which(Bp6$Bp.Obs < 0.1 | Bp6$Bp.Obs > 0.9), ]

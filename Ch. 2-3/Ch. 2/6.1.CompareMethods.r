@@ -7,8 +7,8 @@ library(jagsUI)
 library(dplyr)
 library(rtrim)
 
-# Compare methods using the HDS model 5.1 (temperature but no wind) and the se as a measure of significance of model 3 (TRIM)
-# From script 5. Comparemethods but removing wind co-variate (less important) and scaling temperature.
+# Compare methods using the HDS model 6. Same as comparemethods6 but using the HAZARD RATE detection function on the
+# species that have bad bayesian p-values
 
 ###################################################################
 ##                       Prepare data                           ###
@@ -19,12 +19,38 @@ setwd("S:/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
-# Load species names
+
+setwd("S:/PhD/Second chapter/Data")
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
-s_good <- s_good[-which(s_good %in% remove_6)] 
-s_good <- c("BUOED", "CIAER", "COMON", "COPAL", "FATIN", "MECAL", "PAMAJ")
+s_good <- s_good[-which(s_good %in% remove_6)] # SPECIES THAT CONVERGE FOR MODEL 6
+
+
+# TAKE SPECIES WITH BAD BP-VALUES
+
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")
+load("spConvergence_light.RData")
+
+Bp6 <- data.frame(matrix(NA,ncol = 5,nrow = length(s_good)))
+colnames(Bp6) <- c("sp", "Bp.Obs", "lci", "uci", "over_0")
+
+for (i in 1:length(s_good)) {
+  dat <- data.frame(species[[i]][[2]]) 
+  est_Bp6 <- dat[which(rownames(dat) %in% "Bp.Obs"), c(1,3,7,10)]
+  Bp6[i,1] <- s_good[i]
+  Bp6[i,c(2:5)] <- est_Bp6 
+}
+
+Bp6_bad <- Bp6[which(Bp6$Bp.Obs < 0.1 | Bp6$Bp.Obs > 0.9), ]
+
+sbp <- Bp6_bad$sp
+
+# REMOVE CIAER AND FATIN BECAUSE THE DF IS NOT DECREASING WITH DISTANCE (SEE WITH SCRIPT BpObs_detectfunc.r)???
+# leave like this by the moment
+
+s_good <- sbp
+
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -276,6 +302,11 @@ for (xxx in 1:length(s_good)){
       log.sigma.year[t] ~ dnorm(0, tau.sig.year)
       }
       
+      
+      # PRIOR FOR BETA
+      b ~ dunif(0, 100)
+      
+      
       for(i in 1:nind){
       dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
       
@@ -299,18 +330,13 @@ for (xxx in 1:length(s_good)){
       
       for(k in 1:nG){ 
       
-      up[j,1,k]<-pnorm(db[k+1], 0, 1/sigma[j,1]^2) ##db are distance bin limits
-      low[j,1,k]<-pnorm(db[k], 0, 1/sigma[j,1]^2) 
-      p[j,1,k]<- 2 * (up[j,1,k] - low[j,1,k])
+      p[j,1,k]<-1-exp(-(midpt[k]/sigma[j,1])^-b)
       pi[j,1,k] <- int.w[k] / strip.width 
-      f[j,1,k]<- p[j,1,k]/f.0[j,1]/int.w[k]                   ## detection prob. in distance category k                      
-      fc[j,1,k]<- f[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
+      fc[j,1,k]<- p[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
       fct[j,1,k]<-fc[j,1,k]/pcap[j,1] 
       }
       
       pcap[j,1] <- sum(fc[j,1, 1:nG]) # Different per site and year (sum over all bins)
-      
-      f.0[j,1] <- 2 * dnorm(0,0, 1/sigma[j,1]^2) # Prob density at 0
       
       
       y[j,1] ~ dbin(pcap[j,1], N[j,1]) 
@@ -339,18 +365,13 @@ for (xxx in 1:length(s_good)){
       
       for(k in 1:nG){ 
       
-      up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
-      low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
-      p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
+      p[j,t,k]<-1-exp(-(midpt[k]/sigma[j,t])^-b)
       pi[j,t,k] <- int.w[k] / strip.width 
-      f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
-      fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
+      fc[j,t,k]<- p[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
       fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
       }
       
       pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
-      
-      f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
       
       
       y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
@@ -389,18 +410,19 @@ for (xxx in 1:length(s_good)){
       exp(bYear.lam)}
       
       
-}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+}",fill=TRUE, file = "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
 
+  
   
   # Inits
   Nst <- m + 1
-  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
+  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), b = runif(1),
                            mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                            N = Nst)} 
   
   # Params
-  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
-               "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
+  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", "b", 
+               "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", 
                "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year"
   )
   
@@ -408,18 +430,18 @@ for (xxx in 1:length(s_good)){
   nc <- 3 ; ni <- 170000 ; nb <- 5000 ; nt <- 5
   
   # With jagsUI 
-  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+  out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
               n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
   summary <- out$summary
   print(out)
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -462,7 +484,7 @@ for (xxx in 1:length(s_good)){
   
   # 2. Plot
   
-  setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/Final")
+  setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/HR_df")
   pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
   par(mfrow = c(1,2))
@@ -524,7 +546,7 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
@@ -555,11 +577,11 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
   
   print(s_good[xxx])
   
-  }
+}

@@ -28,7 +28,7 @@ remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MI
 s_good <- s_good[-which(s_good %in% remove_6)]
 
 
-setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
 
 
 # HEAVY (WITH ALL THE MCMC OUTPUT)
@@ -203,22 +203,31 @@ for (xxx in 1:length(s_good)){
 
 save(species, file = "spConvergence_light.RData")
 
+# s_good <- c("BUOED", "CIAER", "COMON", "COPAL", "FATIN", "MECAL", "PAMAJ")
+which(s_good == "PAMAJ")
 
+species[[27]][[3]]
 
-# LIGHT (WITH ONLY SUMMARY) FOR DOUBT
+s_good
 
-s_doubt <- as.vector(s$Species[which(s$Doubt_samplesize == 1)])
-s_doubt <- s_doubt[-which(s_doubt == "PTALC")]
+##############################################################################################################
+# Check results for dataset with species with another detection function
+
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+
+s_good <- c("CIAER", "COGAR", "COMON", "FATIN", "HIRUS", "LASEN", "MICAL", "PADOM", "PAMON", "PIPIC")
+
+# LIGHT (WITH ONLY SUMMARY)
 
 species <- list()
 at <- list()
 
-for (xxx in 1:length(s_doubt)){
+for (xxx in 1:length(s_good)){
   
-  load(paste("5HDS_doubt_",s_doubt[xxx],".RData", sep = ""))
+  load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   # SPECIES
-  at[[1]] <- paste("5HDS_doubt_",s_doubt[xxx], sep = "")
+  at[[1]] <- paste("HDS_",s_good[xxx], sep = "")
   
   # JAGS SUMMARY
   summary <- as.data.frame(out$summary)
@@ -236,7 +245,7 @@ for (xxx in 1:length(s_doubt)){
   d_tr_all_obs <- d_tr_all_obs[ ,c(1,4)]
   d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields and which observer sampled it
   
-  sp <- d[which(d$Species == s_doubt[xxx]), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
+  sp <- d[which(d$Species == s_good[xxx]), which(colnames(d) %in% c("Year", "Banda", "transectID", "T_Y", "Species", "Observer", "Cluster"))] # Select species spAL and all years
   sp <- arrange(sp, Year, transectID) #Ordered
   sp_detec_transectID <- unique(sp$transectID)
   sp$Observer <- as.character(sp$Observer) 
@@ -244,7 +253,7 @@ for (xxx in 1:length(s_doubt)){
   absent <- anti_join(d_tr_all,sp) # Transects with 0 abundance, add to sp.
   colnames(absent)[2] <- "Banda" # Format it to add the rows to sp
   absent$T_Y <- as.character(absent$T_Y)
-  absent$Species <- s_doubt[xxx]
+  absent$Species <- s_good[xxx]
   absent$Cluster <- NA
   absent <- left_join(absent, d_tr_all_obs)
   
@@ -292,7 +301,6 @@ for (xxx in 1:length(s_doubt)){
   print(xxx)
 }
 
-save(species, file = "spConvergence_light_doubt.RData")
-
+save(species, file = "spConvergence_light.RData")
 
 

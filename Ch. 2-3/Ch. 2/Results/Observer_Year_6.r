@@ -123,8 +123,9 @@ mtext("Observer ID", side = 1, line = 1, cex = 0.8, outer = TRUE)
 
 dev.off()
 
-
-#### YEAR ####
+#########################################################################
+#######################     YEAR     ####################################
+#######################################################################
 
 setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/sig")
 pdf("Yearsig_1.pdf")
@@ -244,4 +245,32 @@ mtext("Coefficient", side = 2, line = 1, cex = 0.8, outer = TRUE)
 mtext("Year", side = 1, line = 1, cex = 0.8, outer = TRUE)
 
 dev.off()
+
+####################################################################
+# Check standard deviation of the year random effect in sigma
+# So: Check the sig.sig.year (because the mean is centered in 0)
+
+setwd("S:/PhD/Second chapter/Data")
+s <- read.csv("sp_trend_dg.csv", sep = ";")
+s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
+remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
+s_good <- s_good[-which(s_good %in% remove_6)] # SPECIES THAT CONVERGE FOR MODEL 6
+
+# Create table to store SD and abundance of each species
+
+y_effect <- as.data.frame(matrix(NA, ncol = 2, nrow = length(s_good)))
+colnames(y_effect) <- c("species", "year_sd")
+y_effect$species <- s_good
+
+for (xxx in 1:length(s_good)){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")
+  load(paste("HDS_",s_good[xxx],".RData", sep = ""))
+  
+  y_effect[xxx, 2] <- out$mean$sig.sig # sd observer
+  
+  sum <- as.data.frame(out$summary)
+  yearly_abundances <- sum[grep("popindex", rownames(sum)),1]
+  obs_ab[xxx, 3] <- mean(yearly_abundances) # average abundance
+}
 

@@ -1,3 +1,4 @@
+
 rm(list=ls())
 
 library(rjags)
@@ -26,8 +27,8 @@ library(plyr)
 #####
 # ---- Distance sampling data ----
 
-# Half-normal detection function
-g <- function(x, sig) exp(-x^2/(2*sig^2))
+# HAZARD RATE DETECTION FUNCTION
+g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
 
 # Number of transects per year (unbalanced)
 nSites <- rep(100,9)			# Same number of transects by year
@@ -70,19 +71,12 @@ temp_mean <- mean(temp)
 temp_sd <- sd(temp)
 temp_sc <- (temp - temp_mean) / temp_sd
 
-# WIND COVARIATE
-bWind.sig <- -1
-wind <- matrix(sample(0:7, max.sites*nyrs, replace = TRUE), nrow = max.sites, ncol = nyrs)
-#SCALED
-wind_mean <- mean(wind)
-wind_sd <- sd(wind)
-wind_sc <- (wind - wind_mean) / wind_sd
-
 
 #SIGMA
 sigma <- exp(ob + bTemp.sig * temp_sc + 
-               bWind.sig * wind_sc + 
                matrix(rep(sig.year, each = max.sites), nrow = max.sites, ncol = nyrs))
+#BETA
+b <- 2
 
 #####
 # ----  Abundance component: Site effect, Year effect and Year trend
@@ -193,7 +187,7 @@ for (t in 1:nyrs){
     # Distance from observer to the individual
     d <- runif(N[j,t], 0, strip.width) 		# Uniform distribution of animals
     # Simulates one distance for each individual in the site (N[j])
-    p <- g(x=d, sig=sigma[j,t])   		# Detection probability. Sigma is site-time specific
+    p <- g(x=d, sig=sigma[j,t], b = b)   		# Detection probability. Sigma is site-time specific
     seen <- rbinom(N[j,t], 1, p)
     if(all(seen == 0))
       next
@@ -262,7 +256,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
               year.dclass = year.dclass, site.dclass = site.dclass, y = y.sum, nind=nind, dclass=dclass,
-              tempCov = temp_sc, windCov = wind_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+              tempCov = temp_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
 
 # ---- JAGS model ----
 
@@ -299,7 +293,6 @@ cat("model{
     
     # PRIORS FOR SIGMA
     bTemp.sig ~ dnorm(0, 0.001)
-    bWind.sig ~ dnorm(0, 0.001)
     
     mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
     sig.sig ~ dunif(0, 10)
@@ -318,6 +311,11 @@ cat("model{
     log.sigma.year[t] ~ dnorm(0, tau.sig.year)
     }
     
+
+    # PRIOR FOR BETA
+    b ~ dunif(0, 100)
+
+
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
     
@@ -335,24 +333,19 @@ cat("model{
     # FIRST YEAR
     for(j in 1:nsites){ 
     
-    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + bWind.sig*windCov[j,1] + log.sigma.year[year_index[1]])
+    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + log.sigma.year[year_index[1]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
     
-    up[j,1,k]<-pnorm(db[k+1], 0, 1/sigma[j,1]^2) ##db are distance bin limits
-    low[j,1,k]<-pnorm(db[k], 0, 1/sigma[j,1]^2) 
-    p[j,1,k]<- 2 * (up[j,1,k] - low[j,1,k])
+    p[j,1,k]<-1-exp(-(midpt[k]/sigma[j,1])^-b)
     pi[j,1,k] <- int.w[k] / strip.width 
-    f[j,1,k]<- p[j,1,k]/f.0[j,1]/int.w[k]                   ## detection prob. in distance category k                      
-    fc[j,1,k]<- f[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
+    fc[j,1,k]<- p[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
     fct[j,1,k]<-fc[j,1,k]/pcap[j,1] 
     }
     
     pcap[j,1] <- sum(fc[j,1, 1:nG]) # Different per site and year (sum over all bins)
-    
-    f.0[j,1] <- 2 * dnorm(0,0, 1/sigma[j,1]^2) # Prob density at 0
     
     
     y[j,1] ~ dbin(pcap[j,1], N[j,1]) 
@@ -375,24 +368,19 @@ cat("model{
     for(j in 1:nsites){ 
     for (t in 2:nyears){
     
-    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + bWind.sig*windCov[j,t] + log.sigma.year[year_index[t]])
+    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + log.sigma.year[year_index[t]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
     
-    up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
-    low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
-    p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
+    p[j,t,k]<-1-exp(-(midpt[k]/sigma[j,t])^-b)
     pi[j,t,k] <- int.w[k] / strip.width 
-    f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
-    fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
+    fc[j,t,k]<- p[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
     fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
     }
     
     pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
-    
-    f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
     
     
     y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
@@ -431,40 +419,42 @@ cat("model{
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_covWind(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+    }",fill=TRUE, file = "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
 
 
 # Inits
 Nst <- y.sum + 1
-inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1),
+inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), b = runif(1),
                          mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig", "sig.sig", "bTemp.sig", "bWind.sig", "sig.obs", "log.sigma.year", # Save also observer effect
+params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", "b", # Save also observer effect
              "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
              "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
 )
 
+
 # MCMC settings
-nc <- 3 ; ni <- 70000 ; nb <- 5000 ; nt <- 5
+nc <- 3 ; ni <- 70000 ; nb <- 2000 ; nt <- 5
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_covWind(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+# With jagsUI 
+out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 summary <- out$summary
 print(out)
 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
-save(out, file = "5.TRIM.RData") # 60000 iter, 4 thining
+setwd("S:/PhD/Second chapter/Data/Results/TRIM")
+save(out, file = "6.1.TRIM.RData") # 60000 iter, 4 thining
 
-load("5.1.TRIM.RData")
+load("6.1.TRIM.RData")
 
 out$summary
 data_comp <- list(lam.tot = lam.tot, 
                   mu.sig.obs = mu.sig.obs, sig.sig.obs = sig.sig.obs,
-                  bTemp.sig = bTemp.sig, 
+                  bTemp.sig = bTemp.sig, b = b,
                   mu.lam.alpha.site = mu.lam.alpha.site,
                   sig.lam.alpha.site = sig.lam.alpha.site,
                   sig.lam.year = sig.lam.year,

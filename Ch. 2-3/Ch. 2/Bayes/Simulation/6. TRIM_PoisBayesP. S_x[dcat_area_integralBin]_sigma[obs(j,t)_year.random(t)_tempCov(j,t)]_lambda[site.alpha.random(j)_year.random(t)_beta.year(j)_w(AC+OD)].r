@@ -1,3 +1,4 @@
+
 rm(list=ls())
 
 library(rjags)
@@ -70,18 +71,9 @@ temp_mean <- mean(temp)
 temp_sd <- sd(temp)
 temp_sc <- (temp - temp_mean) / temp_sd
 
-# WIND COVARIATE
-bWind.sig <- -1
-wind <- matrix(sample(0:7, max.sites*nyrs, replace = TRUE), nrow = max.sites, ncol = nyrs)
-#SCALED
-wind_mean <- mean(wind)
-wind_sd <- sd(wind)
-wind_sc <- (wind - wind_mean) / wind_sd
-
 
 #SIGMA
 sigma <- exp(ob + bTemp.sig * temp_sc + 
-               bWind.sig * wind_sc + 
                matrix(rep(sig.year, each = max.sites), nrow = max.sites, ncol = nyrs))
 
 #####
@@ -262,7 +254,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
               year.dclass = year.dclass, site.dclass = site.dclass, y = y.sum, nind=nind, dclass=dclass,
-              tempCov = temp_sc, windCov = wind_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+              tempCov = temp_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
 
 # ---- JAGS model ----
 
@@ -299,7 +291,6 @@ cat("model{
     
     # PRIORS FOR SIGMA
     bTemp.sig ~ dnorm(0, 0.001)
-    bWind.sig ~ dnorm(0, 0.001)
     
     mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
     sig.sig ~ dunif(0, 10)
@@ -335,7 +326,7 @@ cat("model{
     # FIRST YEAR
     for(j in 1:nsites){ 
     
-    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + bWind.sig*windCov[j,1] + log.sigma.year[year_index[1]])
+    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + log.sigma.year[year_index[1]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -375,7 +366,7 @@ cat("model{
     for(j in 1:nsites){ 
     for (t in 2:nyears){
     
-    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + bWind.sig*windCov[j,t] + log.sigma.year[year_index[t]])
+    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + log.sigma.year[year_index[t]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -431,35 +422,37 @@ cat("model{
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_covWind(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+    }",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
 
 
 # Inits
 Nst <- y.sum + 1
-inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), bzB.sig = runif(1),
+inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
                          mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig", "sig.sig", "bTemp.sig", "bWind.sig", "sig.obs", "log.sigma.year", # Save also observer effect
+params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
              "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
              "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
 )
 
+
 # MCMC settings
-nc <- 3 ; ni <- 70000 ; nb <- 5000 ; nt <- 5
+nc <- 3 ; ni <- 70000 ; nb <- 3000 ; nt <- 5
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_covWind(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+# With jagsUI 
+out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 summary <- out$summary
 print(out)
 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM")
-save(out, file = "5.TRIM.RData") # 60000 iter, 4 thining
+setwd("S:/PhD/Second chapter/Data/Results/TRIM")
+save(out, file = "6.TRIM.RData") # 60000 iter, 4 thining
 
-load("5.1.TRIM.RData")
+load("6.TRIM.RData")
 
 out$summary
 data_comp <- list(lam.tot = lam.tot, 

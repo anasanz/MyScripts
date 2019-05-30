@@ -6,7 +6,7 @@ library(tidyr)
 rm(list=ls())
 
 # Data for submission and cleaned
-setwd("C:/Users/ana.sanz/OneDrive/PhD/First chapter/Datos/Datos barbechos arrendados/Variables")
+setwd("S:/PhD/First chapter/Datos/Datos barbechos arrendados/Variables")
 #setwd("~/PhD/Datos/Datos barbechos arrendados/Variables")
 
 f <- read.csv("Variables.csv", sep = ",", header=TRUE, fill = TRUE)
@@ -82,6 +82,34 @@ f2 <- f[ !grepl(paste(del, collapse="|"), f$CF_A),] # Data without those 7 field
 #write.csv(f2, "Data_path_manuscript2.csv")
 
 
+#########################################################################################
+# Prepare data for submission
+
+library(dplyr)
+
+e <- read.csv("Data_path_submission2_sp.csv", sep = ",", header=TRUE, fill = TRUE)
+e <- e[ ,-c(1,2,3,6)]
+e <- arrange(e, Year, Codi_Finca)
+e$Codi_Finca <- as.numeric(e$Codi_Finca)
+colnames(e)[1] <- "Field_ID"
+# Scale variables
+
+e$Cover<-scale(e$Cover)
+e$Cover_dead<-scale(e$Cover_dead)
+e$Height<-scale(e$Height)
+e$Diversity<-scale(e$Diversity)
+e$Heterogeneity<-scale(e$Heterogeneity)
+e$area <- scale(e$area)
+e$tbl<-scale(e$tbl)
+e$mpar<-scale(e$mpar)
+e$fallow<-scale(e$fallow)
+e$biom<-scale(e$biom)
+e$crop_diversity<-scale(e$crop_diversity)
+e$Lon_x<-scale(e$Lon_x)
+e$Lat_y<-scale(e$Lat_y)
+
+setwd("S:/PhD/First chapter/Datos/Datos barbechos arrendados/Variables")
+write.csv(e, "Data_path_final_submission.csv")
 
 
 
