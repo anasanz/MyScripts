@@ -50,11 +50,11 @@ sbp <- Bp6_bad$sp
 # leave like this by the moment
 
 s_good <- sbp
-
+s_good <- "PAMON"
 
 # Start loop
 for (xxx in 1:length(s_good)){
-  
+  xxx = 1
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
@@ -427,7 +427,7 @@ for (xxx in 1:length(s_good)){
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 400000 ; nb <- 100000 ; nt <- 5
+  nc <- 3 ; ni <- 450000 ; nb <- 100000 ; nt <- 5
   
   # With jagsUI 
   out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
@@ -435,13 +435,13 @@ for (xxx in 1:length(s_good)){
   summary <- out$summary
   print(out)
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -546,7 +546,7 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
@@ -577,11 +577,11 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
   
   print(s_good[xxx])
   
-}
+  }

@@ -50,11 +50,11 @@ sbp <- Bp6_bad$sp
 # leave like this by the moment
 
 s_good <- sbp
-
+s_good <- "LASEN"
 
 # Start loop
 for (xxx in 1:length(s_good)){
-  
+  xxx = 1
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
@@ -264,7 +264,7 @@ for (xxx in 1:length(s_good)){
       bYear.lam ~ dnorm(0, 0.001) # Prior for the trend
       
       # Random effects for lambda per site
-      mu.lam.site ~ dunif(-10, 10) 
+      mu.lam.site ~ dnorm(0, 0.1) # MORE CONSTRAINED PRIOR
       sig.lam.site ~ dunif(0, 10)
       tau.lam.site <- 1/(sig.lam.site*sig.lam.site)
       
@@ -285,7 +285,7 @@ for (xxx in 1:length(s_good)){
       # PRIORS FOR SIGMA
       bTemp.sig ~ dnorm(0, 0.001)
       
-      mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
+      mu.sig ~ dnorm(0,0.1) # CONSTRAINED PRIOR
       sig.sig ~ dunif(0, 10)
       tau.sig <- 1/(sig.sig*sig.sig)
       
@@ -584,4 +584,4 @@ for (xxx in 1:length(s_good)){
   
   print(s_good[xxx])
   
-}
+  }

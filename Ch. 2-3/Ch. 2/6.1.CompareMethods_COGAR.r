@@ -50,11 +50,11 @@ sbp <- Bp6_bad$sp
 # leave like this by the moment
 
 s_good <- sbp
-
+s_good <- "COGAR"
 
 # Start loop
 for (xxx in 1:length(s_good)){
-  
+  xxx = 1
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
@@ -210,14 +210,16 @@ for (xxx in 1:length(s_good)){
   
   nobs <- length(unique(factor(ob)))
   
-  # Matrix with temperature (put random values where NA)
-  unique(factor(temp))
-  temp_id <- unique(factor(temp))[-1]
-  temp[which(is.na(temp))] <- sample(temp_id, length(which(is.na(temp))), replace = TRUE) # No NA in covariate
+  # Scale temperature
   
-  #temp_mean <- mean(temp)
-  #temp_sd <- sd(temp)
-  #temp_sc <- (temp - temp_mean) / temp_sd
+  temp_mean <- mean(temp, na.rm = TRUE)
+  temp_sd <- sd(temp, na.rm = TRUE)
+  temp_sc <- (temp - temp_mean) / temp_sd
+  
+  # Matrix with temperature (put random values where NA)
+  unique(factor(temp_sc))
+  temp_id <- unique(factor(temp_sc))[-1]
+  temp_sc[which(is.na(temp_sc))] <- sample(temp_id, length(which(is.na(temp_sc))), replace = TRUE) # No NA in covariate
   
   # Index for random effects
   site <- c(1:max.sites)
@@ -247,7 +249,7 @@ for (xxx in 1:length(s_good)){
   
   data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
                 year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+                tempCov = temp_sc, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
   
   # ---- JAGS model ----
   
@@ -283,11 +285,12 @@ for (xxx in 1:length(s_good)){
       
       
       # PRIORS FOR SIGMA
-      bTemp.sig ~ dnorm(0, 0.001)
+      bTemp.sig ~ dnorm(0, 0.01)
       
       mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
-      sig.sig ~ dunif(0, 10)
-      tau.sig <- 1/(sig.sig*sig.sig)
+      tau.sig ~ dgamma(0.1, 0.1) # Prior in tau.sig rather in sig.sig
+                                  # sig.sig as a derived quantity
+
       
       # Random observer effect for sigma
       for (o in 1:nobs){
@@ -304,7 +307,7 @@ for (xxx in 1:length(s_good)){
       
       
       # PRIOR FOR BETA
-      b ~ dunif(0, 100)
+      b ~ dunif(0, 10) # MORE RESTRICTIVE PRIOR
       
       
       for(i in 1:nind){
@@ -408,6 +411,9 @@ for (xxx in 1:length(s_good)){
       for (i in 2:nyears){
       lam.tot[i] <- lam.tot[i-1] * # Here I add the starting population size as a baseline for the trend 
       exp(bYear.lam)}
+
+      # sig.sig (because I used tau.sig as prior)
+      sig.sig <- sqrt(1/tau.sig)
       
       
 }",fill=TRUE, file = "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
@@ -416,18 +422,18 @@ for (xxx in 1:length(s_good)){
   
   # Inits
   Nst <- m + 1
-  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), b = runif(1),
+  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), tau.sig = runif(1), b = runif(1),
                            mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                            N = Nst)} 
   
   # Params
-  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", "b", 
+  params <- c( "mu.sig", "sig.sig", "tau.sig", "bTemp.sig", "sig.obs", "log.sigma.year", "b", 
                "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", 
                "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year"
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 400000 ; nb <- 100000 ; nt <- 5
+  nc <- 3 ; ni <- 500000 ; nb <- 100000 ; nt <- 5
   
   # With jagsUI 
   out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
@@ -435,13 +441,13 @@ for (xxx in 1:length(s_good)){
   summary <- out$summary
   print(out)
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -546,7 +552,7 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
@@ -577,7 +583,7 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/sp")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))

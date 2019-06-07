@@ -213,9 +213,11 @@ s_good
 ##############################################################################################################
 # Check results for dataset with species with another detection function
 
-setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df/++iter_burn")
 
 s_good <- c("CIAER", "COGAR", "COMON", "FATIN", "HIRUS", "LASEN", "MICAL", "PADOM", "PAMON", "PIPIC")
+s_good <- c("COGAR", "COMON", "LASEN", "PAMON")
+
 
 # LIGHT (WITH ONLY SUMMARY)
 
@@ -300,7 +302,9 @@ for (xxx in 1:length(s_good)){
   species[[xxx]] <- at
   print(xxx)
 }
-
+species[[4]]
 save(species, file = "spConvergence_light.RData")
+
+load("spConvergence_light.RData")
 
 
