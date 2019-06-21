@@ -18,6 +18,7 @@ colnames(trans)[2] <- "Number of transects"
 setwd("S:/PhD/Second chapter/Data/Results/Paper")
 write.csv(trans, "TableSI_TransectsYear.csv")
 
+
 # 2. Number of observers per year
 
 setwd("S:/PhD/Second chapter/Data")
@@ -40,8 +41,38 @@ library(plyr)
 ob1 <- ldply(ob, rbind)
 ob1 <- as.data.frame(t(ob1))
 colnames(ob1) <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018")
-nrows(ob1[which(complete.cases(ob1)), ])
 n_obs <- !is.na(ob1)
 n_obs <- colSums(n_obs)
 t(n_obs)
 
+# 3. Species summary: Proportion of transects occupied by each species yearly
+
+s_good <- c("ALRUF","BUOED","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","TERAX","UPEPO",
+            "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON") 
+s_good <- sort(s_good)
+year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+n_transects <- trans$`Number of transects`
+
+prop_sp <- as.data.frame(matrix(ncol = length(year), nrow = length(s_good)))
+rownames(prop_sp) <- s_good
+colnames(prop_sp) <- year
+
+for (i in 1:length(s_good)){
+  d_sp <- d[which(d$Species == s_good[i]), ]
+  for (t in 1:9){
+    d_t <- d_sp[which(d_sp$Year == year[t]), ]
+    d_prop <- (length(unique(d_t$T_Y))/n_transects[t])*100
+    prop_sp[i,t] <- d_prop
+  }
+}
+
+prop_sp <- round(prop_sp,2)
+
+prop_sp$Mean_proportion <- round(apply(prop_sp,1,mean), 2) # average of species occupancy in transects 
+setwd("S:/PhD/Second chapter/Data/Results/Paper")
+write.csv(prop_sp, "TableSI2_sp_prop.csv")
+
+arrange(prop_sp,avg)
+yearly_avg <- summarise_all(prop_sp, funs(mean))
+
+# 3. Species summary: Count of individuals in all transects per year??
