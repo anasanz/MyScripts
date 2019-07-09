@@ -24,8 +24,8 @@ colnames(d)[which(colnames(d) == "Count")] <- "Cluster"
 
 s_good <- c("MICAL", "COPAL", "MEAPI", "TERAX")
 
-setwd("S:/PhD/Second chapter/Data/Results/TRIM/Final")
-pdf("Fig2.pdf")
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Fig2.pdf",8,6)
 
 par(mfrow = c(2,2),
     mar = c(1,1.5,1,1.5),
@@ -33,7 +33,7 @@ par(mfrow = c(2,2),
 
 #1. Plot 2 first plots
 
-for (xxx in 1:3){
+for (xxx in 1:2){
   d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
   d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
   
@@ -201,7 +201,7 @@ for (xxx in 1:3){
 
 #1. Plot last plot with function plot.trim.hds.overall_yo2 (that contains x-axes)
 
-for (xxx in 4:5){
+for (xxx in 3:4){
   d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
   d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
   

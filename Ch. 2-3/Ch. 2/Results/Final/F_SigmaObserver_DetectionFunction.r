@@ -12,7 +12,7 @@ setwd("S:/PhD/Second chapter/Data")
 
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
-s_good <- c("MICAL", "PADOM", "MEAPI", "TERAX") 
+s_good <- c("MICAL", "PADOM", "MEAPI", "TERAX")
 
 c <- palette(rainbow(15)) 
 
@@ -22,7 +22,7 @@ x <- runif(40, 0, 200)
 
 setwd("S:/PhD/Second chapter/Data/Results/Final")
 
-pdf("detectfunc_observer.pdf")
+pdf("detectfunc_observer_s.pdf")
 
 par(mfrow = c(4,2),
     mar = c(2,3,1,2),
@@ -66,6 +66,10 @@ s_good <- c("ALRUF","BUOED","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MEC
 s_good <- sort(s_good)
 s_good <- s_good[-which(s_good %in% c("MICAL", "PADOM", "MEAPI", "TERAX"))]
 
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+
+pdf("detectfunc_observer_ns1.pdf")
+
 par(mfrow = c(5,2),
     mar = c(2,3,1,2),
     oma = c(2,4,1,1))
@@ -95,7 +99,13 @@ for (xxx in 1:10){
 mtext("Distance (m)", side = 1, line = 1, cex = 0.8, outer = TRUE)
 mtext("Detection probability", side = 2, line = 2, cex = 0.8, outer = TRUE)
 
+dev.off()
 
+
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+
+pdf("detectfunc_observer_ns2.pdf")
 
 par(mfrow = c(4,2),
     mar = c(2,3,1,2),
@@ -125,3 +135,8 @@ for (xxx in 11:18){
 }
 mtext("Distance (m)", side = 1, line = 1, cex = 0.8, outer = TRUE)
 mtext("Detection probability", side = 2, line = 2, cex = 0.8, outer = TRUE)
+
+dev.off()
+
+
+

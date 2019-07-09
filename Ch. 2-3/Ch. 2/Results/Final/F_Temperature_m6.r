@@ -17,6 +17,8 @@ s_good <- c("ALRUF","BUOED","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MEC
 # Load data
 
 setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+setwd("C:/Users/Ana/Documents/PhD/PhD_21_Junio_2019/Second chapter/Data/Results/TRIM/6temp/Final")
+
 load("spConvergence_light_FINAL.RData")
 
 temp <- data.frame(matrix(NA,ncol = 5,nrow = length(s_good)))

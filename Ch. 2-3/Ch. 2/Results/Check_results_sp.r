@@ -203,7 +203,7 @@ for (xxx in 1:length(s_good)){
 
 save(species, file = "spConvergence_light.RData")
 
-# s_good <- c("BUOED", "CIAER", "COMON", "COPAL", "FATIN", "MECAL", "PAMAJ")
+# s_good <- c("BUOED", "CIAER", "COMON", "COPAL", "FATIN", "MECAL", "PAMAJ") CONVERGE WITH 170000
 which(s_good == "PAMAJ")
 
 species[[27]][[3]]

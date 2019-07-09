@@ -70,6 +70,8 @@ BpN6_bad <- BpN6[which(BpN6$Bp.Obs < 0.1 | BpN6$Bp.Obs > 0.9), ] # Bad bayesian 
 tab2 <- left_join(tab1,BpN6, by = "sp")
 tab2[,c(2,3,4,6,7)] <- round(tab2[,c(2,3,4,6,7)], digits = 3)
 tab2$CI <- paste("[", tab2$lci, " - ", tab2$uci, "]", sep = "")
+tab2 <- tab2[ ,c(1,2,8,6,7)]
+tab3 <- arrange(tab2, sp)
 setwd("S:/PhD/Second chapter/Data/Results/Paper")
-write.csv(tab2, "Table1.csv")
+write.csv(tab3, "Table1_withHR.csv")
 

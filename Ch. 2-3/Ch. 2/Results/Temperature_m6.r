@@ -10,6 +10,8 @@ library(dplyr)
 #### Check effect of temperature for species where it is significant for m6
 
 setwd("S:/PhD/Second chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/PhD_21_Junio_2019")
+
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
