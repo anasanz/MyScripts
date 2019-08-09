@@ -23,6 +23,7 @@ colnames(d)[which(colnames(d) == "Count")] <- "Cluster"
 # Load species names
 
 s_good <- c("MICAL", "COPAL", "MEAPI", "TERAX")
+s_good_title <- c("Corn bunting","Common wood pigeon","European bee-eater","Little bustard")
 
 setwd("S:/PhD/Second chapter/Data/Results/Final")
 pdf("Fig2.pdf",8,6)
@@ -32,6 +33,7 @@ par(mfrow = c(2,2),
     oma = c(3,3,2,3))
 
 #1. Plot 2 first plots
+setwd("S:/PhD/Second chapter/Data/Results/Final")
 
 for (xxx in 1:2){
   d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]

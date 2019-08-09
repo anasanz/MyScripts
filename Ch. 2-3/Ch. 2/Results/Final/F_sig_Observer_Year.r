@@ -216,6 +216,8 @@ year_obs <- as.data.frame(matrix(NA, ncol = 8, nrow = length(s_good)))
 colnames(year_obs) <- c("species", "mean_year_sd", "95CI_mean_year", "mode_year_sd", "mean_observer_sd", "95CI_mean_obs", "mode_obs_sd", "mean_ab")
 year_obs$species <- s_good
 
+
+
 for (xxx in 1:length(s_good)){
   
   setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
@@ -232,10 +234,10 @@ for (xxx in 1:length(s_good)){
   year_obs[xxx, 3] <- paste("[", sigyear$`2.5%`, " - ", sigyear$`97.5%`, "]", sep = "")
   # Mode of the year sd
   dens_year <- density(outall[ ,which(colnames(outall) == "sig.sig.year")]) # Density of iterations for sig.obs
-              # the output of density has an x and a y value, where x corresponds to the values in your chains, 
-              # and y is the corresponding density of a given value (ie, how frequently it occurs in your chains). 
+  # the output of density has an x and a y value, where x corresponds to the values in your chains, 
+  # and y is the corresponding density of a given value (ie, how frequently it occurs in your chains). 
   mode_year <- dens_year$x[dens_year$y == max(dens_year$y)]
-              # you can extract the value of x that corresponds to the highest density (value of y): that is your MODE
+  # you can extract the value of x that corresponds to the highest density (value of y): that is your MODE
   year_obs[xxx, 4] <- mode_year
   
   # OBSERVER
@@ -257,17 +259,24 @@ for (xxx in 1:length(s_good)){
 year_obs$mean_ab <- round(year_obs$mean_ab,3)
 year_obs$mode_year_sd <- round(year_obs$mode_year_sd,3)
 year_obs$mode_obs_sd <- round(year_obs$mode_obs_sd,3)
+
 setwd("S:/PhD/Second chapter/Data/Results/Paper")
 write.csv(year_obs, "sigma_random_mean_mode.csv")
 
+
+
 # Summary statistics
 library(dplyr)
-year_mean <- arrange(year_obs, mean_year_sd) # COOEN,PAMAJ,SESER,PIPIC,BUOED
-year_mode <- arrange(year_obs, mode_year_sd) # COOEN,PAMAJ,SESER,ALRUF,PIPIC
+year_mean <- arrange(year_obs, mean_year_sd) # COOEN,PAMAJ,SESER,PIPIC,BUOED (>3q)
+year_mode <- arrange(year_obs, mode_year_sd) # COOEN,PAMAJ,SESER,ALRUF,PIPIC,   SYMEL(>3q)
+summary(year_obs$mean_year_sd)
+summary(year_obs$mode_year_sd)
 
-obs_mean <- arrange(year_obs, mean_observer_sd) # PIPIC, COPAL, COOEN, PAMAJ, STSSP
-obs_mode <- arrange(year_obs, mode_obs_sd) # PIPIC, COPAL, STSSP, SESER, PAMAJ
 
+obs_mean <- arrange(year_obs, mean_observer_sd) # PIPIC, COPAL, COOEN, PAMAJ, STSSP(>3q)
+obs_mode <- arrange(year_obs, mode_obs_sd) # PIPIC, COPAL, STSSP, SESER, PAMAJ(>3q)
+summary(year_obs$mean_observer_sd)
+summary(year_obs$mode_obs_sd)
 # Plot mean and mode and CI for species with higher mean and mode
 
 #OBSERVER

@@ -4,6 +4,7 @@
 #######################################################################################
 
 library(dplyr)
+library(tidyr)
 
 # 1. Number of transects per year
 
@@ -17,6 +18,27 @@ colnames(trans)[2] <- "Number of transects"
 
 setwd("S:/PhD/Second chapter/Data/Results/Paper")
 write.csv(trans, "TableSI_TransectsYear.csv")
+
+# See proportion not sampled every year
+?spread
+d_transects1 <- d_transects[ ,-which(colnames(d_transects) %in% c("T_Y"))] 
+d_transects1$transectID2 <- d_transects1$transectID
+d_transects2 <- spread(d_transects1, Year, transectID)
+nrow(d_transects2)
+nrow(d_transects2[complete.cases(d_transects2), ])/nrow(d_transects2) # % of transects not sampled every year
+
+nas <- function(x){
+num_na <- sum(is.na(x))
+return(num_na)
+}
+
+number_nas <- apply(d_transects2[,c(2:10)],1, function (x) nas(x)) 
+length(number_nas[which(number_nas > 2)])
+length(number_nas[which(number_nas > 2)])/nrow(d_transects2) # % of transects not sampled more than 2 years
+1-0.1746
+
+# From ARCGIS (study area map, layer that intersects spa with transects): 133 transects intersect with SPA
+133/166
 
 
 # 2. Number of observers per year
@@ -65,6 +87,7 @@ for (i in 1:length(s_good)){
     prop_sp[i,t] <- d_prop
   }
 }
+d_prop <- (length(unique(d_sp$T_Y))/1083)*100
 
 prop_sp <- round(prop_sp,2)
 
@@ -75,4 +98,22 @@ write.csv(prop_sp, "TableSI2_sp_prop.csv")
 arrange(prop_sp,avg)
 yearly_avg <- summarise_all(prop_sp, funs(mean))
 
-# 3. Species summary: Count of individuals in all transects per year??
+# 3. Species summary: Proportion of individuals occupying all transects
+
+
+s_good <- c("ALRUF","BUOED","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","TERAX","UPEPO",
+            "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON") 
+s_good <- sort(s_good)
+year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+n_transects <- trans$`Number of transects`
+
+prop_sp <- as.data.frame(matrix(ncol = 1, nrow = length(s_good)))
+rownames(prop_sp) <- s_good
+colnames(prop_sp) <- "prop"
+
+for (i in 1:length(s_good)){
+  d_sp <- d[which(d$Species == s_good[i]), ]
+  d_prop <- (length(unique(d_sp$T_Y))/1083)*100
+  prop_sp[i,1] <- d_prop}
+  
+  
