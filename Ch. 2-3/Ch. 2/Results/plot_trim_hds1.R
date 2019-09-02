@@ -108,7 +108,7 @@ plot.trim.hds.overall_yo1 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
   
-  plot(xrange, yrange, type='n', xlab=" ", ylab= " ", las=1, main = s_good_title[xxx], cex.lab = 1, cex.main = 1.1, cex.axis = 1, axes = FALSE, ...)
+  plot(xrange, yrange, type='n', xlab=" ", ylab= " ", las=1, main = s_good_title[xxx], cex.lab = 1, cex.main = 1.1, cex.axis = 1, axes = FALSE, adj = 0, ...)
   
   axis(side = 2, cex = 1.2)
   #axis(side = 1, cex = 1.2)
@@ -157,7 +157,7 @@ plot.trim.hds.overall_yo1 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   # Print estimates
   par(xpd = TRUE)
   legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
-         fill = c("black", "red"), bg = "white", box.lty=0, xpd = TRUE, xjust = 0, yjust = 5, cex = 0.9)
+         fill = c("black", "red"), bg = "white", box.lty=0, inset = c(0,-0.1), cex = 0.9)
   
 }
 

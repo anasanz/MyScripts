@@ -203,6 +203,7 @@ dev.off()
 ####################################################################
 # Check standard deviation of the year random effect in sigma
 # So: Check the sig.sig.year (because the mean is centered in 0)
+library(dplyr)
 
 s_good <- c("ALRUF","BUOED","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","TERAX","UPEPO",
             "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON") 
@@ -260,26 +261,56 @@ year_obs$mean_ab <- round(year_obs$mean_ab,3)
 year_obs$mode_year_sd <- round(year_obs$mode_year_sd,3)
 year_obs$mode_obs_sd <- round(year_obs$mode_obs_sd,3)
 
+
+# Join year_obs with legend for titles of the plots
+setwd("S:/PhD/Second chapter/Data")
+leg <- read.csv("leg_species.csv", sep = ";")
+leg <- arrange(leg,codiEspecie)
+colnames(leg)[1] <- "species"
+
+year_obs <- left_join(year_obs, leg, by = "species")
+
 setwd("S:/PhD/Second chapter/Data/Results/Paper")
 write.csv(year_obs, "sigma_random_mean_mode.csv")
+
+# Delete COMON because of bad bayesian p-values
+year_obs <- year_obs[-which(year_obs$species == "COMON"), ]
 
 
 
 # Summary statistics
-library(dplyr)
-year_mean <- arrange(year_obs, mean_year_sd) # COOEN,PAMAJ,SESER,PIPIC,BUOED (>3q)
-year_mode <- arrange(year_obs, mode_year_sd) # COOEN,PAMAJ,SESER,ALRUF,PIPIC,   SYMEL(>3q)
-summary(year_obs$mean_year_sd)
-summary(year_obs$mode_year_sd)
 
 
 obs_mean <- arrange(year_obs, mean_observer_sd) # PIPIC, COPAL, COOEN, PAMAJ, STSSP(>3q)
+ order_sp_obs <- obs_mean$species
+ order_sp_obs_legend <- obs_mean$English
 obs_mode <- arrange(year_obs, mode_obs_sd) # PIPIC, COPAL, STSSP, SESER, PAMAJ(>3q)
-summary(year_obs$mean_observer_sd)
-summary(year_obs$mode_obs_sd)
-# Plot mean and mode and CI for species with higher mean and mode
+
+summary <- as.data.frame(matrix(NA, nrow = 4, ncol = 8))
+colnames(summary) <- c("Variable", "SD estimate", "Min", "1st Quantile", "Median", "Mean", "3rd Quantile", "Max")
+summary$Variable <- c("Observer", "Observer", "Year", "Year")
+summary$`SD estimate` <- c("Mean", "Mode", "Mean", "Mode")
+summary[1,c(3:8)] <- summary(year_obs$mean_observer_sd)
+summary[2,c(3:8)] <- summary(year_obs$mode_obs_sd)
+
+year_mean <- arrange(year_obs, mean_year_sd) # COOEN,PAMAJ,SESER,PIPIC,BUOED (>3q)
+  order_sp_year <- year_mean$species
+  order_sp_year_legend <- year_mean$English
+year_mode <- arrange(year_obs, mode_year_sd) # COOEN,PAMAJ,SESER,ALRUF,PIPIC,   SYMEL(>3q)
+summary[3,c(3:8)] <- summary(year_obs$mean_year_sd)
+summary[4,c(3:8)] <- summary(year_obs$mode_year_sd)
+
+summary <- cbind(summary[ ,c(1,2)], round(summary[ ,c(3:8)], 3))
+
+setwd("S:/PhD/Second chapter/Data/Results/Paper")
+write.csv(summary, "summary_species_SD.csv")
+
+
+
+#### Plot mean and mode and CI for species with higher mean and mode ####
 
 #OBSERVER
+
 
 setwd("S:/PhD/Second chapter/Data/Results/Final")
 pdf("Posterior_observerSD.pdf")
@@ -338,3 +369,258 @@ mtext("Density", line = -1.5, side = 2, outer = TRUE)
 mtext("Year SD estimate ", line = -1.5, side = 1, outer = TRUE) 
 
 dev.off()
+
+############################################################################################
+#### Plot mean and mode and CI for ALL species  ####
+
+#OBSERVER
+
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Posterior_observerSD_allsp1.pdf")
+
+order_sp_obs
+
+par(mfrow = c(4,3),
+    oma = c(3, 3, 3, 3),
+    mar = c(3, 2, 2, 1) + 0.1)
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 1:12){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_obs[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode observers
+  dens_obs <- density(outall[ ,which(colnames(outall) == "sig.sig")]) # Density of iterations for sig.obs
+  mode_obs <- dens_obs$x[dens_obs$y == max(dens_obs$y)]
+  mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
+  
+  #2plot(dens_obs, xlim = c(0, quantile(dens_obs$x,probs = 0.75)), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  plot(dens_obs, xlim = c(0, 1.5), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  mtext(order_sp_obs_legend[xxx], side = 3, line = 1, cex = 0.8)
+  abline( v = mode_obs, col = "blue", lwd = 1.5)
+  abline( v = mean_obs, col = "red", lwd = 1.5)
+}
+mtext("Density", line = 1, side = 2, outer = TRUE) 
+mtext("Observer SD estimate ", line = 1, side = 1, outer = TRUE) 
+
+dev.off()
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Posterior_observerSD_allsp2.pdf")
+
+order_sp_obs
+
+par(mfrow = c(4,3),
+    oma = c(3, 3, 3, 3),
+    mar = c(3, 2, 2, 1) + 0.1)
+
+for (xxx in 13:22){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_obs[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode observers
+  dens_obs <- density(outall[ ,which(colnames(outall) == "sig.sig")]) # Density of iterations for sig.obs
+  mode_obs <- dens_obs$x[dens_obs$y == max(dens_obs$y)]
+  mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
+  
+  #plot(dens_obs, xlim = c(0, quantile(dens_obs$x,probs = 0.75)), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  plot(dens_obs, xlim = c(0, 5), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  mtext(order_sp_obs_legend[xxx], side = 3, line = 1, cex = 0.8)
+  abline( v = mode_obs, col = "blue", lwd = 1.5)
+  abline( v = mean_obs, col = "red", lwd = 1.5)
+}
+mtext("Density", line = 1, side = 2, outer = TRUE) 
+mtext("Observer SD estimate ", line = 1, side = 1, outer = TRUE) 
+
+dev.off()
+
+# YEAR
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Posterior_yearSD_allsp1.pdf")
+
+par(mfrow = c(4,3),
+    oma = c(3, 3, 3, 3),
+    mar = c(3, 2, 2, 1) + 0.1)
+
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 1:12){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_year[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode year
+  dens_year <- density(outall[ ,which(colnames(outall) == "sig.sig.year")]) # Density of iterations for sig.year
+  mode_year <- dens_year$x[dens_year$y == max(dens_year$y)]
+  mean_year <- mean(outall[ ,which(colnames(outall) == "sig.sig.year")])
+  
+  #plot(dens_year, xlim = c(0, quantile(dens_year$x,probs = 0.75)), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  plot(dens_year, xlim = c(0, 0.6), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  mtext(order_sp_year_legend[xxx], side = 3, line = 1, cex = 0.8)
+  abline( v = mode_year, col = "blue", lwd = 2)
+  abline( v = mean_year, col = "red", lwd = 2)
+}
+mtext("Density", line = 1, side = 2, outer = TRUE) 
+mtext("Year SD estimate ", line = 1, side = 1, outer = TRUE) 
+
+dev.off()
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Posterior_yearSD_allsp2.pdf")
+
+par(mfrow = c(4,3),
+    oma = c(3, 3, 3, 3),
+    mar = c(3, 2, 2, 1) + 0.1)
+
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 13:22){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_year[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode year
+  dens_year <- density(outall[ ,which(colnames(outall) == "sig.sig.year")]) # Density of iterations for sig.year
+  mode_year <- dens_year$x[dens_year$y == max(dens_year$y)]
+  mean_year <- mean(outall[ ,which(colnames(outall) == "sig.sig.year")])
+  
+  #plot(dens_year, xlim = c(0, quantile(dens_year$x,probs = 0.75)), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  plot(dens_year, xlim = c(0, 5), xlab = " ", ylab = " ", main = " ") # POSTERIOR (x_lim is third quantile)
+  mtext(order_sp_year_legend[xxx], side = 3, line = 1, cex = 0.8)
+  abline( v = mode_year, col = "blue", lwd = 2)
+  abline( v = mean_year, col = "red", lwd = 2)
+}
+mtext("Density", line = 1, side = 2, outer = TRUE) 
+mtext("Year SD estimate ", line = 1, side = 1, outer = TRUE) 
+
+dev.off()
+
+
+
+
+
+############################################################################################
+#### ONLY ONE Plot mean and mode and CI for ALL species  ####
+
+#OBSERVER
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Posterior_observerSD_allsp.pdf")
+
+par(mfrow = c(7,3),
+    oma = c(2, 2, 1, 2),
+    mar = c(1.5, 1, 0.5, 0.5) + 0.1)
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 1:18){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_obs[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode observers
+  dens_obs <- density(outall[ ,which(colnames(outall) == "sig.sig")]) # Density of iterations for sig.obs
+  mode_obs <- dens_obs$x[dens_obs$y == max(dens_obs$y)]
+  mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
+  
+  # Plots no x-axis
+  plot(dens_obs, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  #axis(2, labels = FALSE, lwd.ticks = 0)
+  axis(1, labels = FALSE, lwd.ticks = 0)
+  mtext(order_sp_obs_legend[xxx], side = 3, line = 0.5, cex = 0.8)
+  abline( v = mode_obs, col = "blue", lwd = 1.2)
+  abline( v = mean_obs, col = "red", lwd = 1.2)
+}
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 19:21){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_obs[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode observers
+  dens_obs <- density(outall[ ,which(colnames(outall) == "sig.sig")]) # Density of iterations for sig.obs
+  mode_obs <- dens_obs$x[dens_obs$y == max(dens_obs$y)]
+  mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
+  
+  # Plots no x-axis
+  plot(dens_obs, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  #axis(2, labels = FALSE, lwd.ticks = 0) 
+  axis(1)
+  mtext(order_sp_obs_legend[xxx], side = 3, line = 0.5, cex = 0.8)
+  abline( v = mode_obs, col = "blue", lwd = 1.2)
+  abline( v = mean_obs, col = "red", lwd = 1.2)
+}
+
+mtext("Density", line = 0.6, side = 2, outer = TRUE, cex = 0.8) 
+mtext("Observer SD estimate ", line = 1, side = 1, outer = TRUE, cex = 0.8) 
+
+dev.off()
+
+# YEAR
+
+setwd("S:/PhD/Second chapter/Data/Results/Final")
+pdf("Posterior_yearSD_allsp.pdf")
+
+par(mfrow = c(7,3),
+    oma = c(2, 2, 1, 2),
+    mar = c(1.5, 1, 0.5, 0.5) + 0.1)
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 1:18){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_year[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode observers
+  dens_year <- density(outall[ ,which(colnames(outall) == "sig.sig.year")]) # Density of iterations for sig.obs
+  mode_year <- dens_year$x[dens_year$y == max(dens_year$y)]
+  mean_year <- mean(outall[ ,which(colnames(outall) == "sig.sig.year")])
+  
+  # Plots no x-axis
+  plot(dens_year, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  #axis(2, labels = FALSE, lwd.ticks = 0)
+  axis(1, labels = FALSE, lwd.ticks = 0)
+  mtext(order_sp_year_legend[xxx], side = 3, line = 0.5, cex = 0.8)
+  abline( v = mode_year, col = "blue", lwd = 1.2)
+  abline( v = mean_year, col = "red", lwd = 1.2)
+}
+
+# Posterior distribution for standard deviation of year random effect (highest mean and mode)
+for (xxx in 19:21){
+  
+  setwd("S:/PhD/Second chapter/Data/Results/TRIM/compiled_final")
+  load(paste("HDS_",order_sp_year[xxx],".RData", sep = ""))
+  outall <- do.call(rbind,out$samples) # 3 chains together
+  
+  # Posteriors and mode yearervers
+  dens_year <- density(outall[ ,which(colnames(outall) == "sig.sig.year")]) # Density of iterations for sig.year
+  mode_year <- dens_year$x[dens_year$y == max(dens_year$y)]
+  mean_year <- mean(outall[ ,which(colnames(outall) == "sig.sig.year")])
+  
+  # Plots no x-axis
+  plot(dens_year, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  #axis(2, labels = FALSE, lwd.ticks = 0) 
+  axis(1)
+  mtext(order_sp_year_legend[xxx], side = 3, line = 0.5, cex = 0.8)
+  abline( v = mode_year, col = "blue", lwd = 1.2)
+  abline( v = mean_year, col = "red", lwd = 1.2)
+}
+
+mtext("Density", line = 0.6, side = 2, outer = TRUE, cex = 0.8) 
+mtext("Year SD estimate ", line = 1, side = 1, outer = TRUE, cex = 0.8) 
+
+dev.off()
+
+
+

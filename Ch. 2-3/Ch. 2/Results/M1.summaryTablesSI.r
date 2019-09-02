@@ -45,6 +45,9 @@ length(number_nas[which(number_nas > 2)])/nrow(d_transects2) # % of transects no
 
 setwd("S:/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
+
+unique(d$Observer) # For acknowledgements
+
 d$Observer <- as.numeric(d$Observer)
 year <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018")
 

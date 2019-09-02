@@ -33,13 +33,13 @@ for (i in 1:length(s_good)) {
 
 temp_sig <- temp[which(temp$over_0 == 0), ] # Species which detection is detected by temperature
 s_temp <- temp_sig$sp[-6] # Remove COMON (Bad p-values anyway and graph is not nice)
-
+s_temp_names <- c("Common wood pigeon", "Crested lark", "Thekla lark", "European bee-eater", "Corn bunting")
 
 
 # Plot predicted values for temperature for significant species
 
 setwd("S:/PhD/Second chapter/Data/Results/Final")
-pdf("Fig3.pdf")
+pdf("FigS3.pdf")
 
 par(mfrow = c(3,2),
     mar = c(2,2,3,2),
@@ -69,7 +69,7 @@ for (xxx in 1:length(s_temp)){
   
   # 2. Plot
   
-  plot(-15, xlim=c(5,25), ylim=c(min(lci), max(uci)), main = s_temp[xxx], xlab = "Temperature", ylab = "Abundance") # area_SG_HA unscaled variable
+  plot(-15, xlim=c(5,25), ylim=c(min(lci), max(uci)), main = s_temp_names[xxx], xlab = "Temperature", ylab = "Abundance") # area_SG_HA unscaled variable
   
   polygon( x = c(temp_pred, rev(temp_pred)),
            y = c(lci, rev(uci)), 
