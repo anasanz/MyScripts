@@ -48,7 +48,7 @@ ID <- unique(gps$Logger_ID)
 ID_period <- unique(gps$ID_p)
 
 tmp.df <- list()
-
+j = 3
 for (j in 1:length(ID_period)){
   
   ind <- gps[gps$ID_p ==  ID_period[j],] # Take gps positions fron in individual-period
@@ -57,10 +57,11 @@ for (j in 1:length(ID_period)){
 
   n.rdm.pts <- nrow(ind)*10 # Number of used points from an individual-period * 10
   
-  set.seed(j) # To generate always the same random points
+  #set.seed(j) # To generate always the same random points
   
   rdm.sp <- spsample(mcp_id, n.rdm.pts, type = "random") # Generate 10 times the number of used points
-  plot(mcp_id)
+  plot(study_area)
+  plot(mcp_id, add = TRUE)
   points(rdm.sp)
   
   tmp.df[[j]] <- data.frame( Logger_ID = ind$Logger_ID[1]
@@ -80,5 +81,21 @@ df_used <- gps@data
 
 data <- rbind(df_used, df) # Join
 
+# Check the points
+study_area <- readOGR("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326", "studyarea_pteroclids_EPSG_4326")
+mcp_99 <- readOGR("S:/PhD/Fourth chapter/GPS Cataluña", "mcp99")
+coordinates(data) <- data[ ,c("x", "y")]
+proj4string(data) <- proj4string(study_area) # As SpatialPointsDataFrame
+
+plot(study_area)
+plot(mcp_99, add = TRUE)
+points(data2)
+
+
+# Remove the points out of the mcp because are the USED points (that fall out the mcp because it is mcp99)
+
+data2 <- data[!is.na(over(data,as(mcp_99,"SpatialPolygons"))),]
+dat <- data2@data
+
 setwd("S:/PhD/Fourth chapter/Data")
-write.csv(data, "random_used_points.csv")
+write.csv(dat, "random_used_points.csv")

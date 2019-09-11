@@ -212,7 +212,7 @@ writeOGR(sigpac_mcp, 'S:/PhD/Fourth chapter/GIS/SIGPAC_DUN', "clip_sigpac_usos_4
 
 # 2017
 
-dun17 <- raster("S:/PhD/Fourth chapter/GIS/SIGPAC_DUN/dun17_usos")
+dun17 <- raster("S:/PhD/Fourth chapter/GIS/SIGPAC_DUN/usos17_4326")
 
 d17 <- layerize(dun17, classes = NULL, bylayer = TRUE, suffix = 'numbers')
 
@@ -248,17 +248,16 @@ almendro <- raster(d17, layer = 7)
 almendro[is.na(almendro)] <- 0 # Change NA to 0
 writeRaster(almendro, filename = 'almendro_17', format='GTiff')
 
-# For variable FIELD SIZE
+# Create layer with olivo and almendro al together (fruit secano)
 
-# Create raster 10*10 from field area
-
-# Load layer with the relevant polygons (which(sigpac$us %in% c("TA", "OV", "PR", "PS", "PA", "FS", "FL")))
-# I have done this layer in Arcgis and calculated the area here as well
-# I have rasterized it in arcgis as well because it didnt work in r (clip_field_area_4326.shp)
+frut_secano_brick <- brick(olivo, almendro)
+frut_secano <- calc(frut_secano_brick, function(x){max(x)})
+writeRaster(frut_secano, filename = 'frut_secano_17', format = 'GTiff')
 
 # 2018
 
-dun18 <- raster("S:/PhD/Fourth chapter/GIS/SIGPAC_DUN/dun18_usos")
+dun18 <- raster("S:/PhD/Fourth chapter/GIS/SIGPAC_DUN/usos18_4326")
+
 
 d18 <- layerize(dun18, classes = NULL, bylayer = TRUE, suffix = 'numbers')
 
@@ -294,9 +293,15 @@ almendro <- raster(d18, layer = 7)
 almendro[is.na(almendro)] <- 0 # Change NA to 0
 writeRaster(almendro, filename = 'almendro_18', format='GTiff')
 
+# Create layer with olivo and almendro al together (fruit secano)
+
+frut_secano_brick <- brick(olivo, almendro)
+frut_secano <- calc(frut_secano_brick, function(x){max(x)})
+writeRaster(frut_secano, filename = 'frut_secano_18', format = 'GTiff')
+
 # SIGPAC
 
-sig <- raster("S:/PhD/Fourth chapter/GIS/SIGPAC_DUN/sigpac_pastos")
+sig <- raster("S:/PhD/Fourth chapter/GIS/SIGPAC_DUN/pastos_4326")
 
 s <- layerize(sig, classes = NULL, bylayer = TRUE, suffix = 'numbers')
 
@@ -306,8 +311,16 @@ setwd("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326/clips/usos")
 
 pastos <- raster(s, layer = 2)
 pastos[is.na(pastos)] <- 0 # Change NA to 0
-writeRaster(cereal, filename = 'pastos', format = 'GTiff')
+writeRaster(pastos, filename = 'pastos', format = 'GTiff')
 
 forestal <- raster(s, layer = 3)
 forestal[is.na(forestal)] <- 0 # Change NA to 0
 writeRaster(forestal, filename ='forestal', format = 'GTiff')
+
+# For variable FIELD SIZE
+
+# Create raster 10*10 from field area
+
+# Load layer with the relevant polygons (which(sigpac$us %in% c("TA", "OV", "PR", "PS", "PA", "FS", "FL")))
+# I have done this layer in Arcgis and calculated the area here as well
+# I have rasterized it in arcgis as well because it didnt work in r (clip_field_area_4326.shp)
