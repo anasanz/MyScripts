@@ -8,8 +8,7 @@ library(plyr)
 
 set.seed(2013)
 
-# It works and converges, but one value (mean of sigma species intercept) 
-# doesn't super converge (1.1 in 10000 iterations). But the estimate is good
+# It works and converges
 
 
 # ---- Data simulation ----
@@ -158,7 +157,7 @@ for (i in 1:nyrs){
 
 # EXPLANATION DIMENSIONS: yList[[t]][[j,k,s]]
 yList[[1]][,,1] # This is the counts for the year 1 for species 1
-yList[[2]][,3,1] # This is the counts for the year 1 for species 1 in bin 3
+yList[[1]][,3,1] # This is the counts for the year 1 for species 1 in bin 3
 N.sysp[,,1] # This is the real number of individuals per stite and year of species 1
 sigma[,,1] # And this is sigma per site and year for species 1
 

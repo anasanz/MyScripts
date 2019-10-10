@@ -20,7 +20,7 @@ set.seed(2013)
 
 # Lambda site-year specific
 ### Random sp-year intercept (include different baseline abundance per species and also per year)
-### Site effect independent of year
+### sp-Site effect independent of year
 ### Zone variable (site)
 ### 2 areas variables)
 
@@ -88,17 +88,34 @@ sigma <- exp(array(rep(s.alpha, each = max.sites*nyrs), c(max.sites, nyrs, nSpec
 
 # ----  Abundance component: random effect accross sites, zone covariate and 2 area covariates
 
-# RANDOM EFFECT IN SITE (INDEPENDENT OF THE YEAR)
-# Mean abundance and sd across sites
-mu.lam.alpha.site <- log(1.5)				
-sig.lam.alpha.site <- 0.5				
-##Site effect in lambda
-lam.alpha.site <- rnorm(max.sites, mu.lam.alpha.site, sig.lam.alpha.site) 
+# RANDOM INTERCEPT PER SPECIES-YEAR
+# Mean abundance and sd per species and year
+mu.lam.alpha.spyear <- log(1.5)
+sig.lam.alpha.spyear <- 0.5
+# Intercept
+lam.alpha.spyear <- rnorm(nyrs*nSpecies, mu.lam.alpha.spyear, sig.lam.alpha.spyear) 
+
+lam.alpha.spyear_data <- array(rep(lam.alpha.spyear, each = max.sites), c(max.sites, nyrs, nSpecies))
+
+# RANDOM EFFECT IN SPECIES-SITE (Independent of year)
+sig.lam.spsite <- 0.3
+lam.spsite <- rnorm(nSpecies*max.sites, 0, sig.lam.spsite) 
+ar <- array(rep(lam.spsite, each = nyrs), c(nyrs, max.sites, nSpecies)) # I need to make it in wide format and transpose it to long
+ar1 <- list() 
+for (i in 1:nSpecies){
+  df <- as.data.frame(ar[,,i])
+  df <- t(df)
+  df <- as.matrix(df)
+  ar1[[i]] <- df
+}
+
+lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
 
 
 #ZONE COVARIATE (SITE)
 # Coefficient (I had created the co-variate already!So dont generate it twice!)
 b.lam.zoneB <- -0.5
+zone_data <- array(b.lam.zoneB*zone[,2], c(max.sites,nyrs,nSpecies))
 
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
@@ -117,26 +134,33 @@ area2_mean <- mean(a2)
 area2_sd <- sd(a2)
 area2_sc <- (a2 - area2_mean) / area2_sd
 
-
-lam <- exp(matrix(lam.alpha.site, nrow = max.sites, ncol = nyrs) + 
-             matrix(b.lam.zoneB*zone[,2], nrow = max.sites, ncol = nyrs, byrow = F) + # By row has to be false for site covariates that dont change with year!
-             matrix(b.a1*area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) + # For this it doesn't really matter
-             matrix(b.a2*area2_sc, nrow = max.sites, ncol = nyrs, byrow = F) ) 
+#ARRANGED INTO AN ARRAY
+area1_sc_data <- array(rep(area1_sc, nyrs), c(max.sites, nyrs, nSpecies))
+area2_sc_data <- array(rep(area2_sc, nyrs), c(max.sites, nyrs, nSpecies))
 
 
-# Abundance per site year (all species same abundance)
+lam <- exp(lam.alpha.spyear_data + 
+             lam.spsite_data + 
+             b.lam.zoneB*zone_data +
+             b.a1*area1_sc_data +
+             b.a2*area1_sc_data )
+
+
+# Abundance per site year (different abundance per species): N.sysp[j,t,s] 
 N <- list()
+N.sysp <- list() 
 
-for (t in 1:nyrs){
-  N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t])
-} 
+for (s in 1:nSpecies){
+  for (t in 1:nyrs){
+    N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t, s]) 
+    } 
+  NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
+  N3 <- ldply(N,rbind)
+  N.sitesYears <- t(N3) # N per site and year stored in a matrix with columns
+  N.sysp[[s]] <- N.sitesYears
+}
 
-NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
-N3 <- ldply(N,rbind)
-N.sitesYears <- t(N3) # N per site and year stored in a matrix with columns
-
-#I need one of this per species: EXPLANATION = N.sysp[j,t,s]
-N.sysp <- replicate(nSpecies,N.sitesYears) 
+N.sysp <- array(as.numeric(unlist(N.sysp)), c(max.sites,nyrs,nSpecies))
 
 # Total number of individuals in all sampled transects per year
 N.tot <- lapply(N,sum) # I only need this list for now, is the same abundance
@@ -144,7 +168,6 @@ N.tot <- lapply(N,sum) # I only need this list for now, is the same abundance
 
 # ---- Simulate continuous distance data ----
 
-# Nc = count of individuals detected in each distance interval
 
 # Create list to store the counts:
 yList <- list()
@@ -176,9 +199,6 @@ for (s in 1:nSpecies)
       yList[[t]][j,,s] <- counts 				# The number of detections in each distance interval per year and species
     }}
 
-h <- lapply(yList[[i]], function(x) rowSums(x))
-
-
 y.sum.sysp <- list()
 y.sum.sites <- list()
 
@@ -190,7 +210,7 @@ for (t in 1:nyrs){
   y.sum.sites[[t]] <- y.sum.sysp # Stored by years (y.sum.sites[[t]][[s]]): 8 elements with 15 subelements each
 }
 
-# Check cosas in loop because I dont want to do a 3diiimensional mistake
+# Check things in loop because I dont want to do a 3diiimensional mistake
 rowSums(yList[[2]][,,2])
 h <- yList[[2]]
 class(h)
@@ -327,29 +347,43 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 # ---- Compile data for JAGS model ----
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears,
+              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
               area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks,
-              nSpecies = nSpecies, sp.dclass = sp.dclass)
+              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
 
 # ---- JAGS model ----
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/Model")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS
     
-    #SPECIES SPECIFIC PARAMETERS
+    # SPECIES SPECIFIC PARAMETERS (random effects)
+
+    for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
+    asig[s] ~ dnorm(mu_s, tau_s)}
     
-    # Random effect per species
-    for (s in 1:nSpecies){
-    asig[s]~dnorm(mu_s, tau_s) # alpha for sigma (dif detection per species)
-    }
+    for(s in 1:nSpecies){              # Random intercept for lambda (dif abundance per species and year)
+    for(t in 1:nyrs){
+    alam[s,t] ~ dnorm(mu_l,tau_l)}}
+
+    for (s in 1:nSpecies){             # Random effect for lambda (dif abundance per species and site)
+    for (i in 1:max.sites){
+    spsite[s,i] ~ dnorm(0, tau_spsite) }}    
+
+    # Hyperparameters of species level random effects
+
+    mu_s ~ dnorm(0,0.01) # Hyperparameters for sigma intercept
+    tau_s <- 1/(sig_s*sig_s)
+    sig_s ~ dunif(0,500)
+
+    mu_l ~ dnorm(0,0.01) # Hyperparameters for lambda intercept
+    tau_l <- 1/(sig_l*sig_l)
+    sig_l ~ dunif(0,500)
     
-    # Hyperparameters for species random effects
-    
-    mu_s~dnorm(0,0.01) # Random effects for sigma per species (intercept)
-    tau_s<-1/(sig_s*sig_s)
-    sig_s~dunif(0,500)
+    tau_spsite <- 1/(sig_spsite*sig_spsite) # Hyperparameter for site random effect in lambda
+    sig_spsite ~ dunif(0,500)
+
     
     # PRIORS FOR LAMBDA
     
@@ -357,15 +391,6 @@ cat("model{
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
     
-    mu.lam ~ dunif(-10, 10) # Random effects for lambda per site (intercept)
-    sig.lam ~ dunif(0, 10)
-    tau.lam <- 1/(sig.lam*sig.lam)
-    
-    # Random transect level effect for lambda (doesn't change over time).Takes care of the dependence in data when you repeatedly visit the same transect
-    
-    for (s in 1:max.sites){
-    log.lambda[s] ~ dnorm(mu.lam, tau.lam)
-    }
     
     # PRIORS FOR SIGMA
     
@@ -410,10 +435,9 @@ cat("model{
     
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
-    lambda[j,s] <- exp(log.lambda[sitesYears[j]] + bzB.lam*zoneB[j]
-    + ba1.lam*area1[j] + ba2.lam*area2[j]) 
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] + bzB.lam*zoneB[j]
+                  + ba1.lam*area1[j] + ba2.lam*area2[j]) 
     } }
-    
     # Derived parameters
     
     #for (i in 1:nyears){
@@ -422,33 +446,33 @@ cat("model{
     
     for (s in 1:nSpecies){
     for (i in 1:nyears){
-    Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) 
-    }}
-    }",fill=TRUE, file = "s_sigma(integral)[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt")
+    Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
+
+    }", fill=TRUE, 
+    file = "s_sigma(integral)[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
-inits <- function(){list(mu.lam = runif(1), sig.lam = 0.2, #sigma = runif(624, 0, 50), I dont need sigma because I have already priors for his hyperparameters!!!!!
+inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
                          bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
                          sig.sig.ob = runif(1), bzB.sig = runif(1),
-                         mu_s = runif(1, log(30), log(50)) , sig_s = runif(1)
-                         ###changed inits for mu.sig - don't start too small, better start too large
-)}
+                         mu_s = runif(1, log(30), log(50)) , sig_s = runif(1))}
+
 
 # Params
 params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
-            "mu.lam", "sig.lam", 
+            "mu_l", "sig_l", "sig_spsite",
             "bzB.lam", "ba1.lam", "ba2.lam",
             "sig.sig.ob", "bzB.sig",
             "mu_s", "sig_s"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 5000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 100000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_sigma(integral)[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
@@ -456,8 +480,9 @@ summary <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
 data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
-                  mu.lam.alpha.site = mu.lam.alpha.site,
-                  sig.lam.alpha.site = sig.lam.alpha.site,
+                  mu.lam.alpha.spyear = mu.lam.alpha.spyear,
+                  sig.lam.alpha.spyear = sig.lam.alpha.spyear,
+                  sig.lam.spsite = sig.lam.spsite,
                   b.sig.zoneB = b.sig.zoneB, 
                   sig.sig.obs = sig.sig.obs,
                   mu.sig.sp = mu.sig.sp,
