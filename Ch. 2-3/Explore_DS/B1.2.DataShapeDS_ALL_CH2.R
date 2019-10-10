@@ -7,7 +7,7 @@ library(dplyr)
 library(stringr)
 
 #setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-setwd("S:/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
 
 dat1 <- read.csv("DataDS.csv", sep = ";")
 dat1$Especie <- as.character(dat1$Especie)
@@ -21,7 +21,8 @@ colnames(dat1)[which(colnames(dat1) == "Transecte_detall.Id_transecte_detall")] 
 # from 2018 are right. However, I still use DataDS and join it with DataDS2018 because I want to make sure
 # that the observations from DataDS have the same order than before.
 
-setwd("S:/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
+
 dat18 <- read.csv("DataDS2018.csv", sep = ";")
 dat18 <- dat18[ ,-c(2,15)] # To have the same columns than 2010 - 2017
 
@@ -70,7 +71,7 @@ for (i in 1:nrow(dat)){
 }
 
 # ---- Distance ----
-setwd("S:/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
 colnames(band)[1] <- "Banda"
 
