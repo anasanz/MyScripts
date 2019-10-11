@@ -147,9 +147,12 @@ for (i in 1:nrow(dat)){
 dat <- dat[-which(dat$remove == 1), ]
 dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 
-# Remove AL and AR (Don't have any of the measures in which we are interested)
+# Remove AR (Only has greening and has a very different structure than the rest, with fruit trees)
+# When we were not planning to use Greening we were removing AL because it didnt have almost any measure
+# (we left BA because it had more AES). In this case we don't remove AL because we are going to test greening
+# and because it makes the detection curve of TERAX and BUOED worse
 
-dat <- dat[-which(dat$Region.Label %in% c("AL", "AR")), ]
+dat <- dat[-which(dat$Region.Label %in% c("AR")), ]
 
 
 # Co-variate Zone 
@@ -179,12 +182,11 @@ unique(dat$Wind)
 dat[which(is.na(dat$Wind)), ] 
 dat$Wind[which(dat$T_Y == "BM06_2010")] <- 1
 
-# ---- SPECIES ----
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Data")
+write.csv(dat,"DataDS_ch3_allsp.csv") # Data set with everything fixed EXCEPT SPECIES
 
-# JOIN SPECIES FROM STURNUS (STVUL + STUNI = STSSP). Because it is very difficult to tell the difference
-dat[which(dat$Species == "STSSP"), ]
-dat$Species[which(dat$Species == "STVUL")] <- "STSSP" 
-dat$Species[which(dat$Species == "STUNI")] <- "STSSP" 
+
+
 
  
 

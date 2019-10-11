@@ -213,9 +213,9 @@ dev.off()
 
 
 
-# Remove AL and AR (Don't have any of the measures in which we are interested)
+# Remove AR (Only has greening and has a very different structure than the rest, with fruit trees)
 
-dat <- dat[-which(dat$Region.Label %in% c("AL", "AR")), ]
+dat <- dat[-which(dat$Region.Label %in% c("AR")), ]
 
 
 # Co-variate Zone 

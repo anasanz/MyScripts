@@ -8,7 +8,7 @@ library(tidyr)
 
 # 1. Number of transects per year
 
-setwd("S:/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 d_transects <- d[ ,which(colnames(d) %in% c("Year", "T_Y", "transectID"))]
 d_transects <- d_transects[which(!duplicated(d_transects$T_Y)), ]
