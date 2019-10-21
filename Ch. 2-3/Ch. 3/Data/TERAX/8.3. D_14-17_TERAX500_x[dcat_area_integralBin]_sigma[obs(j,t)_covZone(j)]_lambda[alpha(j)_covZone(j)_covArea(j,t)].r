@@ -14,7 +14,7 @@ library(dplyr)
 # ---- I ignore counts in each observation (cluster size)
 
 # ---- Data ----
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
 d <- read.csv("DataDS_ready_1017.csv")
 
 d <- d[which(d$Year %in% c(2014, 2015, 2016, 2017)), ]
@@ -107,7 +107,7 @@ for (i in 1:nrow(absent)){
 count.year <- colSums(m,na.rm = TRUE)
 # ---- Co-variates ----
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
 manag <- read.csv("management_area_500.csv")
 
 manag <- manag[ , c(1,2,7:14)] # Select years 2014 - 2017
@@ -253,7 +253,7 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = s
 
 # ---- JAGS model ----
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Model")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS
@@ -349,12 +349,12 @@ print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/Results")
 write.csv(summary, "8.2.Terax500_14-17.csv")
 
 ###################################################################
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Results")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Francesc_report/8.2.10-17&14-17")
 summary <- read.csv("8.2.Terax500_14-17.csv")
 
 results500 <- summary[which(summary$X %in% c("Ntotal[1]", "Ntotal[2]", "Ntotal[3]", "Ntotal[4]", "mu.lam", "sig.lam", "bzB.lam", "ba1.lam", "ba2.lam")), ]
