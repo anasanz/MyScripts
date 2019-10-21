@@ -6,7 +6,7 @@ library(MuMIn)
 
 # Run GLMM
 
-setwd("S:/PhD/Fourth chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
