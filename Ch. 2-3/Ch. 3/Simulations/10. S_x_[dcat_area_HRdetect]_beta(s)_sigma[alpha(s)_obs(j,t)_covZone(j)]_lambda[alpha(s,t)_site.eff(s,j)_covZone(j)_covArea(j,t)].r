@@ -1,4 +1,3 @@
-
 rm(list=ls())
 
 library(rjags)
@@ -13,6 +12,7 @@ set.seed(2013)
 # 15 species
 # 8 years (unbalanced number of transects per year) 
 
+# Observation model calculated with Hazard Rate detection function (to make b differ per species as well)
 # Sigma site-year specific
 ### Random sp intercept 
 ### Effect of zone cov(?) (site) 
@@ -25,7 +25,7 @@ set.seed(2013)
 ### 2 areas variables)
 
 # Detection function
-g <- function(x, sig) exp(-x^2/(2*sig^2))
+g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
 
 # Number of transects per year (unbalanced)
 nSites <- seq(50,106, by = 8)				# number of line transect surveys (DIFFERENT BY YEAR)
@@ -84,6 +84,11 @@ zone <- model.matrix(~ var-1, z)
 sigma <- exp(array(rep(s.alpha, each = max.sites*nyrs), c(max.sites, nyrs, nSpecies)) 
              + replicate(nSpecies,ob) 
              + array(b.sig.zoneB*zone[,2], c(max.sites,nyrs,nSpecies)) )
+
+#BETA
+mu.b <- 1.5
+sig.b <- 0.5
+beta <- rnorm(nSpecies, mu.b, sig.b)
 
 
 # ----  Abundance component: random effect accross sites, zone covariate and 2 area covariates
@@ -191,7 +196,7 @@ for (s in 1:nSpecies)
       # Distance from observer to the individual
       d <- runif(N.sysp[j,t,s], 0, strip.width) 		# Uniform distribution of animals
       # Simulates one distance for each individual in the site (N[j])
-      p <- g(x=d, sig=sigma[j,t,s])   		# Detection probability. Sigma is site-time specific
+      p <- g(x=d, sig=sigma[j,t,s], b = beta[s])   		# Detection probability. Sigma is site-time specific
       seen <- rbinom(N.sysp[j,t,s], 1, p)
       if(all(seen == 0))
         next
@@ -347,7 +352,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, 
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, 
               y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
               area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
@@ -363,6 +368,9 @@ cat("model{
     
     for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
     asig[s] ~ dnorm(mu_s, tau_s)}
+
+    for (s in 1:nSpecies){              # Random beta per species (dif shape of detection curve per species)
+    beta[s] ~ dnorm(mu_b, tau_b)}
     
     for(s in 1:nSpecies){              # Random intercept for lambda (dif abundance per species and year)
     for(t in 1:nyrs){
@@ -378,6 +386,10 @@ cat("model{
     tau_s <- 1/(sig_s*sig_s)
     sig_s ~ dunif(0,500)
     
+    mu_b ~ dnorm(0,0.01) # Hyperparameters for beta
+    tau_b <- 1/(sig_b*sig_b)
+    sig_b ~ dunif(0,500)
+
     mu_l ~ dnorm(0,0.01) # Hyperparameters for lambda intercept
     tau_l <- 1/(sig_l*sig_l)
     sig_l ~ dunif(0,500)
@@ -416,18 +428,13 @@ cat("model{
     
     sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]] + bzB.sig*zoneB[j])
     
-    f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
-    
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
-    
-    up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) ##db are distance bin limits
-    low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
-    p[s,j,k]<- 2 * (up[s,j,k] - low[s,j,k])
+
+    p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta[s])
     pi[s,j,k] <- int.w[k] / strip.width 
-    f[s,j,k]<- p[s,j,k]/f.0[s,j]/int.w[k]                   ## detection prob. in distance category k                      
-    fc[s,j,k]<- f[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
+    fc[s,j,k]<- p[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
     fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
     }
     
@@ -450,7 +457,7 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_sigma(integral)[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
+    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
@@ -458,7 +465,8 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
                          bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
                          sig.sig.ob = runif(1), bzB.sig = runif(1),
-                         mu_s = runif(1, log(30), log(50)) , sig_s = runif(1))}
+                         mu_s = runif(1, log(30), log(50)) , sig_s = runif(1),
+                         mu_b = runif(1) , sig_b = runif(1))}
 
 
 # Params
@@ -466,14 +474,14 @@ params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt sav
             "mu_l", "sig_l", "sig_spsite",
             "bzB.lam", "ba1.lam", "ba2.lam",
             "sig.sig.ob", "bzB.sig",
-            "mu_s", "sig_s"
+            "mu_s", "sig_s", "mu_b", "sig_b"
 )
 
 # MCMC settings
 nc <- 3 ; ni <- 5000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_sigma(integral)[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
@@ -487,7 +495,10 @@ data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.z
                   b.sig.zoneB = b.sig.zoneB, 
                   sig.sig.obs = sig.sig.obs,
                   mu.sig.sp = mu.sig.sp,
-                  sig.sig.sp = sig.sig.sp)
+                  sig.sig.sp = sig.sig.sp,
+                  mu.b = mu.b,
+                  sig.b = sig.b
+                )
 
 
 
