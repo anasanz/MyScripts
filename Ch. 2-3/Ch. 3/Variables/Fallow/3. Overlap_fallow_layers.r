@@ -104,11 +104,17 @@ g17 <- erase(gre17,sg17)
 
 # Fallow greening that are not SG and are not AES
 
-# g14 <- NO HAY (los meto igualmente?????)
+# g14_only <- NO HAY (los meto igualmente?????)
 g15_only <- erase(g15,aes15)
 g16_only <- erase(g16,aes16)
 g17_only <- erase(g17,aes17)
-# g18 <- erase(gre18,sg18) # Cuando tenga las AES del 18
-# g19 <- erase(gre19,sg19) # Cuando tenga las AES del 19
+# g18_only <- erase(gre18,sg18) # Cuando tenga las AES del 18
+# g19_only <- erase(gre19,sg19) # Cuando tenga las AES del 19
 
+#???writeOGR(g14_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2014_EPSG23031", driver = "ESRI Shapefile")
+writeOGR(g15_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2015_EPSG23031", driver = "ESRI Shapefile")
+writeOGR(g16_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2016_EPSG23031", driver = "ESRI Shapefile")
+writeOGR(g17_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2017_EPSG23031", driver = "ESRI Shapefile")
+#writeOGR(g18_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2018_EPSG23031", driver = "ESRI Shapefile")
+#writeOGR(g19_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2019_EPSG23031", driver = "ESRI Shapefile")
 
