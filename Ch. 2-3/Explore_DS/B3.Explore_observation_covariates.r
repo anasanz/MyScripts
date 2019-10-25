@@ -175,7 +175,7 @@ for (j in 1:length(other)){
 
 ## Summary: Wind dont seem to affect
 
-# ---- Clouds ----
+# ---- Clouds ---- NO EFFECT
 
 # Frequency - Distance with different clouds
 # Check with only seen data, because heard is not supossed to be influenced by this
@@ -187,7 +187,7 @@ cloud <- c(0:5)
 par(mfrow = c(2,3))
 for (i in 1:length(cloud)){
   w <- dat[which(dat$Clouds == cloud[i]), ]
-  hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - cloud ",cloud[i]),
+  hist(w$distance, breaks = c(0,25,50,99,200, 500), xlab = "Distance bins (x)", col = "grey", main = paste("All sp - cloud ",cloud[i]),
        freq = FALSE)
 }
 
@@ -201,7 +201,7 @@ for (j in 1:length(target)){
     w <- sp[which(sp$Clouds == cloud[i]), ]
     
     if(nrow(w)>0){
-      hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(target[j], "- cloud ",cloud[i]),
+      hist(w$distance, breaks = c(0,25,50,99,200, 500), xlab = "Distance bins (x)", col = "grey", main = paste(target[j], "- cloud ",cloud[i]),
            freq = FALSE)}}
 }
 
@@ -215,7 +215,7 @@ for (j in 1:length(other)){
     w <- sp[which(sp$Clouds == cloud[i]), ]
     
     if(nrow(w)>0){
-      hist(w$distance, breaks = c(0,25,50,99,200), xlab = "Distance bins (x)", col = "grey", main = paste(other[j], "- cloud ",cloud[i]),
+      hist(w$distance, breaks = c(0,25,50,99,200,500), xlab = "Distance bins (x)", col = "grey", main = paste(other[j], "- cloud ",cloud[i]),
            freq = FALSE)}}
 }
 
