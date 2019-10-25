@@ -60,6 +60,6 @@ dat$Species2[which(dat$Species2 == "TERAX" & dat$Sex == 1)] <- "TERAX_M"
 dat$Species2[which(dat$Species2 == "TERAX" & dat$Sex == 2)] <- "TERAX_F"
 
 setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Data")
-write.csv(dat,"DataDS_ch3_20_18_final.csv") # Data set with everything fixed EXCEPT SPECIES
+#write.csv(dat,"DataDS_ch3_20_18_final.csv") Final data set ready for analyzing
 
 
