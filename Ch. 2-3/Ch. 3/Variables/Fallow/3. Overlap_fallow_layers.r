@@ -30,7 +30,7 @@ aes17 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/GI
 
 # GREEN
 
-# gre14 <- NO HABÍA GREENING TODAVÍA (0)
+# gre14 <- NO HABÍA GREENING TODAVÍA (PERO METO LOS BARBECHOS NORMALES IGUALMENTE???)
 gre15 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "gre_15")
 gre16 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "gre_16")
 gre17 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "gre_17")
@@ -91,6 +91,24 @@ writeOGR(e17, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/F
 #writeOGR(e18, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2018_EPSG23031", driver = "ESRI Shapefile")
 #writeOGR(e19, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2019_EPSG23031", driver = "ESRI Shapefile")
 
-
-
 # 3. ---- Layer GREENING without fields that are already in SG and in AES ----
+
+# Fallow greening that are not SG
+
+# g14 <- NO HAY (los meto igualmente?????)
+g15 <- erase(gre15,sg15)
+g16 <- erase(gre16,sg16)
+g17 <- erase(gre17,sg17)
+# g18 <- erase(gre18,sg18) # Cuando tenga las AES del 18
+# g19 <- erase(gre19,sg19) # Cuando tenga las AES del 19
+
+# Fallow greening that are not SG and are not AES
+
+# g14 <- NO HAY (los meto igualmente?????)
+g15_only <- erase(g15,aes15)
+g16_only <- erase(g16,aes16)
+g17_only <- erase(g17,aes17)
+# g18 <- erase(gre18,sg18) # Cuando tenga las AES del 18
+# g19 <- erase(gre19,sg19) # Cuando tenga las AES del 19
+
+
