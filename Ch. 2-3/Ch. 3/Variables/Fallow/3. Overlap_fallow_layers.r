@@ -1,4 +1,6 @@
 
+rm(list=ls())
+
 library(rgdal)
 library(rgeos)
 library(raster)
@@ -6,6 +8,7 @@ library(sf)
 
 # Calculate GIS layers of fallow variables to REMOVE the overlap 
 # 1. SG; 2. AES; 3. SIE
+# From AES and Greening, the layer have been afterwards manually edited to remove the polygons that are resulting from an imperfect overlap 
 
 # 1. ---- Load layers: The ones of SG stay in their original version ----
 
@@ -42,7 +45,7 @@ gre17 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fall
 
 # Two options (print both type of layers to see what makes more sense): 
 
-  #  A. Determine the polygons that intersect and remove them fully <- NO, YOU REMOVE IMPORTANT POLYGONS
+  #  ---- A. Determine the polygons that intersect and remove them fully <- NO, YOU REMOVE IMPORTANT POLYGONS ----
 # Polygons that intersect:
 int_aes14 <- intersect(aes14, sg14)
 int_aes15 <- intersect(aes15, sg15)
@@ -68,7 +71,7 @@ new_aes17 <- aes17[-which(aes17$ID_REC %in% int_aes17$ID_REC), ]
 #writeOGR(new_aes17, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "new_aes17", driver = "ESRI Shapefile")
 
 
-  #B. Remove only the parts that overlap <- ESTO, MEJOR CORTAR PORQUE SI NO SE ELIMINAN MUCHAS FINCAS QUE SOLAPAN POR ERROR O MUY POCO
+  # ---- B. Remove only the parts that overlap <- ESTO, MEJOR CORTAR PORQUE SI NO SE ELIMINAN MUCHAS FINCAS QUE SOLAPAN POR ERROR O MUY POCO ----
 
 e14 <- erase(aes14,sg14)
 e15 <- erase(aes15,sg15)
@@ -91,9 +94,10 @@ writeOGR(e17, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/F
 #writeOGR(e18, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2018_EPSG23031", driver = "ESRI Shapefile")
 #writeOGR(e19, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2019_EPSG23031", driver = "ESRI Shapefile")
 
+# THIS IS DONE, NEXT DAY START WITH POINT 3
 # 3. ---- Layer GREENING without fields that are already in SG and in AES ----
 
-# Fallow greening that are not SG
+# 3.1. Fallow greening that are not SG
 
 # g14 <- NO HAY (los meto igualmente?????)
 g15 <- erase(gre15,sg15)
@@ -102,14 +106,23 @@ g17 <- erase(gre17,sg17)
 # g18 <- erase(gre18,sg18) # Cuando tenga las AES del 18
 # g19 <- erase(gre19,sg19) # Cuando tenga las AES del 19
 
-# Fallow greening that are not SG and are not AES
+# Write the layer to modify the mistakes that are produced in the layer and that doesnt allow to cut it later on
+writeOGR(g15, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREEN_noSG_2015_EPSG23031", driver = "ESRI Shapefile")
+writeOGR(g16, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREEN_noSG_2016_EPSG23031", driver = "ESRI Shapefile")
+writeOGR(g17, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREEN_noSG_2017_EPSG23031", driver = "ESRI Shapefile")
+#
+g15_2 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening/GREEN_cutted", layer = "GREEN_noSG_2015_EPSG23031")
+g17_2<- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening/GREEN_cutted", layer = "GREEN_noSG_2017_EPSG23031")
+
+# 3.2. Fallow greening that are not SG and are not AES 
 
 # g14_only <- NO HAY (los meto igualmente?????)
-g15_only <- erase(g15,aes15)
+g15_only <- erase(g15_2,aes15)
 g16_only <- erase(g16,aes16)
 g17_only <- erase(g17,aes17)
 # g18_only <- erase(gre18,sg18) # Cuando tenga las AES del 18
 # g19_only <- erase(gre19,sg19) # Cuando tenga las AES del 19
+
 
 #???writeOGR(g14_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2014_EPSG23031", driver = "ESRI Shapefile")
 writeOGR(g15_only, dsn = "C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2015_EPSG23031", driver = "ESRI Shapefile")
