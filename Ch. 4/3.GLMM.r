@@ -19,6 +19,7 @@ correlation[which(correlation > 0.5 & correlation < 1)] # Correlated: Dist carre
 names(data) # Quitar: Dist nucleos urbanos, olivo y almendro
 data_unscaled <- data[ , -c(10, 19, 20)]
 data[ ,c(8:18)] <- scale(data[ ,c(8:18)], center = TRUE, scale = TRUE)
+attributes(data[ ,8])
 
 #### Separate by periods ####
 

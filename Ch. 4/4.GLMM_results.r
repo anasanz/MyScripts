@@ -7,7 +7,7 @@ library(ggeffects)
 
 # Run GLMM
 
-setwd("S:/PhD/Fourth chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
@@ -29,11 +29,12 @@ data_p1 <- data[which(data$ID_p %in% ID_p[grep("p1", ID_p)]), ]
 data_p2 <- data[which(data$ID_p %in% ID_p[grep("p2", ID_p)]), ]
 data_p3 <- data[which(data$ID_p %in% ID_p[grep("p3", ID_p)]), ]
 
+# ---- Cereal ----
 
 # Predict values of model 1
 
 # Period 1
-setwd("S:/PhD/Fourth chapter/Data/Results")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
 
 load("dredge_p1.RData")
 topmodels_p1 <- get.models(models_p1,subset = delta < 2)
@@ -56,8 +57,10 @@ newx <- seq(min(newdata$cereal),max(newdata$cereal), length.out = 25)
 lines(newx, lcl, col = "red")
 lines(newx, lch, col = "red")
 
+m <- ggpredict(avg_p1, "cereal", type = "fe")
+
 # Period 2
-setwd("S:/PhD/Fourth chapter/Data/Results")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
 
 load("dredge_p2.RData")
 topmodels_p2 <- get.models(models_p2,subset = delta < 2)
@@ -68,11 +71,11 @@ newdata$cereal <- seq(min(data_p2$cereal), max(data_p2$cereal), length.out = 25)
 newdata$Logger_ID <- rep(unique(data_p2$Logger_ID), 5)
 
 pred <- predict(avg_p2, newdata = newdata, type = "response", re.form = NA ) # It doesn't work
-plot(pred ~ newdata$cereal, ylim = c(0, 0.3), main = "p2")
+plot(pred ~ newdata$cereal, ylim = c(0, 0.3), main = "p2", type = "l")
 
 
 
-# Try with full model
+# Try with full model (best model)
 p2_3 <- glmer(used ~ dist_caminos + dist_carreteras + pendiente +      # Without forestal, frut regadio and herb_secano: It CONVERGES
                 pastos + cereal + barbecho + herb_regadio + frut_secano + (1|Logger_ID), 
               family = binomial (link = "logit"),
@@ -101,3 +104,29 @@ p2_4 <- glmer(used ~ dist_caminos +
 m2 <- ggpredict(p2_4, "cereal", type = "re")
 plot(m2)
 summary(p2_4)
+
+# ---- Pendiente ----
+
+# Period 1
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
+
+load("dredge_p1.RData")
+topmodels_p1 <- get.models(models_p1,subset = delta < 2)
+avg_p1 <- model.avg(topmodels_p1)
+
+newdata_pend<- as.data.frame(lapply(lapply(data_p1[, -c(1:7,11, 13)], mean), rep, 25))
+newdata_pend$pendiente <- seq(min(data_p1$pendiente), max(data_p1$pendiente), length.out = 25)
+
+pred <- predict(avg_p1, newdata = newdata_pend, type = "response", se.fit = TRUE )
+
+lcl <- pred$fit - 1.96*pred$se.fit
+lch <- pred$fit + 1.96*pred$se.fit
+
+plot(pred$fit ~ newdata_pend$pendiente, ylim = c(0, 0.05), main = "p1", type = "l")
+polygon( x = c(newdata_pend$pendiente, rev(newdata_pend$pendiente)),
+         y = c(lcl, rev(lch)), 
+         col = adjustcolor(c("grey"),alpha.f = 0.6),
+         border = NA)
+newx <- seq(min(newdata_pend$pendiente),max(newdata_pend$pendiente), length.out = 25)
+lines(newx, lcl, col = "red")
+lines(newx, lch, col = "red")
