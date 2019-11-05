@@ -78,7 +78,7 @@ p1_distcam <- ggplot(data_p1, aes(x = dist_caminos_m, y = pred$fit)) +
   geom_smooth(data = data_p1, aes(x = dist_caminos_m, y = used),
               method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = " Distance to trails (m) ", y = "Prob. selection") +
+  labs(x = " Distance to trails (m) ", y = "Prob. selección") +
   ylim(0,1) + 
   theme( 
     #panel.background = element_blank(),
@@ -96,7 +96,7 @@ p1_distasp <- ggplot(data_p1, aes(x = dist_carreteras_m, y = pred$fit)) +
   geom_smooth(data = data_p1, aes(x = dist_carreteras_m, y = used),
               method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = " Distance to roads (m) ", y = "Prob. selection") +
+  labs(x = " Distance to roads (m) ", y = "Prob. selección") +
   ylim(0,1) + 
   theme( 
     #panel.background = element_blank(),
@@ -106,15 +106,13 @@ p1_distasp <- ggplot(data_p1, aes(x = dist_carreteras_m, y = pred$fit)) +
 
 # 3. Pendiente
 
-data_p1$dist_carreteras_m <- exp(data_p1$dist_carreteras)
-
 p1_pend <- ggplot(data_p1, aes(x = pendiente, y = pred$fit)) +
   #geom_point() +
   #geom_line() +
   geom_smooth(data = data_p1, aes(x = pendiente, y = used),
               method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = " Pendiente (%) ", y = "Prob. selection") +
+  labs(x = " Pendiente (%) ", y = "Prob. selección") +
   ylim(0,1) + 
   xlim(0,10) + 
   theme( 
@@ -123,23 +121,59 @@ p1_pend <- ggplot(data_p1, aes(x = pendiente, y = pred$fit)) +
     axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
     axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
 
-# 1. BARBECHO
+# 4. Pastos
 
+p1_past <- ggplot(data_p1, aes(x = pastos, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p1, aes(x = pastos, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Pastos ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
 
+# 5. Cereal
 
-ggplot(data_p1, aes(x = barbecho, y = pred$fit)) +
+p1_cereal <- ggplot(data_p1, aes(x = cereal, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p1, aes(x = cereal, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Cereal ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 6. Barbecho
+
+p1_barbecho <- ggplot(data_p1, aes(x = barbecho, y = pred$fit)) +
   #geom_point() +
   #geom_line() +
   geom_smooth(data = data_p1, aes(x = barbecho, y = used),
               method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection") +
+  labs(x = " Barbecho ", y = "Prob. selección") +
   ylim(0,1) + 
-  theme( panel.background = element_blank(),
-         axis.line = element_line(linetype = 1 ))
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
 
 
-###################################### THEORY #################################################################
+###################################### THEORY: BARBECHO #################################################################
 # Create new data frame to predict values. I will predict over the real values (not scaled)
 # I don't want to unscale the coefficients because I want to be able to compare between them
 # Remove the extra variables, forestal, cereal (because it is what I want to predict), herb secano, frut regadio and scaled variables
@@ -150,7 +184,7 @@ newdata_bar <- newdata_bar[ ,c(1:5,8,6:7)]
 
 colnames(newdata_bar) <- paste(colnames(newdata_bar), "_sc", sep = "")
 
-# Predict response (probability of selection)
+# Predict response (probability of selección)
 
 pred <- predict(p1_3_1, newdata = newdata_bar, type = "response", se.fit = TRUE )
 
@@ -173,7 +207,7 @@ ggplot(newdata_bar, aes(x = newdata_bar$barbecho_sc, y = pred$fit)) +
   geom_smooth(method = "glm", 
               method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre los valores predichos (no el modelo original)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection") +
+  labs(x = "Barbecho", y = "Prob. selección") +
   ylim(0,1)
 #Op2
 ggplot(newdata_bar, aes(x = newdata_bar$barbecho_sc, y = pred$fit)) +
@@ -182,7 +216,7 @@ ggplot(newdata_bar, aes(x = newdata_bar$barbecho_sc, y = pred$fit)) +
   geom_smooth(data = data_p1, aes(x = barbecho, y = used),
               method = "glm", method.args = list(family = "binomial"))  + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection") +
+  labs(x = "Barbecho", y = "Prob. selección") +
   ylim(0,1)
 
 # Por qué estas dos salen distintas??? Porque al crear una variable con valores del 0 al 1, la pendiente sube muy progresivamente
@@ -206,7 +240,7 @@ ggplot(data_p1, aes(x = barbecho, y = pred$fit)) +
   geom_smooth(method = "glm", 
               method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre los valores predichos (no el modelo original)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection")
+  labs(x = "Barbecho", y = "Prob. selección")
 
 ggplot(data_p1, aes(x = barbecho, y = pred$fit)) +
   geom_point() +
@@ -214,135 +248,11 @@ ggplot(data_p1, aes(x = barbecho, y = pred$fit)) +
   geom_smooth(data = data_p1, aes(x = barbecho, y = used),
               method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection")
+  labs(x = "Barbecho", y = "Prob. selección")
 
 # En estos dos casos la gráfica es igual, porque es con los datos del modelo (que solo tiene 0 y 1), por lo que en ninguna sube progresivamente
 # LA MEJOR ES ESTA ÚLTIMA
 ##############################################
-
-
-
-# 2. CEREAL
-# Create new data frame to predict values. I will predict over the real values (not scaled)
-# I don't want to unscale the coefficients because I want to be able to compare between them
-# Remove the extra variables, forestal, cereal (because it is what I want to predict), herb secano, frut regadio and scaled variables
-newdata <- as.data.frame(lapply(lapply(data_p1[, -c(1:7,12,13,15,17,19:29)], mean), rep, 100)) 
-newdata$cereal <- seq(min(data_p1$cereal), max(data_p1$cereal), length.out = 100)
-newdata <- newdata[ ,c(1:4,8,5:7)]
-
-colnames(newdata) <- paste(colnames(newdata), "_sc", sep = "") # Change the column names so that it fits
-
-# Predict response (probability of selection)
-
-pred <- predict(p1_3_1, newdata = newdata, type = "response", se.fit = TRUE )
-
-lcl <- pred$fit - 1.96*pred$se.fit
-lch <- pred$fit + 1.96*pred$se.fit
-
-plot(pred$fit ~ newdata$cereal_sc, ylim = c(-3, 3), main = "p1", type = "l")
-
-polygon( x = c(newdata$cereal_sc, rev(newdata$cereal_sc)),
-         y = c(lcl, rev(lch)), 
-         col = adjustcolor(c("grey"),alpha.f = 0.6),
-         border = NA)
-newx <- seq(min(newdata$cereal_sc),max(newdata$cereal_sc), length.out = 100)
-lines(newx, lcl, col = "red")
-lines(newx, lch, col = "red")
-
-m <- ggpredict(p1_3_1, "cereal_sc", type = "re")
-plot(m)
-
-# Without new data
-
-pred <- predict(p1_3_1, type = "response", se.fit = TRUE )
-
-lcl <- pred$fit - 1.96*pred$se.fit
-lch <- pred$fit + 1.96*pred$se.fit
-
-plot(pred$fit ~ data_p1$cereal, ylim = c(-3, 3), main = "p1")
-
-#lines(newx, lcl, col = "red")
-#lines(newx, lch, col = "red")
-
-m <- ggpredict(p1_3_1, "cereal_sc", type = "re")
-plot(m)
-
-ggplot(data_p1, aes(x = cereal, y = pred$fit)) +
-  geom_point() +
-  #geom_line() +
-  geom_smooth(data = data_p1, aes(x = cereal, y = used),
-              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
-  #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection")
-
-
-# 2. PENDIENTE
-# Remove pendiente instead of cereal (10)
-newdata_pend <- as.data.frame(lapply(lapply(data_p1[, -c(1:7,12,10,15,17,19:29)], mean), rep, 100)) 
-newdata_pend$pendiente <- seq(min(data_p1$pendiente), 5, length.out = 100) # Cojo 5 de máximo para mejorar la gráfica
-newdata_pend <- newdata_pend[ ,c(1:2,8,3:7)]
-
-colnames(newdata_pend) <- paste(colnames(newdata_pend), "_sc", sep = "")
-
-# Predict response (probability of selection)
-
-pred <- predict(p1_3_1, newdata = newdata_pend, type = "response", se.fit = TRUE )
-
-lcl <- pred$fit - 1.96*pred$se.fit
-lch <- pred$fit + 1.96*pred$se.fit
-
-plot(pred$fit ~ newdata_pend$pendiente_sc, ylim = c(-1, 2), main = "p1", type = "l", xlab = "Pendiente", ylab = "Probabilidad de selección")
-
-polygon( x = c(newdata_pend$pendiente_sc, rev(newdata_pend$pendiente_sc)),
-         y = c(lcl, rev(lch)), 
-         col = adjustcolor(c("grey"),alpha.f = 0.6),
-         border = NA)
-
-
-newx <- seq(min(newdata_pend$pendiente_sc),5, length.out = 100)
-lines(newx, lcl, col = "red")
-lines(newx, lch, col = "red")
-
-ggplot(newdata_pend, aes(x = newdata_pend$pendiente_sc, y = pred$fit)) +
-  geom_point() +
-  #geom_line() +
-  geom_smooth(method = "glm", 
-              method.args = list(family = "binomial")) +
-  #facet_wrap(~Sector) +
-  labs(x = "Pendiente", y = "Prob. selection") 
-
-ggplot(newdata_pend, aes(x = newdata_pend$pendiente_sc, y = pred$fit)) + # Los puntos son los valores predichos de y con los nuevos datos
-  geom_point() +
-  #geom_line() +
-  geom_smooth(data = data_p1, aes(x = pendiente_sc, y = used),
-                method = "glm", method.args = list(family = "binomial")) +
-  #facet_wrap(~Sector) +
-  labs(x = "Pendiente", y = "Prob. selection") 
-
-# Plot without new data
-
-pred <- predict(p1_3_1, type = "response", se.fit = TRUE )
-
-plot(pred$fit ~ data_p1$pendiente, ylim = c(0, 2), main = "p1", xlab = "Pendiente", ylab = "Probabilidad de selección")
-
-m <- ggpredict(p1_3_1, "pendiente_sc [all]", type = "fe")
-plot(m)
-
-ggplot(data_p1, aes(x = pendiente, y = pred$fit)) + # Los puntos son los valores predichos de y con la pendiente (los valores metidos en el modelo)
-  geom_point() +
-  #geom_line() +
-  geom_smooth(method = "glm", 
-              method.args = list(family = "binomial")) + 
-  #facet_wrap(~Sector) +
-  labs(x = "Pendiente", y = "Prob. selection")
-
-ggplot(data_p1, aes(x = pendiente, y = pred$fit)) + # Los puntos son los valores predichos de y con la pendiente (los valores metidos en el modelo)
-  geom_point() +
-  #geom_line() +
-  geom_smooth(data = data_p1, aes(x = pendiente_sc, y = used),
-              method = "glm", method.args = list(family = "binomial")) + # Linea con los valores de pendiente y la respuesta del modelo?
-  #facet_wrap(~Sector) +
-  labs(x = "Pendiente", y = "Prob. selection")
 
 
 #### Period 2 ####
@@ -382,37 +292,122 @@ p2 <- glmer(used ~ dist_caminos_sc + dist_carreteras_sc + pendiente_sc +      # 
 summary(p2)
 
 options(na.action = na.fail)
-models_p2 <- dredge(p2, beta = "none", evaluate = TRUE )
+models_p2 <- dredge(p2, beta = "none", evaluate = TRUE ) # Solo hay un top model (full model), escoger este y no hacer model avg.
 
 #setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
 #save(models_p2, file = "2.dredge_p2.RData")
 
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
+load("2.dredge_p2.RData")
+
+
 # ---- Predict ----
 
-# 1. BARBECHO
+pred <- predict(p2, type = "response" )
 
-pred <- predict(p2_3, type = "response" )
+# 1. Dist_caminos
 
-plot(pred$fit ~ data_p1$barbecho, ylim = c(0, 2), main = "p1", xlab = "Pendiente", ylab = "Probabilidad de selección")
+data_p2$dist_caminos_m <- exp(data_p2$dist_caminos)
 
-m <- ggpredict(p1_3_1, "barbecho_sc", type = "re")
-plot(m)
-
-ggplot(data_p1, aes(x = barbecho, y = pred$fit)) +
-  geom_point() +
+p2_distcam <- ggplot(data_p2, aes(x = dist_caminos_m, y = pred$fit)) +
+  #geom_point() +
   #geom_line() +
-  geom_smooth(method = "glm", 
-              method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre los valores predichos (no el modelo original)
+  geom_smooth(data = data_p2, aes(x = dist_caminos_m, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection")
+  labs(x = " Distance to trails (m) ", y = "Prob. selección") +
+  ylim(0,1) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
 
-ggplot(data_p2, aes(x = barbecho, y = pred)) +
-  geom_point() +
+# 2. Dist_carreteras
+
+data_p2$dist_carreteras_m <- exp(data_p2$dist_carreteras)
+
+p2_distasp <- ggplot(data_p2, aes(x = dist_carreteras_m, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p2, aes(x = dist_carreteras_m, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Distance to roads (m) ", y = "Prob. selección") +
+  ylim(0,1) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 3. Pendiente
+
+p2_pend <- ggplot(data_p2, aes(x = pendiente, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p2, aes(x = pendiente, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Pendiente (%) ", y = "Prob. selección") +
+  ylim(0,1) + 
+  xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 4. Pastos
+
+p2_past <- ggplot(data_p2, aes(x = pastos, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p2, aes(x = pastos, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Pastos ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 5. Cereal
+
+p2_cereal <- ggplot(data_p2, aes(x = cereal, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p2, aes(x = cereal, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Cereal ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 6. Barbecho
+
+p2_barbecho <- ggplot(data_p2, aes(x = barbecho, y = pred$fit)) +
+  #geom_point() +
   #geom_line() +
   geom_smooth(data = data_p2, aes(x = barbecho, y = used),
               method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
   #facet_wrap(~Sector) +
-  labs(x = "Barbecho", y = "Prob. selection")
+  labs(x = " Barbecho ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
 
 
 #### Period 3 ####
@@ -446,12 +441,121 @@ p3 <- glmer(used ~ dist_caminos_sc + dist_carreteras_sc + pendiente_sc +      # 
 summary(p3)
 
 options(na.action = na.fail)
-models_p3 <- dredge(p3, beta = "none", evaluate = TRUE ) # Best model is the FULL model (NO model averaging)
+models_p3 <- dredge(p3, beta = "none", evaluate = TRUE ) # Solo hay un top model (full model), escoger este y no hacer model avg.
 
 #setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
 #save(models_p3, file = "2.dredge_p3.RData")
 
-# ---- Predict ---- 
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
+load("2.dredge_p3.RData")
+
+# ---- Predict ----
+
+pred <- predict(p3, type = "response" )
+
+# 1. Dist_caminos
+
+data_p3$dist_caminos_m <- exp(data_p3$dist_caminos)
+
+p3_distcam <- ggplot(data_p3, aes(x = dist_caminos_m, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p3, aes(x = dist_caminos_m, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Distance to trails (m) ", y = "Prob. selección") +
+  ylim(0,1) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 2. Dist_carreteras
+
+data_p3$dist_carreteras_m <- exp(data_p3$dist_carreteras)
+
+p3_distasp <- ggplot(data_p3, aes(x = dist_carreteras_m, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p3, aes(x = dist_carreteras_m, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Distance to roads (m) ", y = "Prob. selección") +
+  ylim(0,1) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 3. Pendiente
+
+p3_pend <- ggplot(data_p3, aes(x = pendiente, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p3, aes(x = pendiente, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Pendiente (%) ", y = "Prob. selección") +
+  ylim(0,1) + 
+  xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 4. Pastos
+
+p3_past <- ggplot(data_p3, aes(x = pastos, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p3, aes(x = pastos, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Pastos ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 5. Cereal
+
+p3_cereal <- ggplot(data_p3, aes(x = cereal, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p3, aes(x = cereal, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Cereal ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
+
+# 6. Barbecho
+
+p3_barbecho <- ggplot(data_p3, aes(x = barbecho, y = pred$fit)) +
+  #geom_point() +
+  #geom_line() +
+  geom_smooth(data = data_p3, aes(x = barbecho, y = used),
+              method = "glm", method.args = list(family = "binomial")) + # Aqui la linea es la del glm sobre la respuesta (y)
+  #facet_wrap(~Sector) +
+  labs(x = " Barbecho ", y = "Prob. selección") +
+  ylim(0,1) + 
+  #xlim(0,10) + 
+  theme( 
+    #panel.background = element_blank(),
+    #axis.line = element_line(linetype = 1 ),
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))
 
 
 
