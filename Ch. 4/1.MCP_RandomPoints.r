@@ -7,7 +7,7 @@ library(rgdal)
 
 # ---- 1.  Create MCP per individual (remove field of periods for now) ---- 
 
-gps <- readOGR("S:/PhD/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
+gps <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
 
 c <- gps@data[ ,-c(4)]
 c <- c@data
@@ -30,16 +30,16 @@ plot(mcp_97,col = mcp_97$id)
 mcp_99 <- mcp(c[,1], percent = 99) # Create MCP for each territory
 plot(mcp_99,col = mcp_99$id)
 
-writeOGR(mcp_100, 'S:/PhD/Fourth chapter/GPS Cataluña', "mcp100", driver="ESRI Shapefile")
-writeOGR(mcp_95, 'S:/PhD/Fourth chapter/GPS Cataluña', "mcp95", driver="ESRI Shapefile")
-writeOGR(mcp_90, 'S:/PhD/Fourth chapter/GPS Cataluña', "mcp90", driver="ESRI Shapefile")
-writeOGR(mcp_97, 'S:/PhD/Fourth chapter/GPS Cataluña', "mcp97", driver="ESRI Shapefile")
-writeOGR(mcp_99, 'S:/PhD/Fourth chapter/GPS Cataluña', "mcp99", driver="ESRI Shapefile") # Keep MCP 99
+writeOGR(mcp_100, 'C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña', "mcp100", driver="ESRI Shapefile")
+writeOGR(mcp_95, 'C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña', "mcp95", driver="ESRI Shapefile")
+writeOGR(mcp_90, 'C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña', "mcp90", driver="ESRI Shapefile")
+writeOGR(mcp_97, 'C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña', "mcp97", driver="ESRI Shapefile")
+writeOGR(mcp_99, 'C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña', "mcp99", driver="ESRI Shapefile") # Keep MCP 99
 
 # ---- 2. Create Random points ----
 
-gps <- readOGR("S:/PhD/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
-mcp_99 <- readOGR("S:/PhD/Fourth chapter/GPS Cataluña", "mcp99")
+gps <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
+mcp_99 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña", "mcp99")
 
 colnames(gps@data)[2] <- "y"
 colnames(gps@data)[3] <- "x"
@@ -82,13 +82,13 @@ df_used <- gps@data
 data <- rbind(df_used, df) # Join
 
 # Check the points
-study_area <- readOGR("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326", "studyarea_pteroclids_EPSG_4326")
-mcp_99 <- readOGR("S:/PhD/Fourth chapter/GPS Cataluña", "mcp99")
+study_area <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GIS/Capas_variables/EPSG_4326", "studyarea_pteroclids_EPSG_4326")
+mcp_99 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña", "mcp99")
 coordinates(data) <- data[ ,c("x", "y")]
 proj4string(data) <- proj4string(study_area) # As SpatialPointsDataFrame
 
 plot(study_area)
-plot(mcp_99, add = TRUE)
+plot(mcp_99, col = c("red", "blue") add = TRUE)
 points(data2)
 
 
@@ -97,5 +97,9 @@ points(data2)
 data2 <- data[!is.na(over(data,as(mcp_99,"SpatialPolygons"))),]
 dat <- data2@data
 
-setwd("S:/PhD/Fourth chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data")
 write.csv(dat, "random_used_points.csv")
+
+# ---- 4. GPS positions: average among individuals
+gps <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
+mean(xtabs(~ Logger_ID, gps@data))

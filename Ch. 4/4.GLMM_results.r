@@ -7,7 +7,7 @@ library(ggeffects)
 
 # Run GLMM
 
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/PhD_12_Nov/Fourth chapter/Data")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
@@ -109,6 +109,8 @@ summary(p2_4)
 
 # Period 1
 setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
+setwd("C:/Users/Ana/Documents/PhD/PhD_12_Nov/Fourth chapter/Data/Results")
+
 
 load("dredge_p1.RData")
 topmodels_p1 <- get.models(models_p1,subset = delta < 2)
