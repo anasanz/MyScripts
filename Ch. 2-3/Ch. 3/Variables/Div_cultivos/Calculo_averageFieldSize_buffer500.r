@@ -11,16 +11,27 @@ library(rgeos)
 
 # Load SIGPAC layers cropped (manually in arcgis from full sigpac layers - SIGPAC15_full_EPSG23031.shp) with buffers
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS/Buffers_average_field_size")
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_average_field_size")
 
-sigpac15 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac15_crop") 
-sigpac16 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac16_crop") 
-sigpac17 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac17_crop") 
-sigpac18 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac18_crop") 
-sigpac19 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac19_crop")
+sigpac15 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac15_crop") 
+sigpac16 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac16_crop") 
+sigpac17 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac17_crop") 
+sigpac18 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac18_crop") 
+sigpac19 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_average_field_size", layer = "sigpac19_crop")
+
+# Change names sigpac 17 and sigpac 18 to make it fit with loop
+names(sigpac15)
+names(sigpac17)[5] <- "HA"
+names(sigpac17)[14] <- "US"
+names(sigpac17)[20] <- "ID_REC"
+
+names(sigpac18)
+names(sigpac18)[12] <- "ID_REC"
+names(sigpac18)[13] <- "US"
+names(sigpac18)[17] <- "HA"
 
 # Load transects and make buffers
-tr <- readOGR("C:/Users/ana.sanz/Documents/PhD_12_Nov/Third chapter/GIS", "Trans_2010_2018_ch3_EPSG23031") # Contains transects sampled each year (1/0)
+tr <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS", "Trans_2010_2018_ch3_EPSG23031") # Contains transects sampled each year (1/0)
 buf <- gBuffer(tr, byid = TRUE, width = 500) 
 buf_id <- unique(buf@data$Codi)
 
@@ -43,21 +54,15 @@ for (i in 1:length(layers)){
   poli_agri2 <- poli_agri[-which(duplicated(poli_agri$ID_REC)), ]   # 2. Remove duplicates (ID) <- because you can cut the same polygon in 2 polygons and then you count it twice making the average
   poli_agri3 <- poli_agri2[-which(poli_agri2@data$HA < 0.03), ]   # 3. Remove field size < 0.03ha (noise, bad digitalization)
 
-
-  # 4. Calculate average field size
-
-
-  poli@data <- left_join(poli@data, crops, by = "Cultiu") # Join in attribute table of the layers the new classification
-  poli <- poli[-which(poli$diversitat.greening == "no"), ] # Delete the fields that are not considered for crop diversification in greening
-  
-  for (j in 1:length(buf)) {
+  for (j in 1:length(buf)) { # 4. Calculate average field size (I take the VALUE of size in ha of the fields that fall in the buffer, not the area that falls like with the fallows variable)
     
-    poli_transect <- poli[which(poli$Codi == buf_id[j]), ]  # SUbset of each buffer independently
-    n_crops <- length(unique(poli_transect@data$diversitat.greening)) # Calculate number of different crops (unique)
-    crop_diver[j,i+1] <- n_crops # Store
+    poli_transect <- poli_agri3[which(poli_agri3$Codi == buf_id[j]), ]  # SUbset of each buffer independently
+    av_field <- base::mean(poli_transect$HA)
+    av_field_size[j,i+1] <- av_field # Store
   }
 }
 
+#W CHECK NA VALUES Y PROJECTION (capa transectos NO ESTA en el coordinate system adecuado. tambien para crop diversity)
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
+write.csv(av_field_size, "av_fieldsize_500.csv")
 
-p <- poli_agri@data[which(poli_agri@data$ID_REC == "25049:0:0:5:1:40"), ]
-class(poli_agri@data$ID_REC)
