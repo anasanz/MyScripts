@@ -3,7 +3,7 @@ rm(list=ls())
 
 library(rtrim)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/TRIM/Dades")
+setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/TRIM/Dades")
 
 #####################################################################################################################################################
 #####                                                      BASE DE DATOS                                                                      #######
@@ -110,7 +110,7 @@ write.csv(all_data, "Farmdindis_TRIM.csv")
 #####                                                      PLOT                                                                               #######
 #####################################################################################################################################################
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/TRIM/Resultats")
+setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/TRIM/Resultats")
 dat <- read.csv("Farmdindis_TRIM.csv")
 
 # Redondear tendencia para plot

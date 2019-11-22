@@ -14,7 +14,7 @@ library(rtrim)
 ##                       Prepare data                           ###
 ###################################################################
 
-setwd("S:/PhD/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
 
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
