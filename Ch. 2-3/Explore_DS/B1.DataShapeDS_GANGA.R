@@ -131,13 +131,6 @@ scarce <- all[which(all$remove == 1),]
 sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
 dat <- dat[-which(dat$Species %in% sp_scarce), ]
 
-# ---- Join observations from PTALC and PTORI ----
-
-for (i in 1:nrow(dat)){
-  if (dat$Species[i] == "PTALC" | dat$Species[i] == "PTORI")
-  {dat[i, which(colnames(dat) %in% "Species")] <- "SAND" }
-}
-
 
 # ---- Remove transects that are irrigated (and therefore have very different conditions) ----
 irri <- read.csv("TransecteAnyReg.csv", sep = ";")
@@ -181,107 +174,9 @@ for (i in 1:nrow(dat)){
 dat <- dat[-which(dat$remove == 1), ]
 dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 
-# ---- Check detection distance - Seen (V)/ Heard (S) observations: SELECT SEEN ----
-# target <- c("MECAL", "TERAX", "BUOED")
-# other <- c("GACRI", "MICAL", "PIPIC", "COPAL", "HIRUS", "PADOM")
-# interesting <- c("MEAPI", "ALRUF", "UPEPO", "COGAR", "CABRA", "PTALC")
 
-# A. Target
-
-# # All observations
-# par(mfrow = c(1,3))
-# for (i in 1:length(target)){
-#   hist(dat$distance[which(dat$Species %in% target[i])],breaks = c(0,25,50,99,200),
-#        main = paste(target[i], "- Distances"), col = "grey", freq = FALSE) 
-# }
-# 
-# # Only S
-# par(mfrow = c(1,3))
-# for (i in 1:length(target)){
-#   hist(dat$distance[which(dat$Species %in% target[i] & dat$Obs_type == "S")],breaks = c(0,25,50,99,200),
-#        main = paste(target[i], "- Distances"), col = "grey", freq = FALSE) 
-# }
-# 
-# # Only V
-# par(mfrow = c(1,3))
-# for (i in 1:length(target)){
-#   hist(dat$distance[which(dat$Species %in% target[i] & dat$Obs_type == "V")],breaks = c(0,25,50,99,200),
-#        main = paste(target[i], "- Distances"), col = "grey", freq = FALSE) 
-# }
-# 
-# # B. Other
-# 
-# par(mfrow = c(2,3))
-# for (i in 1:length(other)){
-#   hist(dat$distance[which(dat$Species %in% other[i])],breaks = c(0,25,50,99,200),
-#        main = paste(other[i], "- Distances"), col = "grey", freq = FALSE) 
-# }
-# 
-# par(mfrow = c(2,3))
-# for (i in 1:length(other)){
-#   hist(dat$distance[which(dat$Species %in% other[i] & dat$Obs_type == "S")],breaks = c(0,25,50,99,200),
-#        main = paste(other[i], "- Distances"), col = "grey", freq = FALSE) 
-# }
-# 
-# par(mfrow = c(2,3))
-# for (i in 1:length(other)){
-#   hist(dat$distance[which(dat$Species %in% other[i] & dat$Obs_type == "V")],breaks = c(0,25,50,99,200),
-#        main = paste(other[i], "- Distances"), col = "grey", freq = FALSE) 
-# }
-# 
-# # C. Interesting
-# 
-# par(mfrow = c(2,3))
-# for (i in 1:length(interesting)){
-#   hist(dat$distance[which(dat$Species %in% interesting[i])],breaks = c(0,25,50,99,200),
-#        main = paste(interesting[i], "- Distances"), col = "grey", freq = FALSE) }
-# 
-# for (i in 1:length(interesting)){
-#   hist(dat$distance[which(dat$Species %in% interesting[i] & dat$Obs_type == "S")],breaks = c(0,25,50,99,200),
-#        main = paste(interesting[i], "- Distances"), col = "grey", freq = FALSE) }
-# 
-# for (i in 1:length(interesting)){
-#   hist(dat$distance[which(dat$Species %in% interesting[i] & dat$Obs_type == "V")],breaks = c(0,25,50,99,200),
-#        main = paste(interesting[i], "- Distances"), col = "grey", freq = FALSE) }
-# 
-# # The heard (S) observations damage the detection curve, so I keep only the V
-# 
-# datV <- dat[which(dat$Obs_type == "V"), ] # Data has 34180 obs. Only seen is 22016, so 36% of the observations are lost
-# 
-# # Explore how much I loose of each species:
-# 
-# sp <- as.vector(num$Species)
-# m <- as.data.frame(matrix(nrow = length(sp), ncol = 2))
-# colnames(m) <- c("sp", "lost.heard")
-# m$sp <- sp
-# 
-# for (i in 1:length(all_sp)){
-#   dat_sp_all <- dat[which(dat$Species == sp[i]), ]
-#   dat_sp_S <- dat[which(dat$Obs_type == "S" & dat$Species == sp[i]), ] # I loose 55.85% of observations
-#   lost <- round((nrow(dat_sp_S)/nrow(dat_sp_all))*100,2)
-#   m[i,2] <- lost
-# }
-
-## I loose mainly from Terax and Buoed (interesting), but it is needed so select only SEEN
-
-dat <- dat[which(dat$Obs_type == "V"), ]
-dat <- dat[ ,-which(colnames(dat) %in% "Obs_type")]
-
-# Remove AL and AR (Don't have any of the measures in which we are interested)
-
-dat <- dat[-which(dat$Region.Label %in% c("AL", "AR")), ]
-
-
-# Co-variate Zone 
-
-unique(dat$Region.Label)
-dat$Zone <- NA
-dat$Zone[dat$Region.Label == "BA"] <- "OC"
-dat$Zone[dat$Region.Label == "BM"] <- "OR"
-dat$Zone[dat$Region.Label == "SI"] <- "OR"
-dat$Zone[dat$Region.Label == "AF"] <- "OC"
-dat$Zone[dat$Region.Label == "BE"] <- "OR"
-dat$Zone[dat$Region.Label == "GR"] <- "OC"
+# Select only transects in ALFES (where are the animals)
+dat <- dat[which(dat$Region.Label %in% c("AF")), ]
 
 # FIX OBSERVATION CO-VARIATES
 # Temperature: mistakes typing
@@ -292,18 +187,8 @@ dat$Temp[which(dat$Temp == 100)] <- 10
 unique(dat$Temp)
 dat[which(is.na(dat$Temp)), ] 
 dat$Temp[which(dat$T_Y == "AF09_2018")] <- 20
-dat$Temp[which(dat$T_Y == "GR13_2011")] <- 10
-
-#Wind
-unique(dat$Wind)
-dat[which(is.na(dat$Wind)), ] 
-dat$Wind[which(dat$T_Y == "BM06_2010")] <- 1
 
 
-# JOIN SPECIES FROM STURNUS (STVUL + STUNI = STSSP). Because it is very difficult to tell the difference
-dat[which(dat$Species == "STSSP"), ]
-dat$Species[which(dat$Species == "STVUL")] <- "STSSP" 
-dat$Species[which(dat$Species == "STUNI")] <- "STSSP" 
 
 
-#write.csv(dat,"DataDS_ready_ALL.csv") # ALL because includes 2018. This is the one that I analyze
+write.csv(dat,"DataDS_ready_para_Ganga.csv") 
