@@ -14,7 +14,7 @@ library(rtrim)
 ##                       Prepare data                           ###
 ###################################################################
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 
 d <- read.csv("DataDS_ready_para_Ganga.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
@@ -171,6 +171,9 @@ for (xxx in 1:length(s_good)){
   
   m  # Counts per year and site
   
+  # Number of sites sampled per year
+  nsites_year <- apply(m, 2, function(x) sum(complete.cases(x)))
+
   # Co-variates
   
   yrs <- 1:9 
@@ -222,11 +225,11 @@ for (xxx in 1:length(s_good)){
   
   data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
                 year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs, max.sites = max.sites)
   
   # ---- JAGS model ----
   
-  setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Model")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Model")
   cat("model{
       
       # PRIORS
@@ -379,9 +382,12 @@ for (xxx in 1:length(s_good)){
       # Derived parameters
       
       for(t in 1:nyears){
-      popindex[t] <- sum(lambda[,t])
+      popindex[t] <- sum(lambda[,t])  
+      area[t] <- (max.sites*500*400)/10000 # nsites[t]*length(500)*width(400): Area de superficie censada 
+      D[t] <- popindex[t]/area[t]
+      A[t] <- D[t] * 7000 # D*Total sup. censada (tamaño de la cepa de Alfés en Ha)
       }
-      
+
       # Expected abundance per year inside model
       
       lam.tot[1] <- popindex[1] # Expected abundance in year 1
@@ -402,7 +408,7 @@ for (xxx in 1:length(s_good)){
   # Params
   params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
                "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
-               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year"
+               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year", "area", "D", "A"
   )
   
   # MCMC settings
@@ -414,13 +420,13 @@ for (xxx in 1:length(s_good)){
   summary <- out$summary
   print(out)
   
-  setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -463,13 +469,22 @@ for (xxx in 1:length(s_good)){
   
   # 2. Plot
   
-  setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Results/Plots/6temp/Final")
-  pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
+  #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Plots/6temp/Final")
+  #pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
-  par(mfrow = c(1,2))
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  pdf("PTALC_HDS.pdf", height = 5, width = 7)
   
-  plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = "Year", ylab = "Abundance")
-  mtext("HDS", side = 3, line = 1, cex = 1.2)
+  par(mfrow = c(1,1))
+  
+  plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = " ", ylab = " ", axes = FALSE)
+  axis(2)
+  axis(1,at = c(0:8), labels = c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018"))
+  mtext("Hierarchical Distance Sampling model", side = 3, line = 1, cex = 1.5)
+  mtext("Year", side = 1, line = 3, cex = 1)
+  mtext("Abundance in transects", side = 2, line = 3, cex = 1)
+  
+  
   
   
   polygon( x = c(yrs2, rev(yrs2)),
@@ -483,6 +498,7 @@ for (xxx in 1:length(s_good)){
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col = "blue")
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
   
+  
   # Print estimate
   est <- round(results[3,1],2)
   
@@ -491,7 +507,9 @@ for (xxx in 1:length(s_good)){
                              est)
   col_est <- ifelse(est>0, "blue", "red")
   
-  text(7.5,1.5, significance_est, col = col_est)
+  text(6.5,1.5, paste("b = ",significance_est, "+/-", round(results[3,2],2)), col = col_est)
+  
+  dev.off()
   
   ###################################################################
   ##                       TRIM ANALYSIS                          ###
@@ -525,15 +543,18 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
   
   #Plot with overall slope
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
   
+  par(mfrow = c(1,1))
+  pdf("PTALC_TRIM.pdf", height = 5, width = 7)
   plot(overall(m3))
-  mtext("TRIM", side = 3, line = 1, cex = 1.2)
+  mtext("TRIM model", side = 3, line = 1, cex = 1.2)
   
   # Print estimate
   est <- round(coef$add[1], 2)
@@ -548,15 +569,12 @@ for (xxx in 1:length(s_good)){
   
   col_est <- ifelse(est > 0, "blue", "red")
   
-  text(2017.5,1.5, significance_est_ci, col = col_est) # Significance for the ci in the right and 
-  text(2011,1.5, significance_est_waldM3, col = col_est) # significance for the wald test of m3 in the left
-  
-  title(s_good[xxx], line = -1, cex = 2, outer = TRUE)
+  text(2017,1.5, paste("b = ",significance_est_ci, "+/-", round(coef$se_add,2)), col = col_est) # Significance for the ci in the right and 
   
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
@@ -565,8 +583,10 @@ for (xxx in 1:length(s_good)){
   
 }
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data/Results/TRIM/6temp/Final")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
 load("HDS_PTALC.RData")
+write.csv(out$summary, file = "Results_PTALC.csv")
+
 
 # Resultados
 # Pag 454 HDS 
