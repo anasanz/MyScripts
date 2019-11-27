@@ -23,7 +23,7 @@ dat <- dat[-which(dat$Species %in% sp_mig), ]
 
 
 #### Remove very scarce (less than 20 detections in total, which is the lower threshold to include PTORI) ####
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
 dat_info <- read.csv("infospecies_ch3_final.csv", sep = ";")
 scarce <- dat_info[which(dat_info$remove_veryscarce == 1), ]
 sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
