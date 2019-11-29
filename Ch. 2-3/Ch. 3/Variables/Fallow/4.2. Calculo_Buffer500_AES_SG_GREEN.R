@@ -13,37 +13,37 @@ library(dplyr)
 # ---- Load data (layers without overlap) ----
 
 # Transects
-tr <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS", "Trans_2010_2018_ch3_EPSG23031") # Contains transects sampled each year (1/0)
+tr <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS", "Trans_2018_EPSG23031") # Contains transects sampled each year (1/0)
 
 # SG
 
-sg14 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/SG", layer = "SG_2014_EPSG23031")
+sg14 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2014_EPSG23031")
 colnames(sg14@data)[colnames(sg14@data) == "Codi"] <- "Codi.2"
-sg15 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/SG", layer = "SG_2015_EPSG23031")
-sg16 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/SG", layer = "SG_2016_EPSG23031")
-sg17 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/SG", layer = "SG_2017_EPSG23031")
-#sg18 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/GIS/SG", layer = "SG_2018_EPSG23031")
-#sg19 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/GIS/SG", layer = "SG_2019_EPSG23031")
+sg15 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2015_EPSG23031")
+sg16 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2016_EPSG23031")
+sg17 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2017_EPSG23031")
+#sg18 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/GIS/SG", layer = "SG_2018_EPSG23031")
+#sg19 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/GIS/SG", layer = "SG_2019_EPSG23031")
 
 
 # AES 
 
-aes14 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2014_EPSG23031")
-aes15 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2015_EPSG23031")
-aes16 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2016_EPSG23031")
-aes17 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2017_EPSG23031")
-#aes18 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2018_EPSG23031")
-#aes19 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2019_EPSG23031")
+aes14 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2014_EPSG23031")
+aes15 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2015_EPSG23031")
+aes16 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2016_EPSG23031")
+aes17 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2017_EPSG23031")
+#aes18 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2018_EPSG23031")
+#aes19 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2019_EPSG23031")
 
 
 # GREEN
 
-#?green14 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2014_EPSG23031")
-green15 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2015_EPSG23031")
-green16 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2016_EPSG23031")
-green17 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2017_EPSG23031")
-#green18 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2018_EPSG23031")
-#green19 <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2019_EPSG23031")
+#?green14 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2014_EPSG23031")
+green15 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2015_EPSG23031")
+green16 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2016_EPSG23031")
+green17 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2017_EPSG23031")
+#green18 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2018_EPSG23031")
+#green19 <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2019_EPSG23031")
 
 # ---- Create buffers and calculate area ----
 
@@ -149,8 +149,10 @@ for (i in 1:length(layers)){
   management[is.na(management)] <- 0 # Substitute NA by 0
 }
 
+management <- management[ ,-c(2,6)] # Remove 2014
+
 # Save
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-#write.csv(management, "management_area_500.csv")
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
+write.csv(management, "management_area_15_17.csv")
 
 
