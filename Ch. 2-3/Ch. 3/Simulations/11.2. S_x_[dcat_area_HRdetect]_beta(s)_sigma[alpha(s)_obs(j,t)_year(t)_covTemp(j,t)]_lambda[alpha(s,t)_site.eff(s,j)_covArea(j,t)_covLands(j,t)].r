@@ -179,6 +179,11 @@ fieldsize_sc <- (field_size - fieldsize_mean) / fieldsize_sd
 
 #ARRANGED INTO AN ARRAY
 
+field_size_sc_data <- array(fieldsize_sc, c(max.sites, nyrs, nSpecies))
+cropdiv_sc_data <- array(cropdiv_sc, c(max.sites, nyrs, nSpecies))
+
+#ARRANGED INTO AN ARRAY
+
 
 lam <- exp(lam.alpha.spyear_data + 
              lam.spsite_data + 
@@ -550,7 +555,7 @@ params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt sav
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 5000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 10000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
 out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt", n.chain = nc,
@@ -561,6 +566,7 @@ summary <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
 data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
+                  bCropdiv, bFieldsize,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,

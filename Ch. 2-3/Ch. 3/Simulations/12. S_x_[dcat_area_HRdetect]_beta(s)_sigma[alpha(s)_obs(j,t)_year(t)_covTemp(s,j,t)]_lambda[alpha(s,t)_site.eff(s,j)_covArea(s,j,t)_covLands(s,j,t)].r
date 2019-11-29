@@ -4,10 +4,10 @@ library(rjags)
 library(jagsUI)
 library(plyr)
 
-set.seed(2013)
+#set.seed(2013)
 
 # MODEL 12
-# Adding species random effects in coefficients from variables of model 11
+# Adding species random effects in coefficients from variables of model 11 (de momento solo probar 1, el de area 1)
 
 # ---- Data simulation ----
 
@@ -132,9 +132,14 @@ lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
 
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
-b.a1 <- 0.9
+# Area 1
+mu.a1 <- 0
+sig.a1 <- 0.5
+b.a1 <- rnorm(nSpecies, mu.a1, sig.a1)
+
 b.a2 <- 1.2
 b.a3 <- -0.5
+
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
@@ -153,11 +158,6 @@ area3_mean <- mean(a3)
 area3_sd <- sd(a3)
 area3_sc <- (a3 - area3_mean) / area3_sd
 
-#ARRANGED INTO AN ARRAY
-
-area1_sc_data <- array(area1_sc, c(max.sites, nyrs, nSpecies))
-area2_sc_data <- array(area2_sc, c(max.sites, nyrs, nSpecies))
-area3_sc_data <- array(area3_sc, c(max.sites, nyrs, nSpecies))
 
 # COVARIATES CROP DIVERSITY AND FIELD SIZE
 # Coefficients
@@ -182,7 +182,7 @@ fieldsize_sc <- (field_size - fieldsize_mean) / fieldsize_sd
 
 lam <- exp(lam.alpha.spyear_data + 
              lam.spsite_data + 
-             array(b.a1*area1_sc, c(max.sites, nyrs, nSpecies)) +
+             array(rep(b.a1,each=max.sites*nyrs)*area1_sc, c(max.sites, nyrs, nSpecies)) +
              array(b.a2*area2_sc, c(max.sites, nyrs, nSpecies)) +
              array(b.a3*area3_sc, c(max.sites, nyrs, nSpecies)) +
              array(bCropdiv*cropdiv_sc, c(max.sites, nyrs, nSpecies)) +
@@ -427,7 +427,8 @@ cat("model{
     # SPECIES SPECIFIC PARAMETERS (random effects)
     
     for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
-    asig[s] ~ dnorm(mu_s, tau_s)}
+    asig[s] ~ dnorm(mu_s, tau_s)
+    b.a1[s] ~ dnorm(mu_a1, tau_a1)}
     
     for (s in 1:nSpecies){              # Random beta per species (dif shape of detection curve per species)
     beta[s] ~ dnorm(mu_b, tau_b)}
@@ -456,10 +457,13 @@ cat("model{
     
     tau_spsite <- 1/(sig_spsite*sig_spsite) # Hyperparameter for site random effect in lambda
     sig_spsite ~ dunif(0,500)
+
+    mu_a1 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area1
+    tau_a1 <- 1/(sig_a1*sig_a1)
+    sig_a1 ~ dunif(0,500)
     
     
     # PRIORS FOR LAMBDA
-    ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
     ba3.lam ~  dnorm(0, 0.001)
     b.cdiv.lam ~  dnorm(0, 0.001)
@@ -514,8 +518,8 @@ cat("model{
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
     lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
-    + ba1.lam*area1[j] + ba2.lam*area2[j] + ba3.lam*area3[j]
-    + b.cdiv.lam*cdiv[j] + b.fsiz.lam*fsiz[j]) 
+                    + b.a1[s]*area1[j] + ba2.lam*area2[j] + ba3.lam*area3[j]
+                    + b.cdiv.lam*cdiv[j] + b.fsiz.lam*fsiz[j]) 
     } }
     # Derived parameters
     
@@ -528,13 +532,13 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt")
+    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(s,j,t)_covLands(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
-                         ba1.lam = runif(1), ba2.lam = runif(1), ba3.lam = runif(1),
+                         mu_a1 = runif(1), sig_a1 = runif(1), ba2.lam = runif(1), ba3.lam = runif(1),
                          b.cdiv.lam = runif(1), b.fsiz.lam = runif(1),
                          sig.sig.ob = runif(1), bTemp = runif(1), sig.sig.year = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1),
@@ -544,16 +548,16 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 # Params
 params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu_l", "sig_l", "sig_spsite",
-            "ba1.lam", "ba2.lam", "ba3.lam", "b.cdiv.lam", "b.fsiz.lam",
+            "mu_a1", "sig_a1", "ba2.lam", "ba3.lam", "b.cdiv.lam", "b.fsiz.lam",
             "sig.sig.ob", "bTemp", "sig.sig.year",
             "mu_s", "sig_s", "mu_b", "sig_b"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 5000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 15000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(s,j,t)_covLands(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
@@ -571,22 +575,4 @@ data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
                   sig.sig.sp = sig.sig.sp,
                   mu.b = mu.b,
                   sig.b = sig.b)
-
-
-
-for (i in 1:nyrs){
-  plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
-       frame = F, main = paste("year",i)) 
-  abline(v = N.tot[i], col = "blue", lwd = 3)
-  abline(v = mean(out$sims.list$Ntotal[,i]), col = "red", lwd = 3)
-}
-
-plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
-abline(v = sigma, col = "blue", lwd = 3) 
-abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
-
-density(out$sims.list$sigma)
-
-###########################################################################################
-
 

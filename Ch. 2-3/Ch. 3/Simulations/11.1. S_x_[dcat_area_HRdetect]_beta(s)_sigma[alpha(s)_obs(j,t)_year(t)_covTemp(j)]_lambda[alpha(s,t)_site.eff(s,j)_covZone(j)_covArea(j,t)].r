@@ -18,12 +18,15 @@ set.seed(2013)
 ### Random sp intercept 
 ### Year random effect
 ### Random effect in observer (site-year)
+# sigma = exp(alpha(s) + observer(j,t) + year(t) + b*Temp(j,t))
+
 
 # Lambda site-year specific
 ### Random sp-year intercept (include different baseline abundance per species and also per year)
 ### sp-Site effect independent of year
 ### Zone variable (site)
 ### 2 areas variables)
+# lambda = exp(alpha(s,t) + sp.site(s,j) + b1*fallowSG(j,t) + b2*fallowAES(j,t) + b3*Zone(j,t)
 
 # Detection function
 g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
@@ -521,7 +524,7 @@ print(out)
 summary <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
-data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, 
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
