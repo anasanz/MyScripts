@@ -6,7 +6,8 @@ library(plyr)
 
 set.seed(2013)
 
-# Same than model 10 but resembling it to my real data (nspecies,nyears,nbins) and change observation model
+# MODEL 11.2 #
+# Same than model 10 but resembling it to my real data (nspecies,nyears,nbins), change observation model and change variables abundance model
 
 # ---- Data simulation ----
 
@@ -18,15 +19,16 @@ set.seed(2013)
 ### Random sp intercept 
 ### Year random effect
 ### Random effect in observer (site-year)
+### Temperature co-variate
 # sigma = exp(alpha(s) + observer(j,t) + year(t) + b*Temp(j,t))
-
 
 # Lambda site-year specific
 ### Random sp-year intercept (include different baseline abundance per species and also per year)
 ### sp-Site effect independent of year
-### Zone variable (site)
-### 2 areas variables)
-# lambda = exp(alpha(s,t) + sp.site(s,j) + b1*fallowSG(j,t) + b2*fallowAES(j,t) + b3*Zone(j,t)
+### 3 areas variables
+### Crop diversity variable
+### Field size variable
+# lambda = exp(alpha(s,t) + sp.site(s,j) + b1*fallowSG(j,t) + b2*fallowAES(j,t) + b3*fallowGREEN(j,t) + b4*Cropdiv(j,t) + b5*Fieldsize(j,t))
 
 # Detection function
 g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
@@ -62,7 +64,6 @@ s.alpha <- rnorm(nSpecies, mu.sig.sp, sig.sig.sp)
 
 # Look at distribution of sigma intercepts (to see if I chose reasonable)
 hist(exp(rnorm(1000, mu.sig.sp, sig.sig.sp)))
-
 
 
 # RANDOM EFFECT IN OBSERVER
@@ -128,18 +129,6 @@ for (i in 1:nSpecies){
 lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
 
 
-#ZONE COVARIATE (SITE)
-# Coefficient (I had created the co-variate already!So dont generate it twice!)
-#ZONE COVARIATE (SITE)
-b.lam.zoneB <- -0.5
-# Site specific binary co-variate
-z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
-z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, z)
-
-zone_data <- array(zone[,2], c(max.sites,nyrs,nSpecies))
-
-
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
 b.a1 <- 0.9
@@ -157,16 +146,36 @@ area2_mean <- mean(a2)
 area2_sd <- sd(a2)
 area2_sc <- (a2 - area2_mean) / area2_sd
 
+
 #ARRANGED INTO AN ARRAY
 
 area1_sc_data <- array(area1_sc, c(max.sites, nyrs, nSpecies))
 area2_sc_data <- array(area2_sc, c(max.sites, nyrs, nSpecies))
 
+# COVARIATES CROP DIVERSITY AND FIELD SIZE
+# Coefficients
+bCropdiv <- 1.5
+
+#   Covariates
+crop_diversity <- round(abs(rnorm(max.sites*nyrs, 7, 3)),0)
+
+#SCALED
+cropdiv_mean <- mean(crop_diversity)
+cropdiv_sd <- sd(crop_diversity)
+cropdiv_sc <- (crop_diversity - cropdiv_mean) / cropdiv_sd
+
+#ARRANGED INTO AN ARRAY
+
+cropdiv_sc_data <- array(cropdiv_sc, c(max.sites, nyrs, nSpecies))
+
+#ARRANGED INTO AN ARRAY
+
+
 lam <- exp(lam.alpha.spyear_data + 
              lam.spsite_data + 
-             array(b.lam.zoneB*zone[,2], c(max.sites,nyrs,nSpecies)) +
              array(b.a1*area1_sc, c(max.sites, nyrs, nSpecies)) +
-             array(b.a2*area2_sc, c(max.sites, nyrs, nSpecies)) ) # I had to multiply the coefficients INSIDE lambda (otherwise it doesn't retrieve the a1 and a2 estimates)
+             array(b.a2*area2_sc, c(max.sites, nyrs, nSpecies)) +
+             array(bCropdiv*cropdiv_sc, c(max.sites, nyrs, nSpecies)) ) # I had to multiply the coefficients INSIDE lambda (otherwise it doesn't retrieve the a1 and a2 estimates)
 
 
 # Abundance per site year (different abundance per species): N.sysp[j,t,s] 
@@ -254,7 +263,15 @@ for (s in 1:nSpecies){
 
 # y.sum is a list of species counts.
 # Contains y per site and year stored in a matrix with columns.
-
+y.sum[[3]]
+sum(y.sum[[3]], na.rm = TRUE)
+y.sum[[2]]
+sum(y.sum[[2]], na.rm = TRUE)
+y.sum[[22]]
+sum(y.sum[[22]], na.rm = TRUE)
+sum(y.sum[[22]], na.rm = TRUE)
+y.sum[[24]]
+sum(y.sum[[24]], na.rm = TRUE)
 
 #############################################
 
@@ -293,6 +310,8 @@ for (i in 1:nyrs){
 # Create one long vector with covariate values
 a1.m <- matrix(area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) # I need to make it from the same matrix
 a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+cropdiv.m <- matrix(cropdiv_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+
 
 area1 <- NULL
 for (i in 1:nyrs){
@@ -304,11 +323,12 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2.m[1:nSites[i],i])
 }
 
-zB <- as.vector(zone[,2])
-zoneB <- NULL
+
+cdiv <- NULL
 for (i in 1:nyrs){
-  zoneB <- c(zoneB,zB[1:nSites[i]])
+  cdiv <- c(cdiv, cropdiv.m[1:nSites[i],i])
 }
+
 
 temperature_sc <- NULL
 for (i in 1:nyrs){
@@ -379,9 +399,9 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, 
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks, year_index = year_index,
               y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks, year_index = year_index, temperature_sc = temperature_sc,
+              area1 = area1, area2 = area2, cdiv = cdiv, ob = ob, nobs = nobs, temperature_sc = temperature_sc,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
 
 # ---- JAGS model ----
@@ -426,11 +446,10 @@ cat("model{
     
     
     # PRIORS FOR LAMBDA
-    
-    bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
-    
+    b.cdiv.lam ~  dnorm(0, 0.001)
+
     
     # PRIORS FOR SIGMA
     
@@ -438,16 +457,16 @@ cat("model{
     
     sig.sig.ob ~ dunif(0, 10) # Random effects for sigma per observer
     tau.sig.ob <- 1/(sig.sig.ob*sig.sig.ob)
-
+    
     sig.sig.year ~ dunif(0, 10) # Random effects for sigma per observer
     tau.sig.year <- 1/(sig.sig.year*sig.sig.year)
-
+    
     #Random observer effect for sigma
     
     for (o in 1:nobs){
     sig.obs[o] ~ dnorm(0, tau.sig.ob)
     }
-
+    
     #Random year effect for sigma
     
     for (t in 1:nyrs){
@@ -479,8 +498,9 @@ cat("model{
     
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
-    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] + bzB.lam*zoneB[j]
-    + ba1.lam*area1[j] + ba2.lam*area2[j]) 
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
+    + ba1.lam*area1[j] + ba2.lam*area2[j] 
+    + b.cdiv.lam*cdiv[j]) 
     } }
     # Derived parameters
     
@@ -493,13 +513,14 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
+    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
-                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
+                         ba1.lam = runif(1), ba2.lam = runif(1),
+                         b.cdiv.lam = runif(1), 
                          sig.sig.ob = runif(1), bTemp = runif(1), sig.sig.year = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1),
                          mu_b = runif(1) , sig_b = runif(1))}
@@ -508,25 +529,27 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 # Params
 params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu_l", "sig_l", "sig_spsite",
-            "bzB.lam", "ba1.lam", "ba2.lam",
+            "ba1.lam", "ba2.lam", "b.cdiv.lam", 
             "sig.sig.ob", "bTemp", "sig.sig.year",
             "mu_s", "sig_s", "mu_b", "sig_b"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 50000 ; nb <- 10000 ; nt <- 2
+nc <- 3 ; ni <- 10000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
+
 setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data/Model")
-save(out, file = "11.1_S.RData")
+save(out, file = "11.2_S.RData")
 
 # To compare:
-data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, 
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
+                  bCropdiv = bCropdiv, bFieldsize = bFieldsize,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
@@ -536,24 +559,4 @@ data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2,
                   mu.sig.sp = mu.sig.sp,
                   sig.sig.sp = sig.sig.sp,
                   mu.b = mu.b,
-                  sig.b = sig.b
-)
-
-
-
-for (i in 1:nyrs){
-  plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
-       frame = F, main = paste("year",i)) 
-  abline(v = N.tot[i], col = "blue", lwd = 3)
-  abline(v = mean(out$sims.list$Ntotal[,i]), col = "red", lwd = 3)
-}
-
-plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
-abline(v = sigma, col = "blue", lwd = 3) 
-abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
-
-density(out$sims.list$sigma)
-
-###########################################################################################
-
-
+                  sig.b = sig.b)

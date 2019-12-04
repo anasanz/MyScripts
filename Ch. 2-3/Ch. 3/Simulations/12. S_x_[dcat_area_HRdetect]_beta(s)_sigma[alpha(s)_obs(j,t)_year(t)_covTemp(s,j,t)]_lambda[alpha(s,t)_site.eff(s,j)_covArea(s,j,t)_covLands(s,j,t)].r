@@ -564,8 +564,9 @@ print(out)
 summary <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
-data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
+data_comp <- list(N.tot = N.tot, mu.a1 = mu.a1, sig.a1 = sig.a1, b.a2 = b.a2, b.a3 = b.a3,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
+                  bCropdiv = bCropdiv, bFieldsize = bFieldsize,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
                   bTemp.sig = bTemp.sig, 

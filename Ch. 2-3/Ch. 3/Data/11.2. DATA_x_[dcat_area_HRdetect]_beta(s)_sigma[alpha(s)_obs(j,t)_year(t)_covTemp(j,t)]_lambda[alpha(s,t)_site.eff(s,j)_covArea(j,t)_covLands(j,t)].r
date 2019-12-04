@@ -1,5 +1,3 @@
-
-
 rm(list=ls())
 
 library(rjags)
@@ -72,7 +70,7 @@ for (s in 1:nSpecies){
   
   for (i in 1:nrow(count_sp)){ # Fill counts per transect and year in df
     m_sp[which(rownames(m_sp) %in% count_sp$transectID[i]), which(colnames(m_sp) %in% count_sp$Year[i])] <- count_sp$Species2[i] 
-    }
+  }
   m_sp[is.na(m)] <- NA # NA in sites not sampled that year
   print(sum(m_sp, na.rm = TRUE)) 
   data_sp[,,s] <- m_sp # Store in array with all species
@@ -80,6 +78,7 @@ for (s in 1:nSpecies){
 
 # ---- Co-variates ----
 
+## FALLOW ##
 setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
 manag <- read.csv("management_area_15_17.csv")
 
@@ -106,18 +105,51 @@ sg_mean <- mean(area_sg)
 sg_sd <- sd(area_sg)
 sg_sc <- (area_sg - sg_mean) / sg_sd
 
-# Zone (Occidental = 0; Oriental = 1)
-zone <- order
-for (i in 1:nrow(zone)){
-  if(substr(zone$Codi[i], 1,2) == "BA"){zone[i,1:4] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "BM"){zone[i,1:4] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "SI"){zone[i,1:4] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "AF"){zone[i,1:4] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "BE"){zone[i,1:4] <- 1}
-  if(substr(zone$Codi[i], 1,2) == "GR"){zone[i,1:4] <- 0}
-  if(substr(zone$Codi[i], 1,2) == "AL"){zone[i,1:4] <- 0}
-}
-zone <- zone[,-4]
+# Area GREEN
+area_green <- as.matrix(manag[ ,c(12:14)])
+
+green_mean <- mean(area_green)
+green_sd <- sd(area_green)
+green_sc <- (area_green - green_mean) / green_sd
+
+## LANDSCAPE ##
+
+# Crop diversity
+
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
+cropdiv <- read.csv("crop_richness_500.csv")
+
+cropdiv <- cropdiv[which(cropdiv$Codi %in% all.sites), ] # Select transects with census
+
+# Be sure the fields are in the same order
+order <- as.data.frame(m)
+order_codi <- as.vector(rownames(order))
+order$Codi <- order_codi
+cropdiv <- left_join(order,cropdiv)
+
+crop_diversity <- as.matrix(cropdiv[ ,c(6:8)])
+
+crop_diversity_mean <- mean(crop_diversity)
+crop_diversity_sd <- sd(crop_diversity)
+crop_diversity_sc <- (crop_diversity - crop_diversity_mean) / crop_diversity_sd
+
+# Field size
+
+fieldsiz <- read.csv("av_fieldsize_500.csv")
+
+fieldsiz <- fieldsiz[which(fieldsiz$Codi %in% all.sites), ] # Select transects with census
+
+# Be sure the fields are in the same order
+order <- as.data.frame(m)
+order_codi <- as.vector(rownames(order))
+order$Codi <- order_codi
+fieldsiz <- left_join(order,fieldsiz)
+
+field_size <- as.matrix(fieldsiz[ ,c(6:8)])
+
+field_size_mean <- mean(field_size)
+field_size_sd <- sd(field_size)
+field_size_sc <- (field_size - field_size_mean) / field_size_sd
 
 # OBSERVATION MODEL #
 
@@ -214,9 +246,18 @@ area_AES <- NULL
 for (i in 1:nyrs){
   area_AES <- c(area_AES,aes_sc[1:length(all.sites),i])}
 
-zon <- NULL
+area_GREEN <- NULL
 for (i in 1:nyrs){
-  zon <- c(zon,zone[1:length(all.sites),i])}
+  area_GREEN <- c(area_GREEN,green_sc[1:length(all.sites),i])}
+
+CDIV <- NULL
+for (i in 1:nyrs){
+  CDIV <- c(CDIV,crop_diversity_sc[1:length(all.sites),i])}
+
+FSIZ <- NULL
+for (i in 1:nyrs){
+  FSIZ <- c(FSIZ,field_size_sc[1:length(all.sites),i])}
+
 
 # Detection covariates
 ob <- NULL
@@ -272,9 +313,9 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG = nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, 
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind = nind, dclass = dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area_SG, area2 = area_AES, zoneB = zon, ob = ob, nobs = nobs, db = dist.breaks, year_index = year_index, temperature_sc = temperature_sc,
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks, year_index = year_index,
+              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
+              area1 = area_SG, area2 = area_AES, area3 = area_GREEN, cdiv = CDIV, fsiz = FSIZ, ob = ob, nobs = nobs, temperature_sc = temperature_sc,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
 
 # ---- JAGS model ----
@@ -319,10 +360,11 @@ cat("model{
     
     
     # PRIORS FOR LAMBDA
-    
-    bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
+    ba3.lam ~  dnorm(0, 0.001)
+    b.cdiv.lam ~  dnorm(0, 0.001)
+    b.fsiz.lam ~  dnorm(0, 0.001)
     
     
     # PRIORS FOR SIGMA
@@ -372,8 +414,9 @@ cat("model{
     
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
-    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] + bzB.lam*zoneB[j]
-    + ba1.lam*area1[j] + ba2.lam*area2[j]) 
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
+    + ba1.lam*area1[j] + ba2.lam*area2[j] + ba3.lam*area3[j]
+    + b.cdiv.lam*cdiv[j] + b.fsiz.lam*fsiz[j]) 
     } }
     # Derived parameters
     
@@ -386,13 +429,14 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
+    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
-                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
+                         ba1.lam = runif(1), ba2.lam = runif(1), ba3.lam = runif(1),
+                         b.cdiv.lam = runif(1), b.fsiz.lam = runif(1),
                          sig.sig.ob = runif(1), bTemp = runif(1), sig.sig.year = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1),
                          mu_b = runif(1) , sig_b = runif(1))}
@@ -401,17 +445,22 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 # Params
 params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu_l", "sig_l", "sig_spsite",
-            "bzB.lam", "ba1.lam", "ba2.lam",
+            "ba1.lam", "ba2.lam", "ba3.lam", "b.cdiv.lam", "b.fsiz.lam",
             "sig.sig.ob", "bTemp", "sig.sig.year",
             "mu_s", "sig_s", "mu_b", "sig_b"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 5000 ; nb <- 2000 ; nt <- 2
+nc <- 3 ; ni <- 10000 ; nb <- 2000 ; nt <- 2
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
+
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data/Model")
+save(out, file = "11.2_D.RData")
+
+

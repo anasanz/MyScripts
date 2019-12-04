@@ -66,7 +66,6 @@ s.alpha <- rnorm(nSpecies, mu.sig.sp, sig.sig.sp)
 hist(exp(rnorm(1000, mu.sig.sp, sig.sig.sp)))
 
 
-
 # RANDOM EFFECT IN OBSERVER
 obs <- 1:9
 nobs <- length(obs)
@@ -279,7 +278,15 @@ for (s in 1:nSpecies){
 
 # y.sum is a list of species counts.
 # Contains y per site and year stored in a matrix with columns.
-
+y.sum[[3]]
+sum(y.sum[[3]], na.rm = TRUE)
+y.sum[[2]]
+sum(y.sum[[2]], na.rm = TRUE)
+y.sum[[22]]
+sum(y.sum[[22]], na.rm = TRUE)
+sum(y.sum[[22]], na.rm = TRUE)
+y.sum[[24]]
+sum(y.sum[[24]], na.rm = TRUE)
 
 #############################################
 
@@ -564,9 +571,12 @@ print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
 
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data/Model")
+save(out, file = "11.2_S.RData")
+
 # To compare:
 data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
-                  bCropdiv, bFieldsize,
+                  bCropdiv = bCropdiv, bFieldsize = bFieldsize,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
@@ -578,21 +588,5 @@ data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
                   mu.b = mu.b,
                   sig.b = sig.b)
 
-
-
-for (i in 1:nyrs){
-  plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
-       frame = F, main = paste("year",i)) 
-  abline(v = N.tot[i], col = "blue", lwd = 3)
-  abline(v = mean(out$sims.list$Ntotal[,i]), col = "red", lwd = 3)
-}
-
-plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
-abline(v = sigma, col = "blue", lwd = 3) 
-abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
-
-density(out$sims.list$sigma)
-
-###########################################################################################
 
 
