@@ -7,50 +7,34 @@ library(jagsUI)
 library(dplyr)
 library(rtrim)
 
-# Compare methods using the HDS model 6. Same as comparemethods6 but using the HAZARD RATE detection function on the
-# species that have bad bayesian p-values
+# Compare methods using the HDS model 5.1 (temperature but no wind) and the se as a measure of significance of model 3 (TRIM)
+# From script 5. Comparemethods but removing wind co-variate (less important) and scaling temperature.
 
 ###################################################################
 ##                       Prepare data                           ###
 ###################################################################
 
-setwd("S:/PhD/Second chapter/Data")
 
-d <- read.csv("DataDS_ready_ALL.csv")
+
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+#setwd("D:/ANA/Data/chapter2")
+d <- read.csv("DataDS_ready_ALL_revch2.csv")
+
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+#setwd("D:/ANA/Data/chapter2")
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
-s <- read.csv("sp_trend_dg.csv", sep = ";")
-s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
-remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
-s_good <- s_good[-which(s_good %in% remove_6)] # SPECIES THAT CONVERGE FOR MODEL 6
+zep <- read.csv("zepa.csv")
 
+# Load species names
 
-# TAKE SPECIES WITH BAD BP-VALUES
-
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM/6temp")
-load("spConvergence_light.RData")
-
-Bp6 <- data.frame(matrix(NA,ncol = 5,nrow = length(s_good)))
-colnames(Bp6) <- c("sp", "Bp.Obs", "lci", "uci", "over_0")
-
-for (i in 1:length(s_good)) {
-  dat <- data.frame(species[[i]][[2]]) 
-  est_Bp6 <- dat[which(rownames(dat) %in% "Bp.Obs"), c(1,3,7,10)]
-  Bp6[i,1] <- s_good[i]
-  Bp6[i,c(2:5)] <- est_Bp6 
-}
-
-Bp6_bad <- Bp6[which(Bp6$Bp.Obs < 0.1 | Bp6$Bp.Obs > 0.9), ]
-
-sbp <- Bp6_bad$sp
-
-# REMOVE CIAER AND FATIN BECAUSE THE DF IS NOT DECREASING WITH DISTANCE (SEE WITH SCRIPT BpObs_detectfunc.r)???
-# leave like this by the moment
-
-s_good <- sbp
-
+hn <- c("ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
+        "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
+hr <- c("TERAX", "BUOED", "TUMER")
+all <- c("TERAX", "BUOED", "TUMER","ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
+         "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
+s_good <- all[1:2]
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -59,11 +43,10 @@ for (xxx in 1:length(s_good)){
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
   # species was there but it wasnt sampled
-  
   d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer", "Temp"))]
   d_tr_all <- data.frame(T_Y = unique(d_tr$T_Y), id = NA)
   
-  d_tr$Observer <- as.character(d_tr$Observer) 
+  d_tr$Observer <- as.character(d_tr$Observer)
   d_tr_all_obs <- left_join(d_tr_all, d_tr)
   d_tr_all_obs <- d_tr_all_obs[ ,c(1,4,5)]
   d_tr_all_obs <- d_tr_all_obs[which(!duplicated(d_tr_all_obs)), ] # Table with all sampled fields, which observer sampled it and wind and temperature
@@ -79,6 +62,7 @@ for (xxx in 1:length(s_good)){
   absent$Species <- s_good[xxx]
   absent$Cluster <- NA
   absent <- left_join(absent, d_tr_all_obs) 
+ 
   
   
   for (i in 1:nrow(absent)){ # Format to join absent - detections
@@ -107,11 +91,11 @@ for (xxx in 1:length(s_good)){
   
   # ---- Information: bins, years, sites ----
   
-  strip.width <- 200 				
-  dist.breaks <- c(0,25,50,100,200)
+  strip.width <- 500 				# strip half-width, w (in this example only one side of the line transect is surveyed)
+  dist.breaks <- c(0,25,50,100,200,500)
   int.w <- diff(dist.breaks) # width of distance categories (v)
-  midpt <- diff(dist.breaks)/2+dist.breaks[-5]
-  nG <- length(dist.breaks)-1
+  midpt <- (int.w/2) + dist.breaks[-6]
+  nG <- length(dist.breaks)-1	
   
   yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
   nyrs <- length(yrs)
@@ -241,17 +225,57 @@ for (xxx in 1:length(s_good)){
       year.dclass <- c(year.dclass, rep(t, m_index[j,t]))
     } }
   
+  # Create one matrix for indexing SITE (SPA) when calculating abundance per year and spa in JAGS (works for all species)
+  # Vector where SPA = numbers
+  sites_df <- data.frame(all.sites)
+  colnames(sites_df)[1] <- "transectID"
+  zepas <- left_join(sites_df, zep)
+  
+  # Missing AL21 and AL4 (not digitalized, I add them manually here)
+  zepas[zepas$transectID == "AL04", c(3,4)] <- c("no", "AL")
+  zepas[zepas$transectID == "AL21", c(3,4)] <- c("no", "AL")
+  
+  zepas$Zepa <- as.character(zepas$Zepa)
+  zepas$SECTOR <- as.character(zepas$SECTOR)
+  
+  zepas$index <- zepas$SECTOR # Add category "no zepa"
+  zepas$index[which(zepas$Zepa == "no")] <- "NZ"
+  allzepas <- rep(zepas$index,nyrs)
+  
+  
+  a <- data.frame(allzepas = zepas$index)
+  a$allzepas <- as.factor(a$allzepas)
+  indexZepas <- model.matrix(~ allzepas-1, data = a)
+
+  nspa <- length(unique(zepas$index))
+  
+  # Check (conteo de individuos por zepa. EN modelo se hace lo mismo pero con la abundancia)
+  m_index <- m
+  m_index[is.na(m_index)] <- 0
+  
+  pop_zepa <- matrix(NA, nrow = nspa, ncol = nyrs)
+  rownames(pop_zepa) <- colnames(indexZepas)
+  colnames(pop_zepa) <- yrs
+  
+  
+  for(t in 1:nyrs){
+    for(s in 1:nspa){
+      pop_zepa[s,t] <- sum(m_index[,t]*indexZepas[,s])
+    }}
+  
   
   ####
   # ---- Compile data for JAGS model ----
   
   data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
                 year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs, nspa = nspa, indexSPA = indexZepas)
   
   # ---- JAGS model ----
   
-  setwd("S:/PhD/Second chapter/Data/Model")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Model")
+  #setwd("D:/ANA/Model")
+  
   cat("model{
       
       # PRIORS
@@ -302,11 +326,6 @@ for (xxx in 1:length(s_good)){
       log.sigma.year[t] ~ dnorm(0, tau.sig.year)
       }
       
-      
-      # PRIOR FOR BETA
-      b ~ dunif(0, 100)
-      
-      
       for(i in 1:nind){
       dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
       
@@ -330,13 +349,18 @@ for (xxx in 1:length(s_good)){
       
       for(k in 1:nG){ 
       
-      p[j,1,k]<-1-exp(-(midpt[k]/sigma[j,1])^-b)
+      up[j,1,k]<-pnorm(db[k+1], 0, 1/sigma[j,1]^2) ##db are distance bin limits
+      low[j,1,k]<-pnorm(db[k], 0, 1/sigma[j,1]^2) 
+      p[j,1,k]<- 2 * (up[j,1,k] - low[j,1,k])
       pi[j,1,k] <- int.w[k] / strip.width 
-      fc[j,1,k]<- p[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
+      f[j,1,k]<- p[j,1,k]/f.0[j,1]/int.w[k]                   ## detection prob. in distance category k                      
+      fc[j,1,k]<- f[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
       fct[j,1,k]<-fc[j,1,k]/pcap[j,1] 
       }
       
       pcap[j,1] <- sum(fc[j,1, 1:nG]) # Different per site and year (sum over all bins)
+      
+      f.0[j,1] <- 2 * dnorm(0,0, 1/sigma[j,1]^2) # Prob density at 0
       
       
       y[j,1] ~ dbin(pcap[j,1], N[j,1]) 
@@ -365,13 +389,18 @@ for (xxx in 1:length(s_good)){
       
       for(k in 1:nG){ 
       
-      p[j,t,k]<-1-exp(-(midpt[k]/sigma[j,t])^-b)
+      up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
+      low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
+      p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
       pi[j,t,k] <- int.w[k] / strip.width 
-      fc[j,t,k]<- p[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
+      f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
+      fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
       fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
       }
       
       pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
+      
+      f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
       
       
       y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
@@ -401,7 +430,12 @@ for (xxx in 1:length(s_good)){
       for(t in 1:nyears){
       popindex[t] <- sum(lambda[,t])
       }
-      
+
+      for(t in 1:nyears){
+      for(s in 1:nspa){
+        popindex_zepa[s,t] <- sum(lambda[,t]*indexSPA[,s])
+      }}
+
       # Expected abundance per year inside model
       
       lam.tot[1] <- popindex[1] # Expected abundance in year 1
@@ -410,38 +444,39 @@ for (xxx in 1:length(s_good)){
       exp(bYear.lam)}
       
       
-}",fill=TRUE, file = "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
 
-  
   
   # Inits
   Nst <- m + 1
-  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), b = runif(1),
+  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
                            mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                            N = Nst)} 
   
   # Params
-  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", "b", 
-               "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", 
-               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year"
+  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
+               "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
+               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year", "popindex_zepa"
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 400000 ; nb <- 100000 ; nt <- 5
+  nc <- 3 ; ni <- 170000 ; nb <- 5000 ; nt <- 5
   
   # With jagsUI 
-  out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
               n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
   summary <- out$summary
   print(out)
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+  setwd("D:/ANA/Results/chapter2/HN")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/HN")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -484,7 +519,8 @@ for (xxx in 1:length(s_good)){
   
   # 2. Plot
   
-  setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/HR_df")
+  #setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/Plots/HN")
   pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
   par(mfrow = c(1,2))
@@ -546,7 +582,8 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/HN")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
@@ -577,7 +614,9 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/HR_df")
+  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/HN")
+  
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
@@ -585,3 +624,4 @@ for (xxx in 1:length(s_good)){
   print(s_good[xxx])
   
 }
+

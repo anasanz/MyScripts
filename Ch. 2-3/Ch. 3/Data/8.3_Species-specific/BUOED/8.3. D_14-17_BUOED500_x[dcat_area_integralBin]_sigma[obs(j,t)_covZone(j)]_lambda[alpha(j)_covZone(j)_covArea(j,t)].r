@@ -166,23 +166,18 @@ for (i in 1:nrow(absent)){
 
 # ---- Specify data in JAGS format ----
 
+##### For multinomial model (model the observations in bins) ######
+
 # Distance class and ind
 nind <- nrow(mec)
 dclass <- mec$Banda
-
 
 # Get one long vector with counts per year and site
 yLong <- unlist(as.data.frame(m), use.names = F)
 
 
-sitesYears <- NULL
-for (i in 1:nyrs){
-  sitesYears <- c(sitesYears,c(1:length(all.sites)))}
-
 # Get one long vector for each site-year combination of each dclass observation
-
 ###RS: Fixed index to map dclass onto site-year combinations
-
 # For the index, create a vector of ylong where NA are 0 (because I need the same length)
 yLong_index <- yLong
 yLong_index[which(is.na(yLong_index))] <- 0
@@ -193,6 +188,9 @@ siteYear.dclass <- NULL
 for (i in 1:n.allSiteYear){
   siteYear.dclass <- c(siteYear.dclass,rep(i, yLong_index[i]))} 
 
+sitesYears <- NULL
+for (i in 1:nyrs){
+  sitesYears <- c(sitesYears,c(1:length(all.sites)))}
 
 # Get one vector per co-variate
 
