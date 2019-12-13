@@ -27,17 +27,16 @@ zep <- read.csv("zepa.csv")
 
 # Load species names
 
-hn <- c("ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
-        "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
-hr <- c("TERAX", "BUOED", "TUMER")
 all <- c("TERAX", "BUOED", "TUMER","ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
          "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
-s_good <- all[1:2]
+s_good <- c("TERAX", "BUOED")
 
+# ONLY for TERAX_F and TERAX_M
+#d$Species <- d$Species2
+#d <- d[,-27]
 
 # Start loop
 for (xxx in 1:length(s_good)){
-  
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
@@ -455,7 +454,7 @@ for (xxx in 1:length(s_good)){
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 400000 ; nb <- 100000 ; nt <- 5
+  nc <- 3 ; ni <- 200000 ; nb <- 10000 ; nt <- 5
   
   # With jagsUI 
   out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
@@ -535,8 +534,9 @@ for (xxx in 1:length(s_good)){
   
   ##add in actual abundance estimates to check
   
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col = "blue")
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
+  pop <- out$summary[grep("popindex", rownames(out$summary)),1]
+  points(yrs2, pop[1:9], pch = 19, type = "l", col = "blue")
+  points(yrs2, pop[1:9], pch = 19)
   
   # Print estimate
   est <- round(results[3,1],2)

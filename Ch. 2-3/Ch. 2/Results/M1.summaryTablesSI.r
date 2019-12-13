@@ -8,7 +8,7 @@ library(tidyr)
 
 # 1. Number of transects per year
 
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_ALL.csv")
 d_transects <- d[ ,which(colnames(d) %in% c("Year", "T_Y", "transectID"))]
 d_transects <- d_transects[which(!duplicated(d_transects$T_Y)), ]
@@ -25,17 +25,19 @@ d_transects1 <- d_transects[ ,-which(colnames(d_transects) %in% c("T_Y"))]
 d_transects1$transectID2 <- d_transects1$transectID
 d_transects2 <- spread(d_transects1, Year, transectID)
 nrow(d_transects2)
-nrow(d_transects2[complete.cases(d_transects2), ])/nrow(d_transects2) # % of transects not sampled every year
-
+nrow(d_transects2[complete.cases(d_transects2), ])/nrow(d_transects2) # % of transects sampled every year
+1-0.4337349 # % Of transects not sampled every year
 nas <- function(x){
 num_na <- sum(is.na(x))
 return(num_na)
 }
 
 number_nas <- apply(d_transects2[,c(2:10)],1, function (x) nas(x)) 
-length(number_nas[which(number_nas > 2)])
+length(number_nas[which(number_nas == 0)])/nrow(d_transects2) # % of transects sampled every year
+
+length(number_nas[which(number_nas > 0 & number_nas < 3)])/nrow(d_transects2)
 length(number_nas[which(number_nas > 2)])/nrow(d_transects2) # % of transects not sampled more than 2 years
-1-0.1746
+1-0.1746 # % of transects sampled at least 8 years
 
 # From ARCGIS (study area map, layer that intersects spa with transects): 133 transects intersect with SPA
 133/166
