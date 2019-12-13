@@ -110,6 +110,7 @@ dat[which(dat$Species == "STSSP"), ]
 dat$Species[which(dat$Species == "STVUL")] <- "STSSP" 
 dat$Species[which(dat$Species == "STUNI")] <- "STSSP" 
 
+
 # These are the species that I will analyze (select in the script of the model), but I dont delete them now because I need all to detect the absences in
 # the transect:
 
@@ -243,6 +244,13 @@ unique(dat$Wind)
 dat[which(is.na(dat$Wind)), ] 
 dat$Wind[which(dat$T_Y == "BM06_2010")] <- 1
 
+#### Include/Check TERAX_F and TERAX_M to try to make work the models ####
+
+dat$Species2 <- dat$Species
+dat$Species2 <- as.character(dat$Species2)
+dat$Species2[which(dat$Species2 == "TERAX" & dat$Sex == 0)] <- "TERAX_ind"
+dat$Species2[which(dat$Species2 == "TERAX" & dat$Sex == 1)] <- "TERAX_M"
+dat$Species2[which(dat$Species2 == "TERAX" & dat$Sex == 2)] <- "TERAX_F"
 
 setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
 write.csv(dat,"DataDS_ready_ALL_revch2.csv") 

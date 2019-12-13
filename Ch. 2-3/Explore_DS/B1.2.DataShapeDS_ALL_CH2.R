@@ -7,7 +7,7 @@ library(dplyr)
 library(stringr)
 
 #setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 
 dat1 <- read.csv("DataDS.csv", sep = ";")
 dat1$Especie <- as.character(dat1$Especie)
@@ -21,7 +21,7 @@ colnames(dat1)[which(colnames(dat1) == "Transecte_detall.Id_transecte_detall")] 
 # from 2018 are right. However, I still use DataDS and join it with DataDS2018 because I want to make sure
 # that the observations from DataDS have the same order than before.
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 
 dat18 <- read.csv("DataDS2018.csv", sep = ";")
 dat18 <- dat18[ ,-c(2,15)] # To have the same columns than 2010 - 2017
@@ -71,7 +71,7 @@ for (i in 1:nrow(dat)){
 }
 
 # ---- Distance ----
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
 colnames(band)[1] <- "Banda"
 
@@ -261,6 +261,9 @@ dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 #   lost <- round((nrow(dat_sp_S)/nrow(dat_sp_all))*100,2)
 #   m[i,2] <- lost
 # }
+
+#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
+#write.csv(dat,"DataDS_ch2_SEEN_HEARD.csv") 
 
 ## I loose mainly from Terax and Buoed (interesting), but it is needed so select only SEEN
 
