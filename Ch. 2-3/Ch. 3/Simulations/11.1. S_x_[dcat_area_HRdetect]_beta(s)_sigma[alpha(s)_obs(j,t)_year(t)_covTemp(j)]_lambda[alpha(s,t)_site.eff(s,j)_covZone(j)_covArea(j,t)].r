@@ -521,12 +521,16 @@ out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_ye
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 print(out)
 
+traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
+                              "bzB.lam", "ba1.lam", "ba2.lam",
+                              "sig.sig.ob", "bTemp", "sig.sig.year",
+                              "mu_s", "sig_s", "mu_b", "sig_b"))
 summary <- as.data.frame(as.matrix(out$summary))
 setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data/Model")
 save(out, file = "11.1_S.RData")
 
 # To compare:
-data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, 
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
