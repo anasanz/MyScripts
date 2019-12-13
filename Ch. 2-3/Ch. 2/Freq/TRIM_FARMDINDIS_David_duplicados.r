@@ -16,8 +16,8 @@ oriSG <- read.csv("ZEPA_orientals.csv", header = TRUE, sep = ";")
 
 count_data <- rbind(ambSG, zepaSG, occSG, oriSG)
 
-count_data$count[which(count_data$count == -1)] <- NA
-count_data <- count_data[-which(duplicated(count_data)), ]
+#count_data$count[which(count_data$count == -1)] <- NA # Mejor cambiar los -1 a NA
+#count_data <- count_data[-which(duplicated(count_data)), ] # Si hay duplicados
 
 sp <- unique(count_data$sp)
 sp <- sp[-which(sp %in% c("CAENS", "PTALC"))] # Quitar las que dan problemas (si el loop no funciona, con el comando print(i))
