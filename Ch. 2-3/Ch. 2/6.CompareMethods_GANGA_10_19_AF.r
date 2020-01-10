@@ -19,8 +19,7 @@ setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_para_Ganga.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-zep <- read.csv("zepa.csv")
+hist(d$distance, breaks = c(0,25,50,99,200,500), col = "grey", freq = FALSE)
 
 # Load species names
 
@@ -80,14 +79,14 @@ for (xxx in 1:length(s_good)){
   ###################################################################
   
   # ---- Information: bins, years, sites ----
-  
-  strip.width <- 200 				
-  dist.breaks <- c(0,25,50,100,200)
+
+  strip.width <- 500 				
+  dist.breaks <- c(0,25,50,100,200,500)
   int.w <- diff(dist.breaks) # width of distance categories (v)
-  midpt <- diff(dist.breaks)/2+dist.breaks[-5]
+  midpt <- diff(dist.breaks)/2+dist.breaks[-6]
   nG <- length(dist.breaks)-1
   
-  yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
+  yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019) # I HAVE TO CONVERT THIS FROM 0-9 (but nyrs is still 8!)
   nyrs <- length(yrs)
   
   # ---- Distance observations ----
@@ -122,7 +121,7 @@ for (xxx in 1:length(s_good)){
   
   
   # Year
-  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
+  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) # To make it as a continuous variable, otherwise it doesnt work
   year <- matrix(NA,nrow = max.sites, ncol = nyrs)
   colnames(year) <- yrs
   for (i in 1:nyrs){
@@ -172,11 +171,11 @@ for (xxx in 1:length(s_good)){
   
   # Number of sites sampled per year
   nsites_year <- apply(m, 2, function(x) sum(complete.cases(x)))
-
+  
   # Co-variates
   
-  yrs <- 1:9 
-  year_number <- 0:8
+  yrs <- 1:10 
+  year_number <- 0:9
   
   
   # Matrix with observers
@@ -386,7 +385,7 @@ for (xxx in 1:length(s_good)){
       D[t] <- popindex[t]/area[t]
       A[t] <- D[t] * 7000 # D*Total sup. censada (tamaño de la cepa de Alfés en Ha)
       }
-
+      
       # Expected abundance per year inside model
       
       lam.tot[1] <- popindex[1] # Expected abundance in year 1
@@ -419,26 +418,28 @@ for (xxx in 1:length(s_good)){
   summary <- out$summary
   print(out)
   
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/4. GOOD_10_19_5BIN_ALFES")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/4. GOOD_10_19_5BIN_ALFES")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   summary <- as.data.frame(as.matrix(out$summary))
   
-  results <- summary[which(rownames(summary) %in% c("popindex[1]", "popindex[2]", "popindex[3]", "popindex[4]", "popindex[5]", "popindex[6]", "popindex[7]", "popindex[8]", "popindex[9]",
+  write.csv(summary, file = "Results_PTALC_10_19_AF.csv")
+  
+  results <- summary[which(rownames(summary) %in% c("popindex[1]", "popindex[2]", "popindex[3]", "popindex[4]", "popindex[5]", "popindex[6]", "popindex[7]", "popindex[8]", "popindex[9]", "popindex[10]",
                                                     "mu.lam.site", "sig.lam.site", "bYear.lam")), ]
   
   ## ---- POPULATION TREND PLOT ---- ##
   
   # Based on expected N
   
-  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) 
+  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) 
   
   # 1. Calculate predictions for both zones
   
@@ -471,14 +472,14 @@ for (xxx in 1:length(s_good)){
   #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Plots/6temp/Final")
   #pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/4. GOOD_10_19_5BIN_ALFES")
   pdf("PTALC_HDS.pdf", height = 5, width = 7)
   
   par(mfrow = c(1,1))
   
-  plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = " ", ylab = " ", axes = FALSE)
+  plot(-15, xlim=c(0,9), ylim=c(0,max(uci.exp)+20), main = " ", xlab = " ", ylab = " ", axes = FALSE)
   axis(2)
-  axis(1,at = c(0:8), labels = c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018"))
+  axis(1,at = c(0:9), labels = c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019"))
   mtext("Hierarchical Distance Sampling model", side = 3, line = 1, cex = 1.5)
   mtext("Year", side = 1, line = 3, cex = 1)
   mtext("Abundance in transects", side = 2, line = 3, cex = 1)
@@ -493,7 +494,6 @@ for (xxx in 1:length(s_good)){
   points(mean.pred.exp ~ yrs2, type="l", col = "red")
   
   ##add in actual abundance estimates to check
-  
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col = "blue")
   points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
   
@@ -542,13 +542,13 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/4. GOOD_10_19_5BIN_ALFES")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
   
   #Plot with overall slope
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/4. GOOD_10_19_5BIN_ALFES")
   
   par(mfrow = c(1,1))
   pdf("PTALC_TRIM.pdf", height = 5, width = 7)
@@ -573,18 +573,16 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/4. GOOD_10_19_5BIN_ALFES")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
   
   print(s_good[xxx])
   
-}
+  }
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
-load("HDS_PTALC.RData")
-write.csv(out$summary, file = "Results_PTALC.csv")
+
 
 
 # Resultados
@@ -592,3 +590,4 @@ write.csv(out$summary, file = "Results_PTALC.csv")
 # 1. Area de superficie censada cada año t: area[t] <- nsites[t]*length(500)*width(400)
 # 2. Densidad: pop.index[t]/area[t]
 # 3. Abundancia: D[t]*Sup.censada[t]
+ 

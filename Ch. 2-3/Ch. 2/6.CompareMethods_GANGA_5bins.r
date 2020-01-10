@@ -10,6 +10,9 @@ library(rtrim)
 # Compare methods using the HDS model 5.1 (temperature but no wind) and the se as a measure of significance of model 3 (TRIM)
 # From script 5. Comparemethods but removing wind co-variate (less important) and scaling temperature.
 
+# MODELO GANGA CON 5 BINS 2010-2019 CORRIDO PARA ALFES Y GRANJA (POR ZEPA)
+# ES EN TEORIA IGUAL QUE 6. COMPAREMETHODS_GANGA_10_19_AF PERO AL METER GR NO ME FIO DE SI ESTÁ BIEN EL MODELO (POPINDEX_ZEPA)
+# ASI QUE ME QUEDO CON EL DE SOLO ALFES POR SI A CASO
 ###################################################################
 ##                       Prepare data                           ###
 ###################################################################
@@ -19,8 +22,11 @@ setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 d <- read.csv("DataDS_ready_para_Ganga.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
+# Select ALFES, GRANJA y NO ZEPA
 setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
 zep <- read.csv("zepa.csv")
+zep <- zep[which(zep$SECTOR %in% c("AF", "GR")), ]
+
 
 # Load species names
 
@@ -81,13 +87,13 @@ for (xxx in 1:length(s_good)){
   
   # ---- Information: bins, years, sites ----
   
-  strip.width <- 200 				
-  dist.breaks <- c(0,25,50,100,200)
+  strip.width <- 500 				
+  dist.breaks <- c(0,25,50,100,200,500)
   int.w <- diff(dist.breaks) # width of distance categories (v)
-  midpt <- diff(dist.breaks)/2+dist.breaks[-5]
+  midpt <- diff(dist.breaks)/2+dist.breaks[-6]
   nG <- length(dist.breaks)-1
   
-  yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
+  yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
   nyrs <- length(yrs)
   
   # ---- Distance observations ----
@@ -122,7 +128,7 @@ for (xxx in 1:length(s_good)){
   
   
   # Year
-  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
+  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) # To make it as a continuous variable, otherwise it doesnt work
   year <- matrix(NA,nrow = max.sites, ncol = nyrs)
   colnames(year) <- yrs
   for (i in 1:nyrs){
@@ -175,8 +181,8 @@ for (xxx in 1:length(s_good)){
 
   # Co-variates
   
-  yrs <- 1:9 
-  year_number <- 0:8
+  yrs <- 1:10 
+  year_number <- 0:9
   
   
   # Matrix with observers
@@ -218,13 +224,55 @@ for (xxx in 1:length(s_good)){
       year.dclass <- c(year.dclass, rep(t, m_index[j,t]))
     } }
   
+  # Create one matrix for indexing SITE (SPA) when calculating abundance per year and spa in JAGS (works for all species)
+  # Vector where SPA = numbers
+  sites_df <- data.frame(all.sites)
+  colnames(sites_df)[1] <- "transectID"
+  zepas <- left_join(sites_df, zep)
+  
+  # Missing AL21 and AL4 (not digitalized, I add them manually here)
+  #zepas[zepas$transectID == "AL04", c(3,4)] <- c("no", "AL")
+  #zepas[zepas$transectID == "AL21", c(3,4)] <- c("no", "AL")
+  
+  zepas$Zepa <- as.character(zepas$Zepa)
+  zepas$SECTOR <- as.character(zepas$SECTOR)
+  
+  #zepas$index <- zepas$SECTOR # Add category "no zepa"
+  #zepas$index[which(zepas$Zepa == "no")] <- "NZ"
+  #allzepas <- rep(zepas$index,nyrs)
+  
+  
+  #a <- data.frame(allzepas = zepas$index)
+  a <- data.frame(allzepas = zepas$SECTOR)
+  a$allzepas <- as.factor(a$allzepas)
+  indexZepas <- model.matrix(~ allzepas-1, data = a)
+  
+  nspa <- length(unique(zepas$SECTOR)) 
+  
+  # Check (conteo de individuos por zepa. EN modelo se hace lo mismo pero con la abundancia)
+  m_index <- m
+  m_index[is.na(m_index)] <- 0
+  
+  pop_zepa <- matrix(NA, nrow = nspa, ncol = nyrs)
+  rownames(pop_zepa) <- colnames(indexZepas)
+  colnames(pop_zepa) <- yrs
+  
+  
+  for(t in 1:nyrs){
+    for(s in 1:nspa){
+      pop_zepa[s,t] <- sum(m_index[,t]*indexZepas[,s])
+    }}
+  
+  max.sites_AF_GR <- c(30,4) # Number of transects per zepa
+  a_zepa <- c(7000,1) # Area per zepa
   
   ####
   # ---- Compile data for JAGS model ----
   
   data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
                 year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs, max.sites = max.sites)
+                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs, max.sites = max.sites_AF_GR,
+                nspa = nspa, indexSPA = indexZepas, a_zepa = a_zepa)
   
   # ---- JAGS model ----
   
@@ -378,14 +426,31 @@ for (xxx in 1:length(s_good)){
       # Bayesian p-value
       Bp.N <- T1newp > T1p
       
-      # Derived parameters
+ # Derived parameters
+      
+     # for(t in 1:nyears){
+    #    popindex[t] <- sum(lambda[,t])  
+     #   area[t] <- (max.sites*500*400)/10000 # nsites[t]*length(500)*width(400): Area de superficie censada 
+      #  D[t] <- popindex[t]/area[t]
+      # A[t] <- D[t] * 7000 # D*Total sup. censada (tamaño de la cepa de Alfés en Ha)
+      #}
+
+# Derived parameters
       
       for(t in 1:nyears){
-      popindex[t] <- sum(lambda[,t])  
-      area[t] <- (max.sites*500*400)/10000 # nsites[t]*length(500)*width(400): Area de superficie censada 
-      D[t] <- popindex[t]/area[t]
-      A[t] <- D[t] * 7000 # D*Total sup. censada (tamaño de la cepa de Alfés en Ha)
+      popindex[t] <- sum(lambda[,t])
       }
+      
+      for(t in 1:nyears){
+      for(s in 1:nspa){
+      popindex_zepa[s,t] <- sum(lambda[,t]*indexSPA[,s])
+      area_zepa[s,t] <- (max.sites[s]*500*1000)/10000 # nsites[t]*length(500)*width(1000): Area de superficie censada 
+      D_zepa[s,t] <- popindex_zepa[s,t]/area_zepa[s,t]
+      A_zepa[s,t] <- D_zepa[s,t] * a_zepa[s] # D*Total sup. censada (tamaño de la cepa de Alfés en Ha)
+
+      }}
+      
+
 
       # Expected abundance per year inside model
       
@@ -395,7 +460,7 @@ for (xxx in 1:length(s_good)){
       exp(bYear.lam)}
       
       
-}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP_GANGA.txt")
 
   
   # Inits
@@ -407,25 +472,25 @@ for (xxx in 1:length(s_good)){
   # Params
   params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
                "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
-               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year", "area", "D", "A"
+               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year", "area_zepa", "D_zepa", "A_zepa", "popindex_zepa"
   )
   
   # MCMC settings
   nc <- 3 ; ni <- 700000 ; nb <- 100000 ; nt <- 5
-  
+
   # With jagsUI 
-  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP_GANGA.txt", n.chain = nc,
               n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
   summary <- out$summary
   print(out)
   
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/10_19_5BIN")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/10_19_5BIN")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -438,7 +503,7 @@ for (xxx in 1:length(s_good)){
   
   # Based on expected N
   
-  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) 
+  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) 
   
   # 1. Calculate predictions for both zones
   
@@ -471,7 +536,7 @@ for (xxx in 1:length(s_good)){
   #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Plots/6temp/Final")
   #pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/10_19_5BIN")
   pdf("PTALC_HDS.pdf", height = 5, width = 7)
   
   par(mfrow = c(1,1))
@@ -542,13 +607,13 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/10_19_5BIN")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
   
   #Plot with overall slope
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/10_19_5BIN")
   
   par(mfrow = c(1,1))
   pdf("PTALC_TRIM.pdf", height = 5, width = 7)
@@ -573,7 +638,7 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga")
+  setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Results/Ganga/10_19_5BIN")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))

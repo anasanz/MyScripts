@@ -32,8 +32,8 @@ all <- c("TERAX", "BUOED", "TUMER","ALRUF","CACAR","COOEN","COPAL","GACRI","GATH
 s_good <- c("TERAX_M")
 
 # ONLY for TERAX_F and TERAX_M
-#d$Species <- d$Species2
-#d <- d[,-27]
+d$Species <- d$Species2
+d <- d[,-27]
 
 # Start loop
 for (xxx in 1:length(s_good)){

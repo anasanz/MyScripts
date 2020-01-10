@@ -18,7 +18,7 @@ species[[4]][[1]]
 
 # Create data frame to plot each method
 
-hds <- data.frame(matrix(NA,ncol = 5,nrow = length(s_good)))
+hds <- data.frame(matrix(NA, ncol = 5,nrow = length(s_good)))
 colnames(hds) <- c("method", "sp", "est", "lci", "uci")
 hds$method <- "hds"
 trim <- data.frame(matrix(NA, ncol = 5,nrow = length(s_good)))

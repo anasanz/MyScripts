@@ -3,7 +3,9 @@ rm(list=ls())
 
 library(rtrim)
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/TRIM/Dades")
+#setwd("D:/Mis documentos/Projectes 2019/Infrastructures/Farmdindis/Script_TRIM_Ana")
+setwd("C:/Users/Ana/Documents/PhD/PhD/Second chapter/TRIM/Dades2019")
+
 
 #####################################################################################################################################################
 #####                                                      BASE DE DATOS                                                                      #######
@@ -16,16 +18,18 @@ oriSG <- read.csv("ZEPA_orientals.csv", header = TRUE, sep = ";")
 
 count_data <- rbind(ambSG, zepaSG, occSG, oriSG)
 
-#count_data$count[which(count_data$count == -1)] <- NA # Mejor cambiar los -1 a NA
-#count_data <- count_data[-which(duplicated(count_data)), ] # Si hay duplicados
+# Mejor cambiar los -1 a NA#
+count_data$count[which(count_data$count == -1)] <- NA 
+# Si hay duplicados#
+count_data <- count_data[-which(duplicated(count_data)), ] 
 
 sp <- unique(count_data$sp)
-sp <- sp[-which(sp %in% c("CAENS", "PTALC"))] # Quitar las que dan problemas (si el loop no funciona, con el comando print(i))
+sp <- sp[-which(sp %in% c("CAENS","PTALC"))] # Quitar las que dan problemas (si el loop no funciona, con el comando print(i))
 
 ambit <- unique(count_data$id_ambit)
 
-# Para almacenar los valores de cada ámbito para una especie
-m <- as.data.frame(matrix(NA, ncol = 14, nrow = 9)) # nrow es numero de años * numero de zonas en la que quiero estimar tendencias (para una especie)
+# Para almacenar los valores de cada ámbito para una especie. Recordar sumar + 1 en nrow cada a?o
+m <- as.data.frame(matrix(NA, ncol = 14, nrow = 10)) # nrow es numero de años * numero de zonas en la que quiero estimar tendencias (para una especie)
 colnames(m) <- c("sp", "sector", "year", "index", "index_se", "IC95up", "IC95low", "coef_trend", "coef_trend_se", "ptrend", "pgof", "model_fit", "annual_trend", "description")
 
 # Para juntar todos los ámbitos para una especie
@@ -57,11 +61,11 @@ for (i in 1:length(sp)){
     m2 <- trim(count ~ site + year, data = data, model = 2, serialcor = sc, overdisp = ov) # Modelo con valores de sc y ov ajustados (los warnings que salgan estan corregidos)
 
     
-    # Cálculo del índice 
+    # Cálculo del ?ndice 
     i2 <- index(m2, which="imputed")  
     m[ ,3:5] <- index(m2, which="imputed")
     
-    # Cálculo de CI del índice
+    # Cálculo de CI del ?ndice
      for (k in 1:nrow(m)) {
        
        m$IC95up[k] <- m$index[k] + m$index_se[k] * 1.96
@@ -83,15 +87,15 @@ for (i in 1:length(sp)){
     m$pgof <- gof$chi2$p
     m$model_fit <- ifelse (m$pgof[1] > 0.05, "yes", "no" )
     
-    # Calcular % de cambio de la población (annual trend)
+    # Calcular % de cambio de la poblaci?n (annual trend)
     m$annual_trend <- (coef$mul - 1) * 100
   
     # Describir la tendencia (Siguiendo estrictamente las recomendaciones del ICO)
     
     if(m$ptrend[1] > 0.05 & m$annual_trend[1] < 5) { m$description <- "Estable" } # Si la tendencia no es significativa
-    if(m$ptrend[1] > 0.05 & m$annual_trend[1] > 5) { m$description <- "Tendència incerta" }
-    if(m$ptrend[1] < 0.05 & m$annual_trend[1] < -5) { m$description <- "Disminució forta" } # Si la tendencia es significativa
-    if(m$ptrend[1] < 0.05 & m$annual_trend[1] < 0 & m$annual_trend > -5) { m$description <- "Disminució moderada" }
+    if(m$ptrend[1] > 0.05 & m$annual_trend[1] > 5) { m$description <- "Tend�ncia incerta" }
+    if(m$ptrend[1] < 0.05 & m$annual_trend[1] < -5) { m$description <- "Disminuci� forta" } # Si la tendencia es significativa
+    if(m$ptrend[1] < 0.05 & m$annual_trend[1] < 0 & m$annual_trend > -5) { m$description <- "Disminuci� moderada" }
     if(m$ptrend[1] < 0.05 & m$annual_trend[1] > 0 & m$annual_trend < 5) { m$description <- "Augment moderat" }
     if(m$ptrend[1] < 0.05 & m$annual_trend[1] > 5) { m$description <- "Augment fort" }
     
@@ -104,25 +108,38 @@ for (i in 1:length(sp)){
   all_data <- do.call("rbind", h)
 }
 
+which_na <- all_data[which(is.na(all_data$index)), ] # Para mirar qué especies tiene NA en el índice y luego eliminarlas
+                                                      # para que no te den problemas en el plot
+
 # Quitar LAMIC porque no estima bien el índice
-all_data <- all_data[-which(all_data$sp=="LAMIC"), ]
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/TRIM/Resultats")
-write.csv(all_data, "Farmdindis_TRIM.csv")
+all_data <- all_data[-which(all_data$sp=="LAMIC"), ] 
+
+# Quitar CAGLA de la zepa oriental porque no estima bien el índice
+all_data <- all_data[-which(all_data$sp == "CLGLA" & all_data$sector == "ZEPA_oriental"), ]
+
+setwd("C:/Users/Ana/Documents/PhD/PhD/Second chapter/TRIM/Dades2019")
+
+#setwd("D:/Mis documentos/Projectes 2019/Infrastructures/Farmdindis/Script_TRIM_Ana")
+
+write.csv(all_data, "Farmdindis_TRIM_David.csv")
 
 #####################################################################################################################################################
 #####                                                      PLOT                                                                               #######
 #####################################################################################################################################################
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/TRIM/Resultats")
+
+setwd("D:/Mis documentos/Projectes 2019/Infrastructures/Farmdindis/Script_TRIM_Ana")
+
 dat <- read.csv("Farmdindis_TRIM.csv")
+dat_na <- dat[which(is.na(dat)), ] # Mirar si hay na! Si hay na, no funcionará
 
 # Redondear tendencia para plot
 dat$annual_trend <- round(dat$annual_trend, digits = 0)
 
 # Cambiar nombre de los sectores para hacer los plots
 dat$sector <- as.character(dat$sector)
-dat$sector[which(dat$sector == "Gral")] <- "Àmbit Segarra - Garrigues"
-dat$sector[which(dat$sector == "ZEPA_gral")] <- "ZEPAs Àmbit Segarra - Garrigues"
+dat$sector[which(dat$sector == "Gral")] <- "�mbit Segarra - Garrigues"
+dat$sector[which(dat$sector == "ZEPA_gral")] <- "ZEPAs �mbit Segarra - Garrigues"
 dat$sector[which(dat$sector == " ZEPA_occidental")] <- "ZEPAs occidentals"
 dat$sector[which(dat$sector == "ZEPA_oriental")] <- "ZEPAs orientals"
 
@@ -133,12 +150,13 @@ sp_cientif <- c("Alectoris rufa", "Burhinus oedicnemus", "Calandrella brachydact
                 "Lanius senator", "Melanocorypha calandra", "Emberiza calandra", "Pica pica",
                  "Streptopelia turtur", "Tetrax tetrax")
 sp_catala <- c("Perdiu roja", "Torlit", "Terrerola vulgar", "Cucut reial", "Guatlla",
-                "Gaig blau", "Gralla", "Xixella", "Cogullada vulgar", "Cogullada fosca", "Botxí meridional",
-                "Capsigrany", "Calàndria", "Cruixidell", "Garsa",
-                "Tórtora", "Sisó")
+                "Gaig blau", "Gralla", "Xixella", "Cogullada vulgar", "Cogullada fosca", "Botx� meridional",
+                "Capsigrany", "Cal�ndria", "Cruixidell", "Garsa",
+                "T�rtora", "Sis�")
 
-yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
-x <- c(0.5,1.5:8.5)
+# Recordar afegir  l'any en curs a years i allargar  la x...el proper any ser� 10.5 
+yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019)
+x <- c(0.5,1.5:9.5)
 
 
 sp <- unique(dat$sp)
@@ -147,24 +165,28 @@ sector <- unique(dat$sector)
 for (i in 1:length(sp)){
   pdf(paste("TRIM",sp[i],".pdf"))
   par(mfrow = c(2,2))
-  par(mar=c(5, 4, 4, 2) + 0.1, oma = c(0,0,3,0))
+  par(mar=c(5, 2, 4, 2) + 0.1, oma = c(0,0,3,0))
   
   for (j in 1:length(sector)){
     
     data <- dat[which(dat$sp == sp[i] & dat$sector == sector[j] ), ]
-    plot(-100,ylim = c(min(data$IC95low),max(data$IC95up)), xlim=c(0,9),
+    
+    if(nrow(data) == 0) # Esto lo añado para que si un sector no tiene datos porque no se haya podido calcular, pase al siguiente y no de error
+      next
+    
+    plot(-100,ylim = c(min(data$IC95low),max(data$IC95up)), xlim=c(0,9),# Recordar augmentar (+1) el l?mit superior de xlim cada any   
          pch = 21, ylab = " ", xlab = " ", axes = FALSE)
     mtext(sector[j], line = 2, side = 3, cex = 1)
     mtext(paste(data$description[1],"(",data$annual_trend,"%",")"), line = 1, side = 3, cex = 0.7, col = "olivedrab3")
     
-    # Para añadir las lineas horizontales
-    clip(0,9,min(data$IC95low),max(data$IC95up)+0.2) # Porque si no las lineas horizontales se añaden en todo el plot
+    # Para añadir las lineas horizontales. Recordar augmentar cada any el segon numero de clip
+    clip(0,10,min(data$IC95low),max(data$IC95up)+0.2) # Porque si no las lineas horizontales se añaden en todo el plot
     dif <- diff(c(round(min(data$IC95low), digits = 1), round(max(data$IC95up), digits = 1))) 
     div <- dif/4
     location_lines <- seq(from = round(min(data$IC95low), digits = 1), to = round(max(data$IC95up), digits = 1), by = div)
     abline(h = location_lines, col = "lightgrey") # Añado lineas (siempre 4 lineas puestas en distintos sitios dependiendo del indice)
     
-    axis(2, at = seq(round(min(data$IC95low), digits = 0),round(max(data$IC95up), digits = 0), by = 0.5), tick = 0) # Las labels en y cambian segun la especie (distintos indices)
+    axis(2, at = seq(round(min(data$IC95low), digits = 0),round(max(data$IC95up), digits = 0), by = 0.5), tick = 0, line = -1.5) # Las labels en y cambian segun la especie (distintos indices)
     axis(1, at = x, tick = 0, labels = yrs)
     
     points(x,data$index, type = "l", col = "olivedrab3", lwd = 2)
@@ -174,7 +196,7 @@ for (i in 1:length(sp)){
   }
   especie <- sp_catala[i]
   especie <- as.character(especie)
-  mtext(bquote("Tendència poblacional de"~ .(especie)~(italic(.(sp_cientif[i])))), 
+  mtext(bquote("Tendencia poblacional de"~ .(especie)~(italic(.(sp_cientif[i])))), 
         line = 0, side = 3, cex = 1.2, col = "olivedrab", outer = TRUE)
   dev.off()
   }
@@ -184,7 +206,7 @@ par(mfrow = c(1,1))
 pdf("legend.pdf")
 plot(-100,
      pch = 21, ylab = " ", xlab = " ", axes = FALSE)
-legend("topright", legend = c("Índice poblacional", "IC"),
+legend("topright", legend = c("�ndice poblacional", "IC"),
        horiz = TRUE, lty = c(1,6), lwd = c(2,2), seg.len = 2,
        col = "olivedrab3", pch = 18, cex = 0.9, bty = "n")
 dev.off()

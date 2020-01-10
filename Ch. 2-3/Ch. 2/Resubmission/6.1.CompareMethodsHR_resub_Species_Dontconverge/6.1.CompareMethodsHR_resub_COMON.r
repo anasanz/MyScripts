@@ -14,14 +14,14 @@ library(rtrim)
 ##                       Prepare data                           ###
 ###################################################################
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-#setwd("D:/ANA/Data/chapter2")
+#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+setwd("D:/ANA/Data/chapter2")
 d <- read.csv("DataDS_ready_ALL_revch2.csv")
 
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-#setwd("D:/ANA/Data/chapter2")
+#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+setwd("D:/ANA/Data/chapter2")
 
 zep <- read.csv("zepa.csv")
 
@@ -34,7 +34,7 @@ s_good <- c("COMON")
 # ONLY for TERAX_F and TERAX_M
 #d$Species <- d$Species2
 #d <- d[,-27]
-xxx = 1
+
 # Start loop
 for (xxx in 1:length(s_good)){
   # To take into account transects with abundance 0
@@ -463,7 +463,7 @@ for (xxx in 1:length(s_good)){
   print(out)
   
   #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-  setwd("D:/ANA/Results/chapter2/HR")
+  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
   
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
@@ -471,7 +471,7 @@ for (xxx in 1:length(s_good)){
   # ---- Results ----
   
   #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-  setwd("D:/ANA/Results/chapter2/HR")
+  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
   
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
@@ -516,7 +516,8 @@ for (xxx in 1:length(s_good)){
   # 2. Plot
   
   #setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/Final")
-  setwd("D:/ANA/Results/chapter2/Plots/HR")
+  setwd("D:/ANA/Results/chapter2/Plots/HR/Changed_params_400000")
+  
   
   pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
@@ -581,7 +582,7 @@ for (xxx in 1:length(s_good)){
   
   # Save deviations
   #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
-  setwd("D:/ANA/Results/chapter2/HR")
+  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
   
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
@@ -614,7 +615,7 @@ for (xxx in 1:length(s_good)){
   
   # Save TRIM estimate + CI
   #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
-  setwd("D:/ANA/Results/chapter2/HR")
+  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
   
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")

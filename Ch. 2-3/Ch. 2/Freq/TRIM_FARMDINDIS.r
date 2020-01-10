@@ -3,7 +3,7 @@ rm(list=ls())
 
 library(rtrim)
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/TRIM/Dades")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/TRIM/Dades")
 
 #####################################################################################################################################################
 #####                                                      BASE DE DATOS                                                                      #######
@@ -16,8 +16,8 @@ oriSG <- read.csv("ZEPA_orientals.csv", header = TRUE, sep = ";")
 
 count_data <- rbind(ambSG, zepaSG, occSG, oriSG)
 
-count_data$count[which(count_data$count == -1)] <- NA
-count_data <- count_data[-which(duplicated(count_data)), ]
+#count_data$count[which(count_data$count == -1)] <- NA
+#count_data <- count_data[-which(duplicated(count_data)), ]
 
 sp <- unique(count_data$sp)
 sp <- sp[-which(sp %in% c("CAENS", "PTALC"))] # Quitar las que dan problemas (si el loop no funciona, con el comando print(i))
@@ -106,15 +106,15 @@ for (i in 1:length(sp)){
 
 # Quitar LAMIC porque no estima bien el índice
 all_data <- all_data[-which(all_data$sp=="LAMIC"), ]
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/TRIM/Resultats")
-write.csv(all_data, "Farmdindis_TRIM.csv")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/TRIM/Resultats")
+write.csv(all_data, "Farmdindis_TRIM_try.csv")
 
 #####################################################################################################################################################
 #####                                                      PLOT                                                                               #######
 #####################################################################################################################################################
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/TRIM/Resultats")
-dat <- read.csv("Farmdindis_TRIM.csv")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/TRIM/Resultats")
+dat <- read.csv("Farmdindis_TRIM_try.csv")
 
 # Redondear tendencia para plot
 dat$annual_trend <- round(dat$annual_trend, digits = 0)

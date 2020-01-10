@@ -1,32 +1,20 @@
+
 # Get data into shape for DS analysis (for package DISTANCE)
+
+# FOR ANALYSIS FOR GANGA WITH BIN 5
 
 rm(list=ls())
 
 library(dplyr)
 library(stringr)
 
-#setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data")
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
+dat <- read.csv("DataDS10_19.csv", sep = ";")
 
-dat1 <- read.csv("DataDS.csv", sep = ";")
-dat1$Especie <- as.character(dat1$Especie)
-dat1 <- dat1[ ,-4] 
-colnames(dat1)[which(colnames(dat1) == "Transecte_detall.Id_transecte_detall")] <- "Id_transecte_detall" # To make it equal to 2018
+dat$Especie <- as.character(dat$Especie)
+dat <- dat[ ,-4] 
+colnames(dat)[which(colnames(dat) == "Transecte_detall_Id_transecte_detall")] <- "Id_transecte_detall" # To make it equal to 2018
 
-# Join with 2018. 
-
-# I have obtained DataDS2018 by exporting the modified questionary from 2018 because Nuria was sick
-# Nuria has also sent me her version all together (DataDSALL_Nuria_2018.csv), and I have checked that the observations
-# from 2018 are right. However, I still use DataDS and join it with DataDS2018 because I want to make sure
-# that the observations from DataDS have the same order than before.
-
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
-
-dat18 <- read.csv("DataDS2018.csv", sep = ";")
-dat18 <- dat18[ ,-c(2,15)] # To have the same columns than 2010 - 2017
-
-dat <- rbind(dat1,dat18) # All data joined
-f <- dat[which(dat$Any == "2018"), ]
 
 
 # ---- Column names ----
@@ -70,7 +58,7 @@ for (i in 1:nrow(dat)){
 }
 
 # ---- Distance ----
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data")
 band <- read.csv("Banda.csv", sep = ";")
 colnames(band)[1] <- "Banda"
 
@@ -84,13 +72,14 @@ for (i in 1:nrow(dat)){
   if (dat$Banda[i] == 1) {dat$distance[i] = 12.5}
   else if (dat$Banda[i] == 2) {dat$distance[i] = 37.5}
   else if (dat$Banda[i] == 3) {dat$distance[i] = 75}
-  else  {dat$distance[i] = 150} 
+  else if (dat$Banda[i] == 4) {dat$distance[i] = 150}
+  else  {dat$distance[i] = 350} 
 }
 
 # ---- Repeated observations ----
 # There are few transects that have 2 census in the same year-season.
-# Even when joining with 2018 is okay because the sample label of the repeated ones is the same
-# and there is no repeated transects in 2018
+# Because I have joined the bin5 it doesn't work with the indexes from 2010-2018 without bin5. 
+# But it works from when I didn't delete any observations
 
 for (i in 1:nrow(dat)){ 
   dat$T_Y[i] <- paste(dat$transectID[i],dat$Year[i], sep = "_")
@@ -99,6 +88,11 @@ for (i in 1:nrow(dat)){
 trans <- dat[!duplicated(dat$Sample.Label), which(colnames(dat) %in% c("Sample.Label", "T_Y"))]
 trans_rep <- trans[which(duplicated(trans$T_Y)), ]
 
+# These are the ones without bin 5
+#rem <- c(122, 181, 165, 110, 197, 125, 178, 160, 170, 192, 253, 
+#1357, 804, 809, 243, 1203, 711)
+
+# These are the ones from before, that work now as well:
 # DUPLICATES: The sample label changed when removing observations related bin4. The previous
 # label (data not modified is listed in blue)
 # In some its because census were repeated in january, april and may. Take the ones of late April/May (In AL):
@@ -108,27 +102,17 @@ trans_rep <- trans[which(duplicated(trans$T_Y)), ]
 # In others, different weather conditions. Take good coditions
 # Remove sample.label: 268, 1350, 1594
 # Comparison with the new data (modified is in excelfile DataDS_comparedup)
-rem <- c(122, 181, 165, 110, 197, 125, 178, 160, 170, 192, 253, 
-         1357, 804, 809, 243, 1203, 711)
+# Remove the one repeated from 2019: 
+
+rem <- c(122, 198, 178, 114, 216, 131, 194, 172, 184, 210, 281,
+         1505, 1737, 1744, 268, 1350, 1594)
 dat <- dat[-which(dat$Sample.Label %in% rem), ] # No repeated observations
 
 trans2 <- dat[!duplicated(dat$Sample.Label), which(colnames(dat) %in% c("Sample.Label", "T_Y"))]
 trans_rep <- trans2[which(duplicated(trans2$T_Y)), ]
 
-# ---- Remove species ----
-
-# Remove species that are MIGRANT and therefore are not link to the transect and the
-# scale of the study
-all <- read.csv("index_selec_communities_FSP_DG_GB.csv", sep = ";")
-mig <- all[which(all$NO.FS.DG.GB == 1),]
-sp_mig <- as.character(unique(mig$Species)) #Vector with species to delete
-
-dat <- dat[-which(dat$Species %in% sp_mig), ] # No repeated observations
-
-# Remove species that are very very scarce (around less than 10 observations per year)
-scarce <- all[which(all$remove == 1),]
-sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
-dat <- dat[-which(dat$Species %in% sp_scarce), ]
+# Queda el 2019 que es un error (BE06_2019). De momento quitarlo, para la ganga no lo necesito
+dat <- dat[-which(dat$T_Y == "BE06_2019"), ]
 
 
 # ---- Remove transects that are irrigated (and therefore have very different conditions) ----
@@ -174,9 +158,18 @@ dat <- dat[-which(dat$remove == 1), ]
 dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 
 
-# ---- Select only transects in ALFES (where are the animals) ----
-dat <- dat[which(dat$Region.Label %in% c("AF")), ]
+# ----  Select only transects in ALFES and GRANJA (where are the animals) ----
+dat <- dat[which(dat$Region.Label %in% c("AF")), ] # Better to analyze only ALFES
+#dat <- dat[which(dat$Region.Label %in% c("AF", "GR")), ]
 
+# For ALFES: Remove transects out of ZEPA
+dat <- dat[-which(dat$transectID %in% c("AF31", "AF35", "AF36", "AF38", "AF39", "AF41",
+                                        "AF42", "AF43")), ]
+
+# For GRANJA: Select the transects where they are always
+#dat <- dat[which(dat$transectID %in% c("GR08", "GR10", "GR11", "GR12") | dat$Region.Label == "AF"), ]
+
+ 
 # FIX OBSERVATION CO-VARIATES
 # Temperature: mistakes typing
 dat$Temp[which(dat$Temp == 0)] <- 10
@@ -186,7 +179,6 @@ dat$Temp[which(dat$Temp == 100)] <- 10
 unique(dat$Temp)
 dat[which(is.na(dat$Temp)), ] 
 dat$Temp[which(dat$T_Y == "AF09_2018")] <- 20
-
 
 
 

@@ -285,7 +285,7 @@ spec_ra <- load("spConvergence_light_badconvergences.RData")
 species[[4]]
 
 
-#### Check TERAX_F, TERAX_M, COGAR ####
+#### Check TERAX_F, TERAX_M, COGAR, MEAPI ####
 
 setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
 
@@ -300,6 +300,8 @@ d <- d[,-27]
 
 s_good <- c("TERAX_F", "TERAX_M", "TUMER", "GATHE", "MEAPI")
 s_good <- c("COGAR")
+s_good <- c("MEAPI")
+s_good <- c("PAMON")
 
 # LIGHT (WITH ONLY SUMMARY)
 

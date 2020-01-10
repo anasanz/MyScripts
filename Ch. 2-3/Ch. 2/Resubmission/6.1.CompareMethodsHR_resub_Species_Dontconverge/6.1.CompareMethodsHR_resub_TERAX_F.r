@@ -29,11 +29,11 @@ zep <- read.csv("zepa.csv")
 
 all <- c("TERAX", "BUOED", "TUMER","ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
          "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
-s_good <- c("TERAX_F")
+s_good <- c("COOEN")
 
 # ONLY for TERAX_F and TERAX_M
-d$Species <- d$Species2
-d <- d[,-27]
+#d$Species <- d$Species2
+#d <- d[,-27]
 
 # Start loop
 for (xxx in 1:length(s_good)){

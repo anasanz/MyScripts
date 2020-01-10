@@ -108,7 +108,12 @@ plot.trim.hds.overall_yo1 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
   
-  plot(xrange, yrange, type='n', xlab=" ", ylab= " ", las=1, main = s_good_title[xxx], cex.lab = 1, cex.main = 1.1, cex.axis = 1, axes = FALSE, adj = 0, ...)
+  plot(xrange, yrange, type='n', xlab=" ", ylab= " ", las=1, 
+       #main = s_good_title[xxx], cex.main = 1.1, 
+       cex.lab = 1, 
+       cex.axis = 1, axes = FALSE, adj = 0)
+  title(s_good_title[xxx], adj = 0, line = 0.4, cex = 1)
+
   
   axis(side = 2, cex = 1.2)
   #axis(side = 1, cex = 1.2)
@@ -123,8 +128,13 @@ plot.trim.hds.overall_yo1 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
            col = adjustcolor(c("grey"),alpha.f = 0.6),
            border = NA)
   
+  par(xpd = TRUE)
+  legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
+         fill = c("black", "red"), bg = "white", box.lty=0, inset = c(-0.1,-0.2), cex = 1)
+  
+  
   # Points and lines trim
-  points(tpt, ydata, col= adjustcolor("red",alpha.f = 0.4), type='l', pch=16, lwd = 1) 
+  points(tpt, ydata, col = "red", type='l', pch = 16, lwd = 1)# Trying to make it transparent doesnt work
   points(tpt, ydata, col= "white", type='p', pch=16, lwd = 1, cex = 1.5)
   points(tpt, ydata, col= adjustcolor("red",alpha.f = 0.4), type='p', pch=16, lwd = 1, cex = 1.5)
   
@@ -138,16 +148,17 @@ plot.trim.hds.overall_yo1 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   y_dev_trim <- y_dev_trim[y_dev_trim != 0]
   
   # Points and lines hds
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col= adjustcolor("black",alpha.f = 0.4))
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "p", col= "white", cex = 1.5)
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "p", col= adjustcolor("black",alpha.f = 0.4), cex = 1.5)
+  pop <- out$summary[grep("popindex", rownames(out$summary)),1]
+  points(yrs2,  pop[1:9], pch = 19, type = "l", col= "black")
+  points(yrs2,  pop[1:9], pch = 19, type = "p", col= "white", cex = 1.5)
+  points(yrs2,  pop[1:9], pch = 19, type = "p", col= adjustcolor("black",alpha.f = 0.4), cex = 1.5)
   
   points(mean.pred.exp ~ yrs2, type="l", col= "black", lwd = 2)
   
   # Significant deviations hds
   x_dev_hds <- yrs2*year_dev_hds 
   x_dev_hds <- x_dev_hds[x_dev_hds != 0]  # To put it on the left side
-  y_dev_hds <- out$summary[grep("popindex", rownames(out$summary)),1]*year_dev_hds
+  y_dev_hds <- pop[1:9]*year_dev_hds
   y_dev_hds <- y_dev_hds[y_dev_hds != 0]
   
   # Print both significant deviations
@@ -155,9 +166,9 @@ plot.trim.hds.overall_yo1 <- function(x, yrange = c(0, 100), imputed=TRUE, ...) 
   points(x_dev_trim, y_dev_trim, col= adjustcolor("red",alpha.f = 0.8), type='p', pch = 8, cex = 1.7) 
   
   # Print estimates
-  par(xpd = TRUE)
-  legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
-         fill = c("black", "red"), bg = "white", box.lty=0, inset = c(0,-0.1), cex = 0.9)
+  #par(xpd = TRUE)
+  #legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
+  #       fill = c("black", "red"), bg = "white", box.lty=0, inset = c(-0.05,-0.3), cex = 0.9)
   
 }
 

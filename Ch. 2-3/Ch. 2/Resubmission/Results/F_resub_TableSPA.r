@@ -7,11 +7,12 @@ rm(list=ls())
 # Load data (example for when I have the final results compiled in "spConvergence_light.....RData"))
 
 
-hr <- c("TERAX", "BUOED", "TUMER","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","SESER","STSSP","SYMEL","UPEPO",
-        "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "PYRAX", "CAINA") # This has to be in the same order than sp_convergence
+hr <- c("SYCAN", "CACHL", "LASEN", "ALRUF", "PAMAJ", "ALARV", "CABRA", "CACAR", "COPAL", "PIPIC",
+            "COOEN", "HIRUS", "PYRAX", "CAINA", "COMON", "PADOM", "PAMON", "FATIN", "SESER", "TUMER", "GATHE",
+            "BUOED", "SYMEL", "UPEPO", "GACRI", "STSSP", "MICAL", "MEAPI", "TERAX", "MECAL") # Species in order of appearance in the list
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-load("spConvergence_light_HR_resub.RData")
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+load("spConvergence_light_resub.RData")
 
 ab_zepa_sp <- list()
 
@@ -39,3 +40,21 @@ sum_zepa <- sum[grep("popindex_zepa", rownames(sum)), ]
 ab_zepa_sp[[s]] <- list(hr[s],ab_zepa)
 
 }
+
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
+
+# Take the 2 species with highest (ALRUF, BUOED) and 2 species with lowest probability of decline (COMON, PADOM)
+
+for (i in 1:length(hr)){ # to check that s_good and species are in the same order
+  print(species[[i]][[1]])
+} # 4,22,15,16
+
+alruf <- ab_zepa_sp[[4]][[2]]
+buoed <- ab_zepa_sp[[22]][[2]]
+comon <- ab_zepa_sp[[15]][[2]]
+padom <- ab_zepa_sp[[16]][[2]]
+
+
+table <- rbind(alruf, buoed, comon, padom)
+
+write.csv(table,"ab_spa.csv")
