@@ -483,9 +483,11 @@ nc <- 3 ; ni <- 5000 ; nb <- 2000 ; nt <- 2
 # With jagsUI 
 out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_covZone(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+load("~/PhD/Third chapter/Data/Model/10_S.RData")
+
 print(out)
 
-summary <- as.data.frame(as.matrix(out$summary))
+summary_10 <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
 data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
@@ -500,21 +502,10 @@ data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.z
                   sig.b = sig.b
                 )
 
-
-
-for (i in 1:nyrs){
-  plot(density(out$sims.list$Ntotal[,i]), xlab="Population size", ylab="Frequency", 
-       frame = F, main = paste("year",i)) 
-  abline(v = N.tot[i], col = "blue", lwd = 3)
-  abline(v = mean(out$sims.list$Ntotal[,i]), col = "red", lwd = 3)
-}
-
-plot(density(out$sims.list$sigma), xlab="Sigma", ylab="Frequency", frame = F) 
-abline(v = sigma, col = "blue", lwd = 3) 
-abline(v = mean(out$sims.list$sigma), col = "red", lwd = 3)
-
-density(out$sims.list$sigma)
-
+traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
+                              "bzB.lam", "ba1.lam", "ba2.lam",
+                              "sig.sig.ob", "bzB.sig",
+                              "mu_s", "sig_s", "mu_b", "sig_b"))
 ###########################################################################################
 
 

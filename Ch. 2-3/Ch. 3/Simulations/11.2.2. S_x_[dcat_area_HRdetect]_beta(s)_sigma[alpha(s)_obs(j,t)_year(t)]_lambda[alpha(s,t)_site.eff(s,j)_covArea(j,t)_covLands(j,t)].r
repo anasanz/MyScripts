@@ -6,7 +6,8 @@ library(plyr)
 
 set.seed(2013)
 
-# Same than model 10 but resembling it to my real data (nspecies,nyears,nbins) and change observation model
+# MODEL 11.2.1 #
+# Like model 11.2 but removing temperature from the observation model
 
 # ---- Data simulation ----
 
@@ -18,15 +19,15 @@ set.seed(2013)
 ### Random sp intercept 
 ### Year random effect
 ### Random effect in observer (site-year)
-# sigma = exp(alpha(s) + observer(j,t) + year(t) + b*Temp(j,t))
-
+# sigma = exp(alpha(s) + observer(j,t) + year(t)
 
 # Lambda site-year specific
 ### Random sp-year intercept (include different baseline abundance per species and also per year)
 ### sp-Site effect independent of year
-### Zone variable (site)
-### 2 areas variables)
-# lambda = exp(alpha(s,t) + sp.site(s,j) + b1*fallowSG(j,t) + b2*fallowAES(j,t) + b3*Zone(j,t)
+### 3 areas variables
+### Crop diversity variable
+### Field size variable
+# lambda = exp(alpha(s,t) + sp.site(s,j) + b1*fallowSG(j,t) + b2*fallowAES(j,t) + b3*fallowGREEN(j,t) + b4*Cropdiv(j,t) + b5*Fieldsize(j,t))
 
 # Detection function
 g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
@@ -64,7 +65,6 @@ s.alpha <- rnorm(nSpecies, mu.sig.sp, sig.sig.sp)
 hist(exp(rnorm(1000, mu.sig.sp, sig.sig.sp)))
 
 
-
 # RANDOM EFFECT IN OBSERVER
 obs <- 1:9
 nobs <- length(obs)
@@ -82,19 +82,11 @@ sig.sig.year <- 1
 sig.year <- rnorm(nyrs, 0, sig.sig.year)
 ye <- matrix(sig.year, nrow = max.sites, ncol = nyrs, byrow = TRUE)
 
-# TEMPERATURE COVARIATE
-bTemp.sig <- 0.5
-temp <- matrix(rnorm(max.sites*nyrs, 30, 7), nrow = max.sites, ncol = nyrs)
-#SCALED
-temp_mean <- mean(temp)
-temp_sd <- sd(temp)
-temp_sc <- (temp - temp_mean) / temp_sd
 
 #SIGMA: sigma[j,t,s]
 sigma <- exp(array(rep(s.alpha, each = max.sites*nyrs), c(max.sites, nyrs, nSpecies)) 
              + replicate(nSpecies,ob) 
-             + replicate(nSpecies,ye) 
-             + array(bTemp.sig*temp_sc, c(max.sites,nyrs,nSpecies)) )
+             + replicate(nSpecies,ye) )
 
 #BETA
 mu.b <- 1.5
@@ -128,25 +120,15 @@ for (i in 1:nSpecies){
 lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
 
 
-#ZONE COVARIATE (SITE)
-# Coefficient (I had created the co-variate already!So dont generate it twice!)
-#ZONE COVARIATE (SITE)
-b.lam.zoneB <- -0.5
-# Site specific binary co-variate
-z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
-z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, z)
-
-zone_data <- array(zone[,2], c(max.sites,nyrs,nSpecies))
-
-
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
 b.a1 <- 0.9
 b.a2 <- 1.2
+b.a3 <- -0.5
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
+a3 <- abs(rnorm(max.sites*nyrs, 2, 1))
 
 #SCALED
 area1_mean <- mean(a1)
@@ -157,16 +139,49 @@ area2_mean <- mean(a2)
 area2_sd <- sd(a2)
 area2_sc <- (a2 - area2_mean) / area2_sd
 
+area3_mean <- mean(a3)
+area3_sd <- sd(a3)
+area3_sc <- (a3 - area3_mean) / area3_sd
+
 #ARRANGED INTO AN ARRAY
 
 area1_sc_data <- array(area1_sc, c(max.sites, nyrs, nSpecies))
 area2_sc_data <- array(area2_sc, c(max.sites, nyrs, nSpecies))
+area3_sc_data <- array(area3_sc, c(max.sites, nyrs, nSpecies))
+
+# COVARIATES CROP DIVERSITY AND FIELD SIZE
+# Coefficients
+bCropdiv <- 1.5
+bFieldsize <- -0.9
+
+#   Covariates
+crop_diversity <- round(abs(rnorm(max.sites*nyrs, 7, 3)),0)
+field_size <- abs(rnorm(max.sites*nyrs, 2, 0.5))
+
+#SCALED
+cropdiv_mean <- mean(crop_diversity)
+cropdiv_sd <- sd(crop_diversity)
+cropdiv_sc <- (crop_diversity - cropdiv_mean) / cropdiv_sd
+
+fieldsize_mean <- mean(field_size)
+fieldsize_sd <- sd(field_size)
+fieldsize_sc <- (field_size - fieldsize_mean) / fieldsize_sd
+
+#ARRANGED INTO AN ARRAY
+
+field_size_sc_data <- array(fieldsize_sc, c(max.sites, nyrs, nSpecies))
+cropdiv_sc_data <- array(cropdiv_sc, c(max.sites, nyrs, nSpecies))
+
+#ARRANGED INTO AN ARRAY
+
 
 lam <- exp(lam.alpha.spyear_data + 
              lam.spsite_data + 
-             array(b.lam.zoneB*zone[,2], c(max.sites,nyrs,nSpecies)) +
              array(b.a1*area1_sc, c(max.sites, nyrs, nSpecies)) +
-             array(b.a2*area2_sc, c(max.sites, nyrs, nSpecies)) ) # I had to multiply the coefficients INSIDE lambda (otherwise it doesn't retrieve the a1 and a2 estimates)
+             array(b.a2*area2_sc, c(max.sites, nyrs, nSpecies)) +
+             array(b.a3*area3_sc, c(max.sites, nyrs, nSpecies)) +
+             array(bCropdiv*cropdiv_sc, c(max.sites, nyrs, nSpecies)) +
+             array(bFieldsize*fieldsize_sc, c(max.sites, nyrs, nSpecies)) ) # I had to multiply the coefficients INSIDE lambda (otherwise it doesn't retrieve the a1 and a2 estimates)
 
 
 # Abundance per site year (different abundance per species): N.sysp[j,t,s] 
@@ -254,7 +269,15 @@ for (s in 1:nSpecies){
 
 # y.sum is a list of species counts.
 # Contains y per site and year stored in a matrix with columns.
-
+y.sum[[3]]
+sum(y.sum[[3]], na.rm = TRUE)
+y.sum[[2]]
+sum(y.sum[[2]], na.rm = TRUE)
+y.sum[[22]]
+sum(y.sum[[22]], na.rm = TRUE)
+sum(y.sum[[22]], na.rm = TRUE)
+y.sum[[24]]
+sum(y.sum[[24]], na.rm = TRUE)
 
 #############################################
 
@@ -293,6 +316,10 @@ for (i in 1:nyrs){
 # Create one long vector with covariate values
 a1.m <- matrix(area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) # I need to make it from the same matrix
 a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+a3.m <- matrix(area3_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+cropdiv.m <- matrix(cropdiv_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+fieldsize.m <- matrix(fieldsize_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+
 
 area1 <- NULL
 for (i in 1:nyrs){
@@ -304,16 +331,21 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2.m[1:nSites[i],i])
 }
 
-zB <- as.vector(zone[,2])
-zoneB <- NULL
+area3 <- NULL
 for (i in 1:nyrs){
-  zoneB <- c(zoneB,zB[1:nSites[i]])
+  area3 <- c(area3,a3.m[1:nSites[i],i])
 }
 
-temperature_sc <- NULL
+cdiv <- NULL
 for (i in 1:nyrs){
-  temperature_sc <- c(temperature_sc,temp_sc[1:nSites[i], i])
+  cdiv <- c(cdiv, cropdiv.m[1:nSites[i],i])
 }
+
+fsiz <- NULL
+for (i in 1:nyrs){
+  fsiz <- c(fsiz, fieldsize.m[1:nSites[i],i])
+}
+
 
 year_df <- matrix(yrs, nrow = max.sites, ncol = nyrs, byrow = TRUE) # Matix with IDs
 year_index <- NULL
@@ -379,9 +411,9 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, 
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks, year_index = year_index,
               y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks, year_index = year_index, temperature_sc = temperature_sc,
+              area1 = area1, area2 = area2, area3 = area3, cdiv = cdiv, fsiz = fsiz, ob = ob, nobs = nobs,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
 
 # ---- JAGS model ----
@@ -426,15 +458,14 @@ cat("model{
     
     
     # PRIORS FOR LAMBDA
-    
-    bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
-    
-    
+    ba3.lam ~  dnorm(0, 0.001)
+    b.cdiv.lam ~  dnorm(0, 0.001)
+    b.fsiz.lam ~  dnorm(0, 0.001)
+
+
     # PRIORS FOR SIGMA
-    
-    bTemp ~ dnorm(0, 0.001)
     
     sig.sig.ob ~ dunif(0, 10) # Random effects for sigma per observer
     tau.sig.ob <- 1/(sig.sig.ob*sig.sig.ob)
@@ -462,7 +493,7 @@ cat("model{
     
     for(j in 1:n.allSiteYear){ 
     
-    sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]] + sig.year[year_index[j]] + bTemp*temperature_sc[j])
+    sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]] + sig.year[year_index[j]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -479,8 +510,9 @@ cat("model{
     
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
-    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] + bzB.lam*zoneB[j]
-    + ba1.lam*area1[j] + ba2.lam*area2[j]) 
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
+                    + ba1.lam*area1[j] + ba2.lam*area2[j] + ba3.lam*area3[j]
+                    + b.cdiv.lam*cdiv[j] + b.fsiz.lam*fsiz[j]) 
     } }
     # Derived parameters
     
@@ -493,14 +525,15 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
+    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
-                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
-                         sig.sig.ob = runif(1), bTemp = runif(1), sig.sig.year = runif(1),
+                         ba1.lam = runif(1), ba2.lam = runif(1), ba3.lam = runif(1),
+                         b.cdiv.lam = runif(1), b.fsiz.lam = runif(1),
+                         sig.sig.ob = runif(1), sig.sig.year = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1),
                          mu_b = runif(1) , sig_b = runif(1))}
 
@@ -508,49 +541,33 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 # Params
 params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu_l", "sig_l", "sig_spsite",
-            "bzB.lam", "ba1.lam", "ba2.lam",
-            "sig.sig.ob", "bTemp", "sig.sig.year",
+            "ba1.lam", "ba2.lam", "ba3.lam", "b.cdiv.lam", "b.fsiz.lam",
+            "sig.sig.ob", "sig.sig.year",
             "mu_s", "sig_s", "mu_b", "sig_b"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 50000 ; nb <- 10000 ; nt <- 2
+nc <- 3 ; ni <- 50000 ; nb <- 10000 ; nt <- 10
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)_covLands(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+print(out)
 
-
-#### Check results
-
-setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data/Model")
-load("11.1_S.RData")
 summary <- as.data.frame(as.matrix(out$summary))
 
-traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
-                              "bzB.lam", "ba1.lam", "ba2.lam",
-                              "sig.sig.ob", "bTemp", "sig.sig.year",
-                              "mu_s", "sig_s", "mu_b", "sig_b"))
-
+setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data/Model")
+save(out, file = "11.2.2_S.RData")
 
 # To compare:
-data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.a3 = b.a3,
+                  bCropdiv = bCropdiv, bFieldsize = bFieldsize,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
-                  bTemp.sig = bTemp.sig, 
                   sig.sig.obs = sig.sig.obs,
                   sig.sig.year = sig.sig.year,
                   mu.sig.sp = mu.sig.sp,
                   sig.sig.sp = sig.sig.sp,
                   mu.b = mu.b,
-                  sig.b = sig.b
-)
-
-
-
-
-
-###########################################################################################
-
-
+                  sig.b = sig.b)

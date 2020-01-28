@@ -6,27 +6,22 @@ library(plyr)
 
 set.seed(2013)
 
-# Same than model 10 but resembling it to my real data (nspecies,nyears,nbins) and change observation model
+# SAME THAN 10 BUT NO ZONE COVARIATE AND SIMILAR TO OUR DATA
 
 # ---- Data simulation ----
 
-# Same number of species: 48
+# 48 species
 # 5 years (unbalanced number of transects per year) 
 
 # Observation model calculated with Hazard Rate detection function (to make b differ per species as well)
 # Sigma site-year specific
 ### Random sp intercept 
-### Year random effect
 ### Random effect in observer (site-year)
-# sigma = exp(alpha(s) + observer(j,t) + year(t) + b*Temp(j,t))
-
 
 # Lambda site-year specific
 ### Random sp-year intercept (include different baseline abundance per species and also per year)
 ### sp-Site effect independent of year
-### Zone variable (site)
-### 2 areas variables)
-# lambda = exp(alpha(s,t) + sp.site(s,j) + b1*fallowSG(j,t) + b2*fallowAES(j,t) + b3*Zone(j,t)
+### 2 areas variables
 
 # Detection function
 g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
@@ -34,7 +29,7 @@ g <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
 # Number of transects per year (unbalanced)
 nSites <- seq(74,106, by = 8)				# number of line transect surveys (DIFFERENT BY YEAR)
 max.sites <- max(nSites)            # Maximun number of sites is the last year
-total.sites <- sum(nSites)          # Total number of site-year combinations
+total.sites <- sum(nSites)  
 
 strip.width <- 500 				# strip half-width, w (in this example only one side of the line transect is surveyed)
 dist.breaks <- c(0,25,50,100,200,500)
@@ -44,7 +39,7 @@ midpt <- (int.w/2) + dist.breaks[-6]
 nG <- length(dist.breaks)-1	
 
 # Year effect 
-yrs <- 1:5 # five years
+yrs <- 1:5 # eight years
 nyrs <- length(yrs)
 
 # Number of species
@@ -77,24 +72,10 @@ sig.obs <- rnorm(length(obs), 0, sig.sig.obs) # Mean is 0 because is adding nois
 ob.id <- matrix(sample(1:9, max.sites*nyrs, replace = TRUE), nrow = max.sites, ncol = nyrs) # Matix with IDs
 ob <- matrix(sig.obs[ob.id],  nrow = max.sites, ncol = nyrs) # Matrix with intercept for simulating data
 
-# YEAR EFFECT IN SIGMA (RANDOM)
-sig.sig.year <- 1		
-sig.year <- rnorm(nyrs, 0, sig.sig.year)
-ye <- matrix(sig.year, nrow = max.sites, ncol = nyrs, byrow = TRUE)
-
-# TEMPERATURE COVARIATE
-bTemp.sig <- 0.5
-temp <- matrix(rnorm(max.sites*nyrs, 30, 7), nrow = max.sites, ncol = nyrs)
-#SCALED
-temp_mean <- mean(temp)
-temp_sd <- sd(temp)
-temp_sc <- (temp - temp_mean) / temp_sd
 
 #SIGMA: sigma[j,t,s]
 sigma <- exp(array(rep(s.alpha, each = max.sites*nyrs), c(max.sites, nyrs, nSpecies)) 
-             + replicate(nSpecies,ob) 
-             + replicate(nSpecies,ye) 
-             + array(bTemp.sig*temp_sc, c(max.sites,nyrs,nSpecies)) )
+             + replicate(nSpecies,ob))
 
 #BETA
 mu.b <- 1.5
@@ -128,18 +109,6 @@ for (i in 1:nSpecies){
 lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
 
 
-#ZONE COVARIATE (SITE)
-# Coefficient (I had created the co-variate already!So dont generate it twice!)
-#ZONE COVARIATE (SITE)
-b.lam.zoneB <- -0.5
-# Site specific binary co-variate
-z <- data.frame(var = sample(c("A", "B"), max.sites, replace = TRUE))
-z$var <- as.factor(z$var)
-zone <- model.matrix(~ var-1, z)
-
-zone_data <- array(zone[,2], c(max.sites,nyrs,nSpecies))
-
-
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
 b.a1 <- 0.9
@@ -164,7 +133,6 @@ area2_sc_data <- array(area2_sc, c(max.sites, nyrs, nSpecies))
 
 lam <- exp(lam.alpha.spyear_data + 
              lam.spsite_data + 
-             array(b.lam.zoneB*zone[,2], c(max.sites,nyrs,nSpecies)) +
              array(b.a1*area1_sc, c(max.sites, nyrs, nSpecies)) +
              array(b.a2*area2_sc, c(max.sites, nyrs, nSpecies)) ) # I had to multiply the coefficients INSIDE lambda (otherwise it doesn't retrieve the a1 and a2 estimates)
 
@@ -202,10 +170,11 @@ for (i in 1:nyrs){
 # EXPLANATION DIMENSIONS: yList[[t]][[j,k,s]]
 yList[[1]][,,1] # This is the counts for the year 1 for species 1
 yList[[2]][,3,1] # This is the counts for the year 1 for species 1 in bin 3
+yList[[1]][,,1]
 N.sysp[,,1] # This is the real number of individuals per stite and year of species 1
 sigma[,,1] # And this is sigma per site and year for species 1
 
-for (s in 1:nSpecies)
+for (s in 1:nSpecies){
   for (t in 1:nyrs){
     for(j in 1:max.sites) {
       if(N.sysp[j,t,s] == 0 | is.na(N.sysp[j,t,s]))
@@ -220,7 +189,7 @@ for (s in 1:nSpecies)
       d1 <- d[seen==1] 				# The distance data for seen individuals
       counts <- table(cut(d1, dist.breaks, include.lowest=TRUE))
       yList[[t]][j,,s] <- counts 				# The number of detections in each distance interval per year and species
-    }}
+    }}}
 
 y.sum.sysp <- list()
 y.sum.sites <- list()
@@ -304,22 +273,6 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2.m[1:nSites[i],i])
 }
 
-zB <- as.vector(zone[,2])
-zoneB <- NULL
-for (i in 1:nyrs){
-  zoneB <- c(zoneB,zB[1:nSites[i]])
-}
-
-temperature_sc <- NULL
-for (i in 1:nyrs){
-  temperature_sc <- c(temperature_sc,temp_sc[1:nSites[i], i])
-}
-
-year_df <- matrix(yrs, nrow = max.sites, ncol = nyrs, byrow = TRUE) # Matix with IDs
-year_index <- NULL
-for (i in 1:nyrs){
-  year_index <- c(year_index,year_df[1:nSites[i], i])
-}
 
 ob <- NULL
 for (i in 1:nyrs){
@@ -381,12 +334,12 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt, 
               y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area1, area2 = area2, zoneB = zoneB, ob = ob, nobs = nobs, db = dist.breaks, year_index = year_index, temperature_sc = temperature_sc,
+              area1 = area1, area2 = area2, ob = ob, nobs = nobs, db = dist.breaks,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
 
 # ---- JAGS model ----
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Model")
+setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Second chapter/Data/Model")
 cat("model{
     
     # PRIORS
@@ -395,7 +348,7 @@ cat("model{
     
     for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
     asig[s] ~ dnorm(mu_s, tau_s)}
-    
+
     for (s in 1:nSpecies){              # Random beta per species (dif shape of detection curve per species)
     beta[s] ~ dnorm(mu_b, tau_b)}
     
@@ -416,7 +369,7 @@ cat("model{
     mu_b ~ dnorm(0,0.01) # Hyperparameters for beta
     tau_b <- 1/(sig_b*sig_b)
     sig_b ~ dunif(0,500)
-    
+
     mu_l ~ dnorm(0,0.01) # Hyperparameters for lambda intercept
     tau_l <- 1/(sig_l*sig_l)
     sig_l ~ dunif(0,500)
@@ -427,31 +380,19 @@ cat("model{
     
     # PRIORS FOR LAMBDA
     
-    bzB.lam ~ dnorm(0, 0.001)
     ba1.lam ~ dnorm(0, 0.001)
     ba2.lam ~  dnorm(0, 0.001)
     
     
     # PRIORS FOR SIGMA
     
-    bTemp ~ dnorm(0, 0.001)
-    
     sig.sig.ob ~ dunif(0, 10) # Random effects for sigma per observer
     tau.sig.ob <- 1/(sig.sig.ob*sig.sig.ob)
-
-    sig.sig.year ~ dunif(0, 10) # Random effects for sigma per observer
-    tau.sig.year <- 1/(sig.sig.year*sig.sig.year)
-
+    
     #Random observer effect for sigma
     
     for (o in 1:nobs){
     sig.obs[o] ~ dnorm(0, tau.sig.ob)
-    }
-
-    #Random year effect for sigma
-    
-    for (t in 1:nyrs){
-    sig.year[t] ~ dnorm(0, tau.sig.year)
     }
     
     for(i in 1:nind){
@@ -462,12 +403,12 @@ cat("model{
     
     for(j in 1:n.allSiteYear){ 
     
-    sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]] + sig.year[year_index[j]] + bTemp*temperature_sc[j])
+    sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
-    
+
     p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta[s])
     pi[s,j,k] <- int.w[k] / strip.width 
     fc[s,j,k]<- p[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
@@ -479,7 +420,7 @@ cat("model{
     
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
-    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] + bzB.lam*zoneB[j]
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]]
     + ba1.lam*area1[j] + ba2.lam*area2[j]) 
     } }
     # Derived parameters
@@ -493,63 +434,54 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt")
+    file = "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)].txt")
 
 # Inits
 Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
-                         bzB.lam = runif(1), ba1.lam = runif(1), ba2.lam = runif(1),
-                         sig.sig.ob = runif(1), bTemp = runif(1), sig.sig.year = runif(1),
+                         ba1.lam = runif(1), ba2.lam = runif(1),
+                         sig.sig.ob = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1),
                          mu_b = runif(1) , sig_b = runif(1))}
 
 
 # Params
-params <- c("Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
+params <- c(#"Ntotal", #"N", "sigma", "lambda", I remove it so that it doesnt save the lambdas and takes shorter. It still calculates them
             "mu_l", "sig_l", "sig_spsite",
-            "bzB.lam", "ba1.lam", "ba2.lam",
-            "sig.sig.ob", "bTemp", "sig.sig.year",
+            "ba1.lam", "ba2.lam",
+            "sig.sig.ob",
             "mu_s", "sig_s", "mu_b", "sig_b"
 )
 
 # MCMC settings
-nc <- 3 ; ni <- 50000 ; nb <- 10000 ; nt <- 2
+nc <- 3 ; ni <- 50000 ; nb <- 10000 ; nt <- 10
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)_year(t)_covTemp(j)]_lambda[alpha(s,t)_spsite(s,j)_covZone(j)_covArea(j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HRdetect_beta(s)_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_spsite(s,j)_covArea(j,t)].txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+load("~/PhD/Third chapter/Data/Model/10.1_S.RData")
 
+print(out)
 
-#### Check results
-
-setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data/Model")
-load("11.1_S.RData")
-summary <- as.data.frame(as.matrix(out$summary))
-
-traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
-                              "bzB.lam", "ba1.lam", "ba2.lam",
-                              "sig.sig.ob", "bTemp", "sig.sig.year",
-                              "mu_s", "sig_s", "mu_b", "sig_b"))
-
+summary_10.1 <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
-data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2, b.lam.zoneB = b.lam.zoneB,
+data_comp <- list(N.tot = N.tot, b.a1 = b.a1, b.a2 = b.a2,
                   mu.lam.alpha.spyear = mu.lam.alpha.spyear,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.lam.spsite = sig.lam.spsite,
-                  bTemp.sig = bTemp.sig, 
                   sig.sig.obs = sig.sig.obs,
-                  sig.sig.year = sig.sig.year,
                   mu.sig.sp = mu.sig.sp,
                   sig.sig.sp = sig.sig.sp,
                   mu.b = mu.b,
                   sig.b = sig.b
 )
 
-
-
-
+traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
+                              "ba1.lam", "ba2.lam",
+                              "sig.sig.ob",
+                              "mu_s", "sig_s", "mu_b", "sig_b"))
 
 ###########################################################################################
 
