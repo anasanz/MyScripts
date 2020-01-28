@@ -1,14 +1,13 @@
+#### Get data into shape for DS analysis ###
+# Third chapter: 2010 - 2019; Observations from 5 distance bins
 
-# Get data into shape for DS analysis (for package DISTANCE)
-
-# FOR ANALYSIS FOR GANGA WITH BIN 5
 
 rm(list=ls())
 
 library(dplyr)
 library(stringr)
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
+setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
 dat <- read.csv("DataDS10_19.csv", sep = ";")
 
 dat$Especie <- as.character(dat$Especie)
@@ -73,10 +72,11 @@ for (i in 1:nrow(dat)){
   else if (dat$Banda[i] == 2) {dat$distance[i] = 37.5}
   else if (dat$Banda[i] == 3) {dat$distance[i] = 75}
   else if (dat$Banda[i] == 4) {dat$distance[i] = 150}
-  else  {dat$distance[i] = 350} 
+  else  {dat$distance[i] = 350} # Considering that in theory the truncation distance is 500 m (no 1000)
 }
 
 # ---- Repeated observations ----
+
 # There are few transects that have 2 census in the same year-season.
 # Because I have joined the bin5 it doesn't work with the indexes from 2010-2018 without bin5. 
 # But it works from when I didn't delete any observations
@@ -111,11 +111,11 @@ dat <- dat[-which(dat$Sample.Label %in% rem), ] # No repeated observations
 trans2 <- dat[!duplicated(dat$Sample.Label), which(colnames(dat) %in% c("Sample.Label", "T_Y"))]
 trans_rep <- trans2[which(duplicated(trans2$T_Y)), ]
 
-# Queda el 2019 que es un error (BE06_2019). De momento quitarlo, para la ganga no lo necesito
+# Queda el 2019 que es un error (BE06_2019). De momento quitarlo, PREGUNTAR?
 dat <- dat[-which(dat$T_Y == "BE06_2019"), ]
 
-
 # ---- Remove transects that are irrigated (and therefore have very different conditions) ----
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
 irri <- read.csv("TransecteAnyReg.csv", sep = ";")
 colnames(irri)[2] <- "Num_transecte"
 colnames(irri)[1] <- "Region.Label"
@@ -138,9 +138,9 @@ dat <- dat[-which(dat$transectID %in% irri_all), ]
 
 # Remove the ones irrigated the year it changed (report remove = 1 for the ones to remove)
 
-irri_change <- irri[which(!is.na(irri$X1er.año.cambio)), ]
+irri_change <- irri[which(!is.na(irri$X1er.aÃ±o.cambio)), ]
 irri_change_ID <- irri_change$transectID
-irri_change_year <- irri_change$X1er.año.cambio
+irri_change_year <- irri_change$X1er.aÃ±o.cambio
 dat$remove <- NA
 
 for (i in 1:nrow(dat)){
@@ -157,19 +157,25 @@ for (i in 1:nrow(dat)){
 dat <- dat[-which(dat$remove == 1), ]
 dat <- dat[ ,-which(colnames(dat) %in% "remove")]
 
+# Remove AR (Only has greening and has a very different structure than the rest, with fruit trees)
+# When we were not planning to use Greening we were removing AL because it didnt have almost any measure
+# (we left BA because it had more AES). In this case we don't remove AL because we are going to test greening
+# and because it makes the detection curve of TERAX and BUOED worse
 
-# ----  Select only transects in ALFES and GRANJA (where are the animals) ----
-dat <- dat[which(dat$Region.Label %in% c("AF")), ] # Better to analyze only ALFES
-#dat <- dat[which(dat$Region.Label %in% c("AF", "GR")), ]
+dat <- dat[-which(dat$Region.Label %in% c("AR")), ]
 
-# For ALFES: Remove transects out of ZEPA
-dat <- dat[-which(dat$transectID %in% c("AF31", "AF35", "AF36", "AF38", "AF39", "AF41",
-                                        "AF42", "AF43")), ]
 
-# For GRANJA: Select the transects where they are always
-#dat <- dat[which(dat$transectID %in% c("GR08", "GR10", "GR11", "GR12") | dat$Region.Label == "AF"), ]
+# Co-variate Zone 
 
- 
+unique(dat$Region.Label)
+dat$Zone <- NA
+dat$Zone[dat$Region.Label == "BA"] <- "OC"
+dat$Zone[dat$Region.Label == "BM"] <- "OR"
+dat$Zone[dat$Region.Label == "SI"] <- "OR"
+dat$Zone[dat$Region.Label == "AF"] <- "OC"
+dat$Zone[dat$Region.Label == "BE"] <- "OR"
+dat$Zone[dat$Region.Label == "GR"] <- "OC"
+
 # FIX OBSERVATION CO-VARIATES
 # Temperature: mistakes typing
 dat$Temp[which(dat$Temp == 0)] <- 10
@@ -179,7 +185,20 @@ dat$Temp[which(dat$Temp == 100)] <- 10
 unique(dat$Temp)
 dat[which(is.na(dat$Temp)), ] 
 dat$Temp[which(dat$T_Y == "AF09_2018")] <- 20
+dat$Temp[which(dat$T_Y == "GR13_2011")] <- 10
+
+#Wind
+unique(dat$Wind)
+dat[which(is.na(dat$Wind)), ] 
+dat$Wind[which(dat$T_Y == "BM06_2010")] <- 1
+
+setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
+write.csv(dat,"DataDS_ch3_allsp_1019.csv") # Data set with everything fixed EXCEPT SPECIES
 
 
 
-write.csv(dat,"DataDS_ready_para_Ganga.csv") 
+
+
+
+
+
