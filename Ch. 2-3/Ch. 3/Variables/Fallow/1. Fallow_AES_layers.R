@@ -606,6 +606,46 @@ setwd("C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES")
 writeOGR(d17,
          dsn = "C:/OneDrive/PhD/Second chapter/Data/GIS/AES/2010-2014/Only AES", layer = "AES_2017", driver = "ESRI Shapefile")
 
+# ---- 2018 ----
+# STRIP DIGITALIZED! SO USE LAYER (CHECK) AND JUST HOMOGENIZE NAMES CROP/FALLOW
+d18 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/shp_AES_2018_2019", layer = "M102018_EPSG23031")
+
+# Homogenize names crop/fallow
+d18@data$PROD_NOM <- as.character(d18$PROD_NOM) #To simplify: Any crop = CROP and any fallow = FALLOW
+unique(d18@data$PROD_NOM2)
+d18@data$PROD_NOM2 <- "CROP"
+d18@data$PROD_NOM2[which(d18@data$PROD_NOM %in% c("GUARET SIE/ SUP. LLIURE SEMBRA","GUARET NO SIE/ SUP. LLIURE SE*"))] <- "FALLOW"
+
+# Select relevant columns
+d18@data <- d18@data[ ,which(colnames(d18@data) %in% c("OBJECTID", "CAMPANYA", "ID_REC", "M2_SP", "HA_SP", "HA_DEC", "PROD_NOM2",
+                                                       "PENDENT", "Shape_Leng", "Shape_Area"))]
+colnames(d18@data)[10] <- "PROD_NOM"
+# Save layer
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031")
+writeOGR(d18,
+         dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2018_EPSG23031", driver = "ESRI Shapefile")
+
+# ---- 2019 ----
+# STRIP DIGITALIZED! SO USE LAYER (CHECK) AND JUST HOMOGENIZE NAMES CROP/FALLOW
+d19 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/shp_AES_2018_2019", layer = "M102019_EPSG23031")
+
+# Homogenize names crop/fallow
+d19@data$PROD_NOM <- as.character(d19$PROD_NOM) #To simplify: Any crop = CROP and any fallow = FALLOW
+unique(d19@data$PROD_NOM2)
+d19@data$PROD_NOM2 <- "CROP"
+d19@data$PROD_NOM2[which(d19@data$PROD_NOM %in% c("GUARET SIE/ SUP. LLIURE SEMBRA","GUARET NO SIE/ SUP. LLIURE SE*"))] <- "FALLOW"
+
+# Select relevant columns
+d19@data <- d19@data[ ,which(colnames(d19@data) %in% c("OBJECTID", "CAMPANYA", "ID_REC", "M2_SP", "HA_SP", "HA_DEC", "PROD_NOM2",
+                                                       "PENDENT", "Shape_Leng", "Shape_Area"))]
+colnames(d19@data)[10] <- "PROD_NOM"
+
+# Save layer
+setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES/EPSG23031")
+writeOGR(d19,
+         dsn = "C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2019_EPSG23031", driver = "ESRI Shapefile")
+
+
 # ---- Correct units layers 2010, 2013, 2014 ----
 aes10 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2010_EPSG23031")
 aes13 <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS/AES/Only AES", layer = "AES_2013_EPSG23031")
