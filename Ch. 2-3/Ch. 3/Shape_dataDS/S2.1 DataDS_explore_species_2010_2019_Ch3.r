@@ -7,13 +7,13 @@ rm(list=ls())
 library(dplyr)
 library(tidyr)
 
-setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
+setwd("D://PhD/Third chapter/Data")
 
 dat <- read.csv("DataDS_ch3_allsp_1019.csv", sep = ",")
 
 #### Remove species that are MIGRANT and therefore are not link to the transect and the  scale of the study ####
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("D:/PhD/Second chapter/Data")
 
 all <- read.csv("index_selec_communities_FSP_DG_GB.csv", sep = ";")
 mig <- all[which(all$NO.FS.DG.GB == 1),]
@@ -23,7 +23,7 @@ dat <- dat[-which(dat$Species %in% sp_mig), ]
 
 #### CHECK species with low sample size ####
 
-# ----1. Number of detections ----
+# ---- 1. Number of detections ----
 
 freq <- as.data.frame(xtabs(~Species + Year, dat))
 freq <- spread(freq,Year, Freq) # Number of detections (ds observations) of each species per year in all transects (nrows per species and year)
@@ -38,7 +38,7 @@ setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
 # In the last chapter the threshold was 20 detections per year per species. But in this one not, because I loose information of relevant
 # scarce species.
 
-# 2. ---- Proportion of transects occupied by each species yearly ----
+# ---- 2. Proportion of transects occupied by each species yearly ----
 
 # Number of transects per year
 
@@ -83,9 +83,13 @@ tab <- left_join(freq, prop_sp, by = "Species")
 setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
 #write.csv(tab, "infospecies_ch3_1019.csv")
 
-#### Remove very scarce (less than 20 detections in total, which is the lower threshold to include PTORI) ####
 
-dat_info <- read.csv("infospecies_ch3_final.csv", sep = ";")
+# AQUI
+#####
+#### Remove very scarce (less than 30 detections in total, which is the lower threshold to include PTORI) ####
+
+setwd("D:/PhD/Third chapter/Data")
+dat_info <- read.csv("infospecies_ch3_FINAL_1019.csv", sep = ";")
 scarce <- dat_info[which(dat_info$remove_veryscarce == 1), ]
 sp_scarce <- as.character(unique(scarce$Species)) #Vector with species to delete
 dat <- dat[-which(dat$Species %in% sp_scarce), ]
@@ -97,18 +101,24 @@ dat[which(dat$Species == "STSSP"), ]
 dat$Species[which(dat$Species == "STVUL")] <- "STSSP" 
 dat$Species[which(dat$Species == "STUNI")] <- "STSSP" 
 
+
 # REMOVE GASSP BECAUSE GATHE AND GACRI HAVE A LOT OF OBSERVATIONS
 dat <- dat[-which(dat$Species == "GASSP"), ]
 
+#### Remove species with no biological meaning related to the study question ####
+bio <- dat_info[which(dat_info$remove_biologicalsense == 1), ]
+sp_bio <- as.character(unique(bio$Species)) #Vector with species to delete
+dat <- dat[-which(dat$Species %in% sp_bio), ]
+
 ##### Check detection curves ####
 
-# Make plot all species to compare Seen vS. Heard
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Explore")
+setwd("D:/PhD/Third chapter/Explore")
 
-#pdf("df_all_observations_allsp.pdf")
-spec <- dat_info$Species[-which(dat_info$Species %in% sp_scarce)] # Order descending of proportion of transects occupied
-spec <- spec[-(which(spec %in% c("STVUL", "STUNI", "GASSP")))]
-#spec <- unique(dat$Species)
+spec <- as.character(dat_info$Species)
+spec <- spec[-which(spec %in% sp_scarce)] # Order descending of proportion of transects occupied
+spec <- spec[-which(spec %in% sp_bio)]
+
+#pdf("df_all_observations_allsp_1019.pdf")
 
 par(mfrow = c(4,3))
 for (i in 1:length(spec)){
@@ -124,15 +134,12 @@ dc <- dat_info[which(dat_info$remove_detectioncurve == 1), ]
 sp_dc <- as.character(unique(dc$Species)) #Vector with species to delete
 dat <- dat[-which(dat$Species %in% sp_dc), ]
 
-#### Remove species with no biological meaning related to the study question ####
-bio <- dat_info[which(dat_info$remove_biologicalsense == 1), ]
-sp_bio <- as.character(unique(bio$Species)) #Vector with species to delete
-dat <- dat[-which(dat$Species %in% sp_bio), ]
+
 
 # Plot all observations
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Explore")
+setwd("D:/PhD/Third chapter/Explore")
 
-#pdf("df_all_observations.pdf")
+pdf("df_all_observations_goodsp_1019.pdf")
 spec_no_order <- unique(dat$Species)
 spec <- dat_info$Species[which(dat_info$Species %in% spec_no_order)]
 
@@ -141,24 +148,24 @@ for (i in 1:length(spec)){
   hist(dat$distance[which(dat$Species %in% spec[i])], breaks = c(0,25,50,99,200,500),
        main = paste(spec[i], "- Distances"), col = "grey", freq = FALSE, xlab = " ") 
 }
-#dev.off()
+dev.off()
 
 # Plot only seen
 
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Explore")
-#pdf("df_all_observations_seen.pdf")
+setwd("D:/PhD/Third chapter/Explore")
+pdf("df_all_observations_goodsp_1019_seen.pdf")
 
 par(mfrow = c(4,3))
 for (i in 1:length(spec)){
   hist(dat$distance[which(dat$Species %in% spec[i] & dat$Obs_type == "V")], breaks = c(0,25,50,99,200,500),
        main = paste(spec[i], "- Distances"), col = "grey", freq = FALSE, xlab = " ") 
 }
-#dev.off()
+dev.off()
 
 # Plot only heard
 
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Explore")
-#pdf("df_all_observations_heard.pdf")
+setwd("D:/PhD/Third chapter/Explore")
+pdf("df_all_observations_goodsp_1019_heard.pdf")
 
 par(mfrow = c(4,3))
 for (i in 1:length(spec)){
@@ -166,10 +173,12 @@ for (i in 1:length(spec)){
     plot(1,xlab = " ", ylab = " ", main = spec[i]) else hist(dat$distance[which(dat$Species %in% spec[i] & dat$Obs_type == "S")], breaks = c(0,25,50,99,200,500),
                                                              main = paste(spec[i], "- Distances"), col = "grey", freq = FALSE, xlab = " ") 
 }
-#dev.off()
+dev.off()
 
 # Finally because the detection curves of the heard observations are only increasing, we can not include Heard vS Seen as a co-variate 
 # in sigma. Therefore, we will pool all the observations together and analyze it as a whole with the hazard rate detection function.
+
+######  TERAX AND BUOED PROBLEM #####
 
 #### Include/Check TERAX_F and TERAX_M because they have different requirements ####
 
@@ -244,10 +253,10 @@ setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Third chapter/Data")
 prop_sp$Species2 <- rownames(prop_sp)
 tab <- left_join(freq, prop_sp, by = "Species2")
 
-#### Esto es muy interesante, porque en verdad no hay muchas observaciones indeterminadas, por lo que podrÃ�a 
+#### Esto es muy interesante, porque en verdad no hay muchas observaciones indeterminadas, por lo que podrÃ?a 
 # Analizar por separado TERAX_M y TERAX_F
 
-# Grouping bins 1 & 2
+# ---- Grouping bins 1 & 2 ----
 
 # It seems like there are few important species that have a "bad detection curve"
 # (TERAX and BUOED) 
@@ -265,3 +274,59 @@ dat$distance_new[dat$Banda_new == 4] <- 350
 dat$distance_new[dat$Banda_new == 3] <- 150
 dat$distance_new[dat$Banda_new == 2] <- 75
 dat$distance_new[dat$Banda_new == 1] <- 25
+
+# ---- Check by zones to see if one zone is more problematic ----
+
+##### TERAX
+zepas <- unique(dat$Region.Label)
+par(mfrow = c(4, 2))
+
+for (i in 1:length(zepas)){
+  hist(dat$distance[which(dat$Species  == "TERAX" & dat$Region.Label == zepas[i])], breaks = c(0,25,50,99,200,500),
+       main = paste("TERAX -", zepas[i]), col = "grey", freq = FALSE, xlab = " ")
+}
+
+
+datprueba <- dat
+datprueba <- datprueba[which(datprueba$Region.Label %in% c("AF", "SI")), ]
+
+par(mfrow = c(1, 2))
+hist(datprueba$distance[which(datprueba$Species  == "TERAX")], breaks = c(0,25,50,99,200,500),
+     main = "TERAX -", col = "grey", freq = FALSE, xlab = " ")
+hist(dat$distance[which(dat$Species  == "TERAX")], breaks = c(0,25,50,99,200,500),
+     main = "TERAX -", col = "grey", freq = FALSE, xlab = " ")
+
+# Machos
+par(mfrow = c(1, 2))
+hist(datprueba$distance[which(datprueba$Species2  == "TERAX_M")], breaks = c(0,25,50,99,200,500),
+     main = "TERAX_M", col = "grey", freq = FALSE, xlab = " ")
+hist(dat$distance[which(dat$Species2  == "TERAX_M")], breaks = c(0,25,50,99,200,500),
+     main = "TERAX_M", col = "grey", freq = FALSE, xlab = " ")
+
+# Hembras
+par(mfrow = c(1, 2))
+hist(datprueba$distance[which(datprueba$Species2  == "TERAX_F")], breaks = c(0,25,50,99,200,500),
+     main = "TERAX_F", col = "grey", freq = FALSE, xlab = " ")
+hist(dat$distance[which(dat$Species2  == "TERAX_M")], breaks = c(0,25,50,99,200,500),
+     main = "TERAX_F", col = "grey", freq = FALSE, xlab = " ")
+
+## So, only using AF and SI, looks reasonable for males...could we set the rest of the areas to 0 
+# as we would do with the other species as it if would be out of the distribution range?
+
+##### BUOED
+zepas <- unique(dat$Region.Label)
+par(mfrow = c(4, 2))
+
+for (i in 1:length(zepas)){
+  hist(dat$distance[which(dat$Species  == "BUOED" & dat$Region.Label == zepas[i])], breaks = c(0,25,50,99,200,500),
+       main = paste("BUOED -", zepas[i]), col = "grey", freq = FALSE, xlab = " ")
+}
+
+datprueba <- dat
+datprueba <- datprueba[which(datprueba$Region.Label %in% c("AF", "SI", "GR", "AL")), ] # BM se puede añadir pero empeora
+
+par(mfrow = c(1, 2))
+hist(datprueba$distance[which(datprueba$Species  == "BUOED")], breaks = c(0,25,50,99,200,500),
+     main = "BUOED -", col = "grey", freq = FALSE, xlab = " ")
+hist(dat$distance[which(dat$Species  == "BUOED")], breaks = c(0,25,50,99,200,500),
+     main = "BUOED -", col = "grey", freq = FALSE, xlab = " ")
