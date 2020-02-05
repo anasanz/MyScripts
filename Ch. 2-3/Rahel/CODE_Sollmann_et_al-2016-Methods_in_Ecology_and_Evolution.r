@@ -343,7 +343,7 @@ mfund<-function(x){
 
 ###make tables to hold evals
 ###this requires reading in one output file before running the iter loop
-out<-dget(paste('Output_spec',n.spec,'_', 1, '.R', sep=''))
+out<-dget(past.e('Output_spec',n.spec,'_', 1, '.R', sep=''))
 
 parms<-dimnames(out[[1]])[[2]][-c(1,2)] ###get parameter names
 
@@ -927,7 +927,7 @@ model{
   }
   
   ###calculate residuals
-  Tobs<-sum(Tobsp[1:nind])
+  Tobs<-sum(Tobsp[1:nind]) # This is the same than in the simulation model, where it alculates BPN inside the model
   Tobsnew<-sum(Tobspnew[1:nind])
   
   

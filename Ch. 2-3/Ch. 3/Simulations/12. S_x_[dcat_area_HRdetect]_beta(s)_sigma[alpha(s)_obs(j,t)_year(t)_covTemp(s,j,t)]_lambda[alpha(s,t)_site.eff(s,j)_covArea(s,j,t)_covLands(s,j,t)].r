@@ -8,6 +8,7 @@ library(plyr)
 
 # MODEL 12
 # Adding species random effects in coefficients from variables of model 11 (de momento solo probar 1, el de area 1)
+# IT DOESN'T WORK (The problem is in b from the HR detection function, corrected from RE4_10.1.7 or 13)
 
 # ---- Data simulation ----
 

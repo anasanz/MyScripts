@@ -7,6 +7,8 @@ library(plyr)
 set.seed(2013)
 
 # Same than model 10 but resembling it to my real data (nspecies,nyears,nbins) and change observation model
+# IT doesn't WORK (NOT EVEN REMOVING ZONE AND BTEMP)
+# The problem is in b from the HR detection function, corrected from RE4_10.1.7 or 13
 
 # ---- Data simulation ----
 
