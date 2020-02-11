@@ -6,7 +6,7 @@ library(plyr)
 
 set.seed(2013)
 
-# RE4_10.1.7 (works), adding 2 extra covariates with random effects in beta coefficient (crop diversity and field size)
+# Model 15.2 (5 random coefficient crop div.&fsize&areas and sp-site) + use HR detection function with 2 beta coefficients for all species
 
 
 # ---- Data simulation ----
@@ -14,17 +14,18 @@ set.seed(2013)
 # 30 species
 # 5 years (unbalanced number of transects per year) 
 
-# Observation model calculated with Half Normal detection function
+# Observation model calculated with Half Normal detection function 
+# 1 beta for all species
 # Sigma site-year specific
 ### Random sp intercept 
 ### Random effect in observer (site-year)
 
 # Lambda site-year specific
 ### Random sp-year intercept (include different baseline abundance per species and also per year)
-### 2 areas variables (area 1 sp-specific)
+### 3 areas variables (area 1 sp-specific)
 
-# Detection function: HN
-g <- function(x, sig) exp(-x^2/(2*sig^2))
+# HAZARD RATE DETECTION FUNCTION
+hr <- function(x, sig, b) 1 - exp(-(x/sig)^-b)
 
 # Number of transects per year (unbalanced)
 nSites <- seq(74,106, by = 8)				# number of line transect surveys (DIFFERENT BY YEAR)
@@ -75,6 +76,24 @@ ob <- matrix(sig.obs[ob.id],  nrow = max.sites, ncol = nyrs) # Matrix with inter
 sigma <- exp(array(rep(s.alpha, each = max.sites*nyrs), c(max.sites, nyrs, nSpecies)) 
              + replicate(nSpecies,ob))
 
+# BETA
+# 1. Assign species to a group
+
+p.g <- 0.7 # Probability of group membership
+
+group <- NULL
+g.eff <- NULL
+
+for (s in 1:nSpecies){ 
+group[s] <- rbinom(1,1,p.g) # Group membership
+g.eff[s] <- group[s] + 1 # Just turn it into a 1/2 index (group 1 or group2)
+}
+
+beta <- NULL # One different beta per group
+for (g in 1:2){
+  beta[g] <- runif(1)
+}
+
 
 # ----  Abundance component: random effect accross sites, zone covariate and 2 area covariates
 
@@ -87,6 +106,20 @@ lam.alpha.spyear <- rnorm(nyrs*nSpecies, mu.lam.alpha.spyear, sig.lam.alpha.spye
 
 lam.alpha.spyear_data <- array(rep(lam.alpha.spyear, each = max.sites), c(max.sites, nyrs, nSpecies))
 
+# RANDOM EFFECT IN SPECIES-SITE (Independent of year)
+sig.lam.spsite <- 0.3
+lam.spsite <- rnorm(nSpecies*max.sites, 0, sig.lam.spsite) 
+ar <- array(rep(lam.spsite, each = nyrs), c(nyrs, max.sites, nSpecies)) # I need to make it in wide format and transpose it to long
+ar1 <- list() 
+for (i in 1:nSpecies){
+  df <- as.data.frame(ar[,,i])
+  df <- t(df)
+  df <- as.matrix(df)
+  ar1[[i]] <- df
+}
+
+lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
+
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
 
@@ -98,9 +131,14 @@ mu.a2 <- -0.5
 sig.a2 <- 0.3
 b.a2 <- rnorm(nSpecies, mu.a2, sig.a2)
 
+mu.a3 <- 0
+sig.a3 <- 0.5
+b.a3 <- rnorm(nSpecies, mu.a3, sig.a3)
+
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
+a3 <- abs(rnorm(max.sites*nyrs, 2, 1))
 
 #SCALED
 area1_mean <- mean(a1)
@@ -110,6 +148,10 @@ area1_sc <- (a1 - area1_mean) / area1_sd
 area2_mean <- mean(a2)
 area2_sd <- sd(a2)
 area2_sc <- (a2 - area2_mean) / area2_sd
+
+area3_mean <- mean(a3)
+area3_sd <- sd(a3)
+area3_sc <- (a3 - area3_mean) / area3_sd
 
 
 # LANDSCAPE COVARIATES
@@ -122,7 +164,6 @@ bCropdiv <- rnorm(nSpecies, mu.cd, sig.cd)
 mu.fs <- -0.8
 sig.fs <- 0.5
 bFieldsize <- rnorm(nSpecies, mu.fs, sig.fs)
-
 
 # Covariates
 crop_diversity <- round(abs(rnorm(max.sites*nyrs, 7, 3)),0)
@@ -140,10 +181,12 @@ fieldsize_sc <- (field_size - fieldsize_mean) / fieldsize_sd
 
 
 lam <- exp(lam.alpha.spyear_data + 
+             lam.spsite_data +
              array(rep(b.a1,each=max.sites*nyrs)*area1_sc, c(max.sites, nyrs, nSpecies)) +
              array(rep(b.a2,each=max.sites*nyrs)*area2_sc, c(max.sites, nyrs, nSpecies)) +
+             array(rep(b.a3,each=max.sites*nyrs)*area3_sc, c(max.sites, nyrs, nSpecies)) +
              array(rep(bCropdiv,each=max.sites*nyrs)*cropdiv_sc, c(max.sites, nyrs, nSpecies)) +
-             array(rep(bFieldsize,each=max.sites*nyrs)*fieldsize_sc, c(max.sites, nyrs, nSpecies)) ) 
+             array(rep(bFieldsize,each=max.sites*nyrs)*fieldsize_sc, c(max.sites, nyrs, nSpecies))) 
 
 
 # Abundance per site year (different abundance per species): N.sysp[j,t,s] 
@@ -183,6 +226,7 @@ yList[[1]][,,1]
 N.sysp[,,1] # This is the real number of individuals per stite and year of species 1
 sigma[,,1] # And this is sigma per site and year for species 1
 
+
 for (s in 1:nSpecies){
   for (t in 1:nyrs){
     for(j in 1:max.sites) {
@@ -191,7 +235,7 @@ for (s in 1:nSpecies){
       # Distance from observer to the individual
       d <- runif(N.sysp[j,t,s], 0, strip.width) 		# Uniform distribution of animals
       # Simulates one distance for each individual in the site (N[j])
-      p <- g(x=d, sig=sigma[j,t,s])   		# Detection probability. Sigma is site-time specific
+      p <- hr(x = d, sig = sigma[j,t,s], b = beta[g.eff[s]])   		# Detection probability. Sigma is site-time specific
       seen <- rbinom(N.sysp[j,t,s], 1, p)
       if(all(seen == 0))
         next
@@ -253,13 +297,19 @@ for (s in 1:nSpecies){
   yLong.sp[,s] <- yLong.na[complete.cases(yLong.na)]
 }
 
+# All this index and variables are site-speficic (not species specific) so they stay like this
+sitesYears <- NULL # I did that loop but the normal version actually works, since is an index per site-year
+for (i in 1:nyrs){
+  sitesYears <- c(sitesYears,c(1:nSites[i]))
+}
+
 
 # Create one long vector with covariate values
 a1.m <- matrix(area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) # I need to make it from the same matrix
 a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)
+a3.m <- matrix(area3_sc, nrow = max.sites, ncol = nyrs, byrow = F)
 cropdiv.m <- matrix(cropdiv_sc, nrow = max.sites, ncol = nyrs, byrow = F)
 fieldsize.m <- matrix(fieldsize_sc, nrow = max.sites, ncol = nyrs, byrow = F)
-
 
 
 area1 <- NULL
@@ -270,6 +320,11 @@ for (i in 1:nyrs){
 area2 <- NULL
 for (i in 1:nyrs){
   area2 <- c(area2,a2.m[1:nSites[i],i])
+}
+
+area3 <- NULL
+for (i in 1:nyrs){
+  area3 <- c(area3,a3.m[1:nSites[i],i])
 }
 
 cdiv <- NULL
@@ -337,13 +392,20 @@ m <- data.frame(allyears = allyears)
 m$allyears <- as.factor(m$allyears)
 indexYears <- model.matrix(~ allyears-1, data = m)
 
+# Create matrix for indexing species when calculating residuals for Bp.Obs for each species
+
+m2 <- data.frame(sp.dclass = sp.dclass)
+m2$sp.dclass <- as.factor(m2$sp.dclass)
+indexSP <- model.matrix(~ sp.dclass -1, data = m2)
+dim(indexSP)
+
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width,
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, indexYears = indexYears, allyears = allyears,
-              area1 = area1, area2 = area2, cdiv = cdiv, fsiz = fsiz, ob = ob, nobs = nobs, db = dist.breaks,
-              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width, midpt = midpt,
+              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
+              area1 = area1, area2 = area2, area3 = area3, cdiv = cdiv, fsiz = fsiz, ob = ob, nobs = nobs, db = dist.breaks,
+              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP)
 
 # ---- JAGS model ----
 
@@ -354,19 +416,22 @@ cat("model{
     
     # SPECIES SPECIFIC PARAMETERS (random effects)
     
-    for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
-    asig[s] ~ dnorm(mu_s, tau_s)
+    for (s in 1:nSpecies){             
+    asig[s] ~ dnorm(mu_s, tau_s)    # Random intercept for sigma (dif detection per species)
     b.a1[s] ~ dnorm(mu_a1, tau_a1)
     b.a2[s] ~ dnorm(mu_a2, tau_a2)
+    b.a3[s] ~ dnorm(mu_a3, tau_a3)
     bCropdiv[s] ~ dnorm(mu_cd, tau_cd)
     bFieldsize[s] ~ dnorm(mu_fs, tau_fs)
     }
-    
     
     for(s in 1:nSpecies){              # Random intercept for lambda (dif abundance per species and year)
     for(t in 1:nyrs){
     alam[s,t] ~ dnorm(mu_l,tau_l)}}
     
+    for (s in 1:nSpecies){             # Random effect for lambda (dif abundance per species and site)
+    for (i in 1:max.sites){
+    spsite[s,i] ~ dnorm(0, tau_spsite) }}  
     
     # Hyperparameters of species level random effects
     
@@ -382,17 +447,24 @@ cat("model{
     tau_a1 <- 1/(sig_a1*sig_a1)
     sig_a1 ~ dunif(0,500)
     
-    mu_a2 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area1
+    mu_a2 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area2
     tau_a2 <- 1/(sig_a2*sig_a2)
     sig_a2 ~ dunif(0,500)
     
-    mu_cd ~ dnorm(0,0.01) # Hyperparameters for beta coefficient crop diver
+    mu_a3 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area3
+    tau_a3 <- 1/(sig_a3*sig_a3)
+    sig_a3 ~ dunif(0,500)
+    
+    mu_cd ~ dnorm(0,0.01) # Hyperparameters for beta coefficient crop diversity
     tau_cd <- 1/(sig_cd*sig_cd)
     sig_cd ~ dunif(0,500)
-
+    
     mu_fs ~ dnorm(0,0.01) # Hyperparameters for beta coefficient field size
     tau_fs <- 1/(sig_fs*sig_fs)
     sig_fs ~ dunif(0,500)
+    
+    tau_spsite <- 1/(sig_spsite*sig_spsite) # Hyperparameter for site random effect in lambda
+    sig_spsite ~ dunif(0,500)
     
     
     # PRIORS FOR SIGMA
@@ -406,9 +478,36 @@ cat("model{
     sig.obs[o] ~ dnorm(0, tau.sig.ob)
     }
     
-    for(i in 1:nind){
-    dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])  
+    # PRIOR FOR BETA
+
+    p.g ~ dbeta(1,1) #♠ Prior for probability of group membership
+
+    for (s in 1:nSpecies){ # To model group membership (index for beta)
+    g[s] ~ dbern(p.g)
+    g.eff[s] <- g[s] + 1 #just turn it into a 1/2 index 
     }
+    
+    for (g in 1:2){              # Random beta per species (2 different ones)
+    beta[g] ~ dunif(0, 100)}
+    
+    for(i in 1:nind){
+    dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])
+    
+    # FOR BP.OBS
+    # Generate new observations, calculate residuals for Bayesian p-value on detection component
+    
+    dclassnew[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i],1:nG]) 
+    Tobsp[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclass[i]]),2)
+    Tobspnew[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclassnew[i]]),2)
+    }
+    
+    # SP-SPECIFIC BP.OBS
+    for (s in 1:nSpecies){
+    Bp.Obs.sp[s]<-sum(Tobspnew*indexSP[,s]) > sum(Tobsp*indexSP[,s]) 
+    }
+    
+    # COMMUNITY BP.OBS
+    Bp.Obs <- sum(Tobspnew[1:nind]) > sum(Tobsp[1:nind])
     
     for (s in 1:nSpecies){
     
@@ -416,18 +515,13 @@ cat("model{
     
     sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]])
     
-    f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
-    
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
     
-    up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) ##db are distance bin limits
-    low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
-    p[s,j,k]<- 2 * (up[s,j,k] - low[s,j,k])
+    p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta[g.eff[s]])
     pi[s,j,k] <- int.w[k] / strip.width 
-    f[s,j,k]<- p[s,j,k]/f.0[s,j]/int.w[k]                   ## detection prob. in distance category k                      
-    fc[s,j,k]<- f[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
+    fc[s,j,k]<- p[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
     fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
     }
     
@@ -436,25 +530,41 @@ cat("model{
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
     N[j,s] ~ dpois(lambda[j,s]) 
     
-    lambda[j,s] <- exp(alam[s,allyears[j]] + b.a1[s]*area1[j] + b.a2[s]*area2[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] ) 
-    } }
-    # Derived parameters
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
+    + b.a1[s]*area1[j] + b.a2[s]*area2[j] + b.a3[s]*area3[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] ) 
     
-    #for (i in 1:nyears){
-    #Ntotal[i] <- sum(N[s]*indexYears[,i]) 
-    #}
+    # FOR BP.N
+    # Create replicate abundances (new observations) for Bayesian p-value on abundance component
+    Nnew[j,s]~dpois(lambda[j,s])
+    
+    # Residuals for 'observed' and new abundances: species and site specific residuals
+    FT1[j,s] <- pow(sqrt(N[j,s]) - sqrt(lambda[j,s]),2)
+    FT1new[j,s] <- pow(sqrt(Nnew[j,s]) - sqrt(lambda[j,s]),2)
+    } 
+    # Sum residuals over sites and years
+    T1p[s]<-sum(FT1[1:n.allSiteYear,s])
+    T1newp[s]<-sum(FT1new[1:n.allSiteYear,s])
+    
+    # SP-SPECIFIC BP.N
+    Bp.N.sp[s] <- T1p[s] > T1newp[s]
+    }
+    
+    # COMMUNITY BP.N
+    Bp.N <- sum(T1newp[1:nSpecies]) > sum(T1p[1:nSpecies])
+    
+    # Derived parameters
     
     for (s in 1:nSpecies){
     for (i in 1:nyears){
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_covAreas(s,j,t)_covLands2(s,j,t)].txt")
+    file = "s_HR_beta(2groups)_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt")
 
 # Inits
 Nst <- yLong.sp + 1
-inits <- function(){list(mu_l = runif(1), sig_l = 0.2, 
-                         N=Nst,
+inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
+                         N=Nst, beta = runif(2), 
                          mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
                          mu_cd = runif(1), sig_cd = runif(1), mu_fs = runif(1), sig_fs = runif(1),
                          sig.sig.ob = runif(1),
@@ -463,42 +573,39 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2,
 
 
 # Params
-params <- c( "mu_l", "sig_l", 
-             "mu_a1", "sig_a1", "mu_a2", "sig_a2",
+params <- c( "mu_l", "sig_l", "sig_spsite", "beta", "p.g",
+             "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
              "mu_cd", "sig_cd", "mu_fs", "sig_fs",
-             "sig.sig.ob",
-             "mu_s", "sig_s"
-)
+             "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
+             "mu_s", "sig_s")
 
 # MCMC settings
 nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_covAreas(s,j,t)_covLands2(s,j,t)].txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HR_beta(2groups)_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/ANA/Results/chapter3")
-save(out, file = "13.3_S.RData")
+save(out, file = "15.2_S.RData")
 
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
 
 # To compare:
-data_comp <- list(mu.a1 = mu.a1, sig.a1 = sig.a1, mu.a2 = mu.a2, sig.a2 = sig.a2, 
-                  mu.cd = mu.cd, sig.cd = sig.cd, mu_fs = mu_fs, sig_fs = sig_fs,
-                  mu.lam.alpha.spyear = mu.lam.alpha.spyear,
+data_comp <- list(mu.a1 = mu.a1, sig.a1 = sig.a1, mu.a2 = mu.a2, sig.a2 = sig.a2, mu.a3 = mu.a3, sig.a3 = sig.a3,
+                  mu.cd = mu.cd, sig.cd = sig.cd, mu.fs = mu.fs, sig.fs = sig.fs,
+                  mu.lam.alpha.spyear = mu.lam.alpha.spyear, sig.lam.spsite = sig.lam.spsite,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.sig.obs = sig.sig.obs,
                   mu.sig.sp = mu.sig.sp,
-                  sig.sig.sp = sig.sig.sp
+                  sig.sig.sp = sig.sig.sp, beta = beta, p.g = p.g
 )
 
-traceplot(out, parameters = c("mu_l", "sig_l", 
-                              "mu_a1", "sig_a1", "mu_a2", "sig_a2",
+traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite", "beta", "p.g",
+                              "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
                               "mu_cd", "sig_cd", "mu_fs", "sig_fs",
-                              "sig.sig.ob",
-                              "mu_s", "sig_s"))
+                              "sig.sig.ob", "mu_s", "sig_s"))
 
 ###########################################################################################
-

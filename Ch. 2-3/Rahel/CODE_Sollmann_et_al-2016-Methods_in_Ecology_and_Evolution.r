@@ -679,7 +679,7 @@ write.csv(round(Nout, dig=3),paste('BetaByN_', n.spec, '.csv', sep='' ))
 
 library(rjags)
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Examples/Sollman_data/Hierarchical_community_model")
+setwd("D:/PhD/Second chapter/Data/Examples/Sollman_data/Hierarchical_community_model")
 sbdata <- readRDS("sbdata.rds")
 #sbdata<-dget("sbdata.R")  			# holds all data necessary for analysis below, available on Dryad
 
@@ -732,9 +732,9 @@ sm<-summary(out)
 
 ###chain convergence
 gelman.diag(out)
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Examples/Sollman_data/Hierarchical_community_model")
+setwd("D:/PhD/Second chapter/Data/Examples/Sollman_data/Hierarchical_community_model")
 save(out, "out_community.RData")
-
+load("out_community.RData")
 
 #######################################################################################################################
 #### get Bayesian p-values
@@ -786,7 +786,7 @@ output<-rbind(mcmc(out[[1]][,ppl]), mcmc(out[[2]][,ppl]), mcmc(out[[3]][,ppl]))
 for (j in 1:nsp){
   xx<-table(output[,j])
   Amode[j]<-as.numeric(names(xx))[xx==max(xx)] }
-}
+
 
 
 
