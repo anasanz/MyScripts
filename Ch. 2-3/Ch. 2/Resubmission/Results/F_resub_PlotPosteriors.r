@@ -17,7 +17,7 @@ s_good <- s_good[-which(s_good %in% bad_bp)]
 # Legend
 
 library(dplyr)
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("D:/PhD/Second chapter/Data")
 leg <- read.csv("leg_species.csv", sep = ";")
 leg <- arrange(leg,codiEspecie)
 colnames(leg)[1] <- "species"
@@ -30,7 +30,7 @@ leg <- leg[-which(leg$species %in% bad_bp),]
 leg$PD <- NA
 
 for (xxx in 1:length(s_good)){
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together
@@ -48,15 +48,15 @@ leg_order_dec <- arrange(leg, desc(PD))
 order_sp_obs_legend <- leg_order_dec$English
 s_good_order <- leg_order_dec$species
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
-pdf("Fig 5_2_PosteriorYear.pdf")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
+pdf("Fig 5_2_PosteriorYear_Final.pdf")
 
 par(mfrow = c(8,3),
     oma = c(2, 2, 1, 2),
     mar = c(1.5, 1, 1, 1) + 0.1)
 
 for (xxx in 1:length(s_good_order)){
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   
   load(paste("HDS_",s_good_order[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together

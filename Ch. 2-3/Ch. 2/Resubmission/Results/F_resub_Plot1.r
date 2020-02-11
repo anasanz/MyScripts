@@ -62,7 +62,7 @@ trim <- trim[-which(trim$sp %in% bad_bp), ]
 
 setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
 
-pdf("Fig1_noBP.pdf",6,8)
+pdf("Fig1_noBP2.pdf",6,8)
 par(mfrow = c(1,1),
     mar = c(1.5,0.1,0.5,0.1),
     oma = c(1.5,0.1,1,0.1)

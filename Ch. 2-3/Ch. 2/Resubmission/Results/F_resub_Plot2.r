@@ -17,7 +17,7 @@ library(rtrim)
 
 # ---- PREPARE DATA ----
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission")
+setwd("D:/PhD/Second chapter/Resubmission")
 
 d <- read.csv("DataDS_ready_ALL_revch2.csv")
 
@@ -34,17 +34,17 @@ s_good <- c("FATIN", "SESER", "HIRUS", "CABRA", "GATHE", "SYMEL", "CACHL", "COPA
 #                  "Sylvia cantillans", "Eurasian Skylark", "Common wood pigeon")
 s_good_title <- c("Common kestrel","European serin","Barn swallow", "Greater short−toed lark","Thekla lark",
                   "Sardinian warbler","European greenfinch", "Common wood pigeon", "Eurasian hoopoe",
-                  "House sparrow","Common Linnet", "Subalpine warbler", "Eurasian Skylark")
+                  "House sparrow","Common linnet", "Subalpine warbler", "Eurasian skylark")
 # "MICAL", "MEAPI", "TERAX" I dont do it now, because they are from another dataset (only seen observations, so its more tricky)
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
-pdf("Fig2.pdf",6.5,9.5)
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
+pdf("Fig2_final.pdf",6.5,9.5)
 
 par(mfrow = c(7,2),
     mar = c(1,2,1.3,2),
     oma = c(3,3,1,2))
 
 #1. Plot first plots
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
 
 # For the funcion of plot trim (both functions) xjust = 0, yjus = 5: 
 # legend("topright", legend = c(paste("HDS:",significance_est_hds), paste("TRIM:", significance_est_ci_trim)), 
@@ -142,7 +142,7 @@ for (xxx in 1:11){
   ################################           Output HDS              ##########################################
   ###########################################################################################################
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   summary <- as.data.frame(out$summary)
   
@@ -195,7 +195,7 @@ for (xxx in 1:11){
   yrs2 <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
   
   # Load function with both graphs. You should have loaded first all results from both trim and hds and then load this function
-  setwd("C:/Users/Ana/Documents/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
+  setwd("D:/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
   source("plot_trim_hds1.R")
   plot.trim.hds.overall_yo1(overall(m3), yrange = c(0, max_range))
   
@@ -310,7 +310,7 @@ for (xxx in 12:13){
   ################################           Output HDS              ##########################################
   ###########################################################################################################
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   summary <- as.data.frame(out$summary)
   
@@ -364,7 +364,7 @@ for (xxx in 12:13){
   yrs2 <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
   
   # Load function with both graphs. You should have loaded first all results from both trim and hds to run this function
-  setwd("C:/Users/Ana/Documents/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
+  setwd("D:/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
   source("plot_trim_hds2.R")
   plot.trim.hds.overall_yo2(overall(m3), yrange = c(0, max_range))
   
@@ -394,14 +394,14 @@ dev.off()
 ###### Figure for supplementary material ########
 ########################################################################################################
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission")
+setwd("D:/PhD/Second chapter/Resubmission")
 
 d <- read.csv("DataDS_ready_ALL_revch2.csv")
 
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
 library(dplyr)
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("D:/PhD/Second chapter/Data")
 leg <- read.csv("leg_species.csv", sep = ";")
 leg <- arrange(leg,codiEspecie)
 colnames(leg)[1] <- "species"
@@ -416,7 +416,7 @@ s_good <- as.character(s_good)
 s_good_title <- leg_select$English
 s_good_title <- as.character(s_good_title)
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
 pdf("FigS3.pdf", 6.5,9.5)
 
 par(mfrow = c(6,2),
@@ -424,7 +424,7 @@ par(mfrow = c(6,2),
     oma = c(3,3,1,2))
 
 #1. Plot 2 first plots
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
 
 for (xxx in 1:9){
   d_tr <- d[ ,which(colnames(d) %in% c("Species",  "T_Y", "Observer"))]
@@ -518,7 +518,7 @@ for (xxx in 1:9){
   ################################           Output HDS              ##########################################
   ###########################################################################################################
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   summary <- as.data.frame(out$summary)
   
@@ -571,7 +571,7 @@ for (xxx in 1:9){
   yrs2 <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
   
   # Load function with both graphs. You should have loaded first all results from both trim and hds and then load this function
-  setwd("C:/Users/Ana/Documents/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
+  setwd("D:/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
   source("plot_trim_hds1.R")
   plot.trim.hds.overall_yo1(overall(m3), yrange = c(0, max_range))
   
@@ -686,7 +686,7 @@ for (xxx in 10:11){
   ################################           Output HDS              ##########################################
   ###########################################################################################################
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   summary <- as.data.frame(out$summary)
   
@@ -740,7 +740,7 @@ for (xxx in 10:11){
   yrs2 <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
   
   # Load function with both graphs. You should have loaded first all results from both trim and hds to run this function
-  setwd("C:/Users/Ana/Documents/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
+  setwd("D:/PhD/MyScripts/Ch. 2-3/Ch. 2/Results")
   source("plot_trim_hds2.R")
   plot.trim.hds.overall_yo2(overall(m3), yrange = c(0, max_range))
   

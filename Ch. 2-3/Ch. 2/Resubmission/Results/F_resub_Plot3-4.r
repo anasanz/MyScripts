@@ -15,7 +15,7 @@ s_good <- sort(s_good)
 
 #Remove species with bad bp-values??
 bad_bp <- c("GACRI", "STSSP", "MICAL", "TERAX", "MEAPI", "MECAL")
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
 load("spConvergence_light_resub.RData")
 
 
@@ -37,7 +37,7 @@ year_obs$species <- s_good
 
 for (xxx in 1:length(s_good)){
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together (for calculating the mode)
   
@@ -81,7 +81,7 @@ year_obs$mode_obs_sd <- round(year_obs$mode_obs_sd,3)
 # Join year_obs with legend for titles of the plots
 
 library(dplyr)
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
+setwd("D:/PhD/Second chapter/Data")
 leg <- read.csv("leg_species.csv", sep = ";")
 leg <- arrange(leg,codiEspecie)
 colnames(leg)[1] <- "species"
@@ -90,8 +90,8 @@ year_obs <- left_join(year_obs, leg, by = "species")
 
 year_obs <- year_obs[-which(year_obs$species %in% bad_bp), ]
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
-write.csv(year_obs, "sigma_random_mean_mode_RESUB.csv")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
+#write.csv(year_obs, "sigma_random_mean_mode_RESUB.csv")
 
 # Delete bad bayesian p-values
 #year_obs <- year_obs[-which(year_obs$species %in% bad_bp), ]
@@ -122,16 +122,16 @@ summary[4,c(3:8)] <- summary(year_obs$mode_year_sd)
 
 summary <- cbind(summary[ ,c(1,2)], round(summary[ ,c(3:8)], 3))
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
-write.csv(summary, "summary_species_SD.csv")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
+#write.csv(summary, "summary_species_SD.csv")
 
 ############################################################################################
 #### ONLY ONE Plot mean and mode and CI for ALL species  ####
 
 #OBSERVER
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
-pdf("Fig3.pdf")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
+pdf("Fig3_Final.pdf")
 
 par(mfrow = c(8,3),
     oma = c(2, 2, 1, 2),
@@ -140,7 +140,7 @@ par(mfrow = c(8,3),
 # Posterior distribution for standard deviation of year random effect (highest mean and mode)
 for (xxx in 1:21){
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",order_sp_obs[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together
   
@@ -150,7 +150,7 @@ for (xxx in 1:21){
   mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
   
   # Plots no x-axis
-  plot(dens_obs, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  plot(dens_obs, xlim = c(0, 2), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
   #axis(2, labels = FALSE, lwd.ticks = 0)
   axis(1, labels = FALSE, lwd.ticks = 0)
   mtext(order_sp_obs_legend[xxx], side = 3, line = 0.5, cex = 0.8)
@@ -161,7 +161,7 @@ for (xxx in 1:21){
 # Posterior distribution for standard deviation of year random effect (highest mean and mode)
 for (xxx in 22:24){
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",order_sp_obs[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together
   
@@ -171,7 +171,7 @@ for (xxx in 22:24){
   mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
   
   # Plots no x-axis
-  plot(dens_obs, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  plot(dens_obs, xlim = c(0, 2), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
   #axis(2, labels = FALSE, lwd.ticks = 0) 
   axis(1)
   mtext(order_sp_obs_legend[xxx], side = 3, line = 0.5, cex = 0.8)
@@ -187,8 +187,8 @@ dev.off()
  
 # YEAR
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Final")
-pdf("Fig4.pdf")
+setwd("D:/PhD/Second chapter/Resubmission/Results/Final")
+pdf("Fig4_Final.pdf")
 
 par(mfrow = c(8,3),
     oma = c(2, 2, 1, 2),
@@ -197,7 +197,7 @@ par(mfrow = c(8,3),
 # Posterior distribution for standard deviation of year random effect (highest mean and mode)
 for (xxx in 1:21){
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",order_sp_year[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together
   
@@ -207,7 +207,7 @@ for (xxx in 1:21){
   mean_year <- mean(outall[ ,which(colnames(outall) == "sig.sig.year")])
   
   # Plots no x-axis
-  plot(dens_year, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  plot(dens_year, xlim = c(0, 2), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
   #axis(2, labels = FALSE, lwd.ticks = 0)
   axis(1, labels = FALSE, lwd.ticks = 0)
   mtext(order_sp_year_legend[xxx], side = 3, line = 0.5, cex = 0.8)
@@ -218,7 +218,7 @@ for (xxx in 1:21){
 # Posterior distribution for standard deviation of year random effect (highest mean and mode)
 for (xxx in 22:24){
   
-  setwd("C:/Users/Ana/Documents/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
+  setwd("D:/PhD/Second chapter/Resubmission/Results/Compiled_FINAL")
   load(paste("HDS_",order_sp_year[xxx],".RData", sep = ""))
   outall <- do.call(rbind,out$samples) # 3 chains together
   
@@ -228,7 +228,7 @@ for (xxx in 22:24){
   mean_year <- mean(outall[ ,which(colnames(outall) == "sig.sig.year")])
   
   # Plots no x-axis
-  plot(dens_year, xlim = c(0, 4), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
+  plot(dens_year, xlim = c(0, 2), xlab = " ", ylab = " ", main = " ", axes = FALSE) # POSTERIOR (x_lim is third quantile)
   #axis(2, labels = FALSE, lwd.ticks = 0) 
   axis(1)
   mtext(order_sp_year_legend[xxx], side = 3, line = 0.5, cex = 0.8)
