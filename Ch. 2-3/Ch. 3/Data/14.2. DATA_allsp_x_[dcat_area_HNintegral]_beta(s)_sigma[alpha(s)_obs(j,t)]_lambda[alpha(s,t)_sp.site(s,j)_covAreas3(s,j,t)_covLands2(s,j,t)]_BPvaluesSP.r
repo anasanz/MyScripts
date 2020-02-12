@@ -483,15 +483,46 @@ out <- jags(data1, inits, params, "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda[
 setwd("D:/ANA/Results/chapter3")
 save(out, file = "14.2_DATA_allsp.RData")
 
+load("D:/PhD/Third chapter/Data/Results_model/14.2_DATA_allsp.RData")
+
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-
-traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
+t <- traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
                               "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
                               "mu_cd", "sig_cd", "mu_fs", "sig_fs",
                               "sig.sig.ob", "Bp.N", "Bp.Obs",
                               "mu_s", "sig_s"))
+# Process results
+outall <- do.call(rbind,out$samples) # 3 chains together
+coeff <- c("b.a1", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
+names <- c("b.SG", "b.AES", "b.GREEN", "bCropdiv", "bFieldsize")
+
+for (i in 1:nSpecies){
+  par(mfrow = c(2,3)) # Improve borders here (all SG or all coef from a species?)
+for (c in 1:length(coeff)){
+  dens_obs <- density(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))] ) # Density of iterations for coefficient
+  mean_obs <- mean(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))] )
+  lci_obs  <- quantile(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))], probs = 0.025) 
+  uci_obs  <- quantile(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))], probs = 0.975)
+  
+  # Plot
+  
+  plot(dens_obs, xlab = " ", ylab = " ", main = paste(names[c], sep = ""), axes = FALSE) 
+  axis(1, pos = 0, tck = -0.02, cex.axis = 0.9, mgp = c(3, 0.2, 0))
+  
+  x1 <- min(which(dens_obs$x  >= lci_obs))  
+  x2 <- max(which(dens_obs$x  <  uci_obs))
+  polygon(x = c(dens_obs$x[c(x1,x1:x2, x2)]), y= c(0, dens_obs$y[x1:x2], 0), col="gray")
+  
+  segments(x0 = mean_obs, y0 = 0, x1 = , mean_obs, y1 = max(dens_obs$y)+2, col = "black", lwd = 2) #abline( a = 0,  v = mean_obs, col = "red", lwd = 1.5)
+  segments(x0 = 0, y0 = 0, x1 = 0, y1 = max(dens_obs$y)+2, col = "red", lwd = 2)
+}
+  mtext(sp[i], line = 0, side = 1, outer = TRUE) 
+}
+i = 1
+
+
 
 ###########################################################################################
