@@ -469,8 +469,8 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 
 # Params
 params <- c( "mu_l", "sig_l", "sig_spsite", "beta", "p.g",
-             "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
-             "mu_cd", "sig_cd", "mu_fs", "sig_fs",
+             "b.a1","mu_a1", "sig_a1", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
+             "bCropdiv", "mu_cd", "sig_cd", "bFieldsize", "mu_fs", "sig_fs",
              "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
              "mu_s", "sig_s")
 
@@ -482,7 +482,7 @@ out <- jags(data1, inits, params, "s_HR_beta(2groups)_sigma[alpha(s)_obs(j,t)]_l
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/ANA/Results/chapter3")
-save(out, file = "15.2_DATA.RData")
+save(out, file = "15.2_DATA_2.RData")
 
 print(out)
 

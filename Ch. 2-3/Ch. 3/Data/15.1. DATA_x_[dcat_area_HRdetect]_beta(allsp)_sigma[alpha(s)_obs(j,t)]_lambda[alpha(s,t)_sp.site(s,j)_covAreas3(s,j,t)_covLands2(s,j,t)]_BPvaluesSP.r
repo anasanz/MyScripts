@@ -462,8 +462,8 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 
 # Params
 params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
-             "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
-             "mu_cd", "sig_cd", "mu_fs", "sig_fs",
+             "b.a1", "mu_a1", "sig_a1", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
+             "bCropdiv", "mu_cd", "sig_cd", "bFieldsize", "mu_fs", "sig_fs",
              "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
              "mu_s", "sig_s")
 
@@ -475,26 +475,97 @@ out <- jags(data1, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lam
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/ANA/Results/chapter3")
-save(out, file = "15.1_DATA.RData")
+save(out, file = "15.1_DATA_2.RData") # 15.1_DATA_2 because I didnt save the parameters the first time
 
+load("D:/PhD/Third chapter/Data/Results_model/15.1_DATA.RData")
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-# To compare:
-data_comp <- list(mu.a1 = mu.a1, sig.a1 = sig.a1, mu.a2 = mu.a2, sig.a2 = sig.a2, mu.a3 = mu.a3, sig.a3 = sig.a3,
-                  mu.cd = mu.cd, sig.cd = sig.cd, mu.fs = mu.fs, sig.fs = sig.fs,
-                  mu.lam.alpha.spyear = mu.lam.alpha.spyear, sig.lam.spsite = sig.lam.spsite,
-                  sig.lam.alpha.spyear = sig.lam.alpha.spyear,
-                  sig.sig.obs = sig.sig.obs,
-                  mu.sig.sp = mu.sig.sp,
-                  sig.sig.sp = sig.sig.sp, b = b
-)
 
-traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite", "beta",
+t <- traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite", "beta",
                               "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
                               "mu_cd", "sig_cd", "mu_fs", "sig_fs",
-                              "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
+                              "sig.sig.ob",
                               "mu_s", "sig_s"))
+
+# ---- Process results ----
+# 1. ---- Coefficients----
+
+# Create data frame with species - coefficients together
+sp.df <- data.frame(sp = sp, b.a1 = rownames(summary)[grep("b.a1", rownames(summary))],
+                    b.a2 = rownames(summary)[grep("b.a2", rownames(summary))],
+                    b.a3 = rownames(summary)[grep("b.a3", rownames(summary))],
+                    bCropdiv = rownames(summary)[grep("bCropdiv", rownames(summary))],
+                    bFieldsize = rownames(summary)[grep("bFieldsize", rownames(summary))],
+                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
+                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+
+# Process samples
+outall <- do.call(rbind,out$samples) # 3 chains together
+coeff <- c("b.a1", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
+names <- c("b.SG", "b.AES", "b.GREEN", "bCropdiv", "bFieldsize")
+
+
+for (c in 1:length(coeff)){
+  
+  # Sort species by the mean value of each coefficient and keep track of name of species and coef
+  values <- summary[grep(coeff[c], rownames(summary)), ]
+  values$param<- rownames(values)
+  colnames(values)[which(colnames(values) == "param")] <- coeff[c]
+  values2 <- left_join(values, sp.df)
+  values_sorted <- arrange(values2, mean)
+  sp_sorted <-  values_sorted$sp
+  coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
+  
+  setwd("D:/PhD/Third chapter/Data/Results_species")
+  pdf(paste("14.2_DATA_30sp_", names[c], ".pdf"))
+  par(mfrow = c(5,4),
+      mar = c(2,1,2,0.5)) 
+  
+  for (i in 1:nSpecies){
+    dens_obs <- density(outall[ ,which(colnames(outall) == coef_sorted[i])]) # Density of iterations for coefficient
+    mean_obs <- mean(outall[ ,which(colnames(outall) == coef_sorted[i])] )
+    lci_obs  <- quantile(outall[ ,which(colnames(outall) == coef_sorted[i])], probs = 0.025) 
+    uci_obs  <- quantile(outall[ ,which(colnames(outall) == coef_sorted[i])], probs = 0.975)
+    
+    
+    # Plot
+    
+    plot(dens_obs, xlab = " ", ylab = " ", main = sp_sorted[i], axes = FALSE) 
+    axis(1, pos = 0, tck = -0.02, cex.axis = 0.9, mgp = c(3, 0.2, 0))
+    
+    x1 <- min(which(dens_obs$x  >= lci_obs))  
+    x2 <- max(which(dens_obs$x  <  uci_obs))
+    polygon(x = c(dens_obs$x[c(x1,x1:x2, x2)]), y= c(0, dens_obs$y[x1:x2], 0), col="gray")
+    
+    segments(x0 = mean_obs, y0 = 0, x1 = , mean_obs, y1 = max(dens_obs$y)+2, col = "black", lwd = 1.2) #abline( a = 0,  v = mean_obs, col = "red", lwd = 1.5)
+    segments(x0 = 0, y0 = 0, x1 = 0, y1 = max(dens_obs$y)+2, col = "red", lwd = 1.2, lty = 5)
+  }
+  mtext(names[c], line = -1, side = 1, outer = TRUE, cex = 1) 
+  dev.off()
+}
+
+# 2. ---- Bp-values ----
+
+sp.df <- data.frame(sp = sp,
+                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
+                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+
+# Bp.Obs.sp
+values <- summary[grep("Bp.Obs.sp", rownames(summary)), ]
+values$param<- rownames(values)
+colnames(values)[which(colnames(values) == "param")] <- "Bp.Obs.sp"
+values2 <- left_join(values, sp.df)
+df.bp_obs <- values2[,colnames(values2) %in% c("Bp.Obs.sp", "sp", "mean")]
+bad_bp_obs <- df.bp_obs[which(df.bp_obs$mean < 0.1 | df.bp_obs$mean > 0.9), ]
+
+# Bp.N.sp
+values <- summary[grep("Bp.N.sp", rownames(summary)), ]
+values$param<- rownames(values)
+colnames(values)[which(colnames(values) == "param")] <- "Bp.N.sp"
+values2 <- left_join(values, sp.df)
+df.bp_n <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
+bad_bp_n <- df.bp_n[which(df.bp_n$mean < 0.1 | df.bp_n$mean > 0.9), ]
 
 ###########################################################################################
