@@ -14,10 +14,8 @@ library(dplyr)
 # ---- Data ----
 
 setwd("D:/PhD/Third chapter/Data")
-d <- read.csv("DataDS_ch3_20_19_READY.csv")
-d <- d[ ,colnames(d) %in% c("Species2", "Zone", "distance", "transectID", "Temp", "Observer", "Banda", "Year", "Sample.Label", "Count")]
-colnames(d)[which(colnames(d) == "Species2")] <- "Species"
-d <- d[which(d$Year %in% c(2015,2016,2017,2018,2019)), ] 
+d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
+d <- d[ ,colnames(d) %in% c("Species", "Zone", "distance", "transectID", "Temp", "Observer", "Banda", "Year", "Sample.Label", "Count")]
 
 # Information: bins, years, sites, species
 
@@ -53,9 +51,9 @@ for (i in 1:nrow(count)){
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
 # --- Select the species that I want to analyze ----
-# Whole community except TERAX and BUOED (really bad, so I will see later how to include them)
+# Remove PTALC and CABRA because I need to restrict their distribution and so far it doesn't work
 
-d <- d[-which(d$Species %in% c("TERAX_M", "TERAX_ind", "BUOED")), ]
+d <- d[-which(d$Species %in% c("PTALC", "CABRA")), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -83,7 +81,6 @@ for (s in 1:nSpecies){
   data_sp[,,s] <- m_sp # Store in array with all species
 }
 
-# ---- Co-variates ----
 
 # ---- Co-variates ----
 
@@ -483,6 +480,8 @@ out <- jags(data1, inits, params, "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda[
 setwd("D:/ANA/Results/chapter3")
 save(out, file = "14.2_DATA_allsp.RData")
 
+####################################################
+
 load("D:/PhD/Third chapter/Data/Results_model/14.2_DATA_allsp.RData")
 
 print(out)
@@ -494,35 +493,93 @@ t <- traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
                               "mu_cd", "sig_cd", "mu_fs", "sig_fs",
                               "sig.sig.ob", "Bp.N", "Bp.Obs",
                               "mu_s", "sig_s"))
-# Process results
+
+
+# ---- Process results ----
+# 1. ---- Coefficients----
+
+# Create data frame with species - coefficients together
+sp.df <- data.frame(sp = sp, b.a1 = rownames(summary)[grep("b.a1", rownames(summary))],
+                    b.a2 = rownames(summary)[grep("b.a2", rownames(summary))],
+                    b.a3 = rownames(summary)[grep("b.a3", rownames(summary))],
+                    bCropdiv = rownames(summary)[grep("bCropdiv", rownames(summary))],
+                    bFieldsize = rownames(summary)[grep("bFieldsize", rownames(summary))],
+                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
+                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+
+# Process samples
 outall <- do.call(rbind,out$samples) # 3 chains together
 coeff <- c("b.a1", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
 names <- c("b.SG", "b.AES", "b.GREEN", "bCropdiv", "bFieldsize")
 
-for (i in 1:nSpecies){
-  par(mfrow = c(2,3)) # Improve borders here (all SG or all coef from a species?)
+
 for (c in 1:length(coeff)){
-  dens_obs <- density(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))] ) # Density of iterations for coefficient
-  mean_obs <- mean(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))] )
-  lci_obs  <- quantile(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))], probs = 0.025) 
-  uci_obs  <- quantile(outall[ ,which(colnames(outall) == paste(coeff[c], "[", i, "]", sep = ""))], probs = 0.975)
   
-  # Plot
+  # Sort species by the mean value of each coefficient and keep track of name of species and coef
+  values <- summary[grep(coeff[c], rownames(summary)), ]
+  values$param<- rownames(values)
+  colnames(values)[which(colnames(values) == "param")] <- coeff[c]
+  values2 <- left_join(values, sp.df)
+  values_sorted <- arrange(values2, mean)
+  sp_sorted <-  values_sorted$sp
+  coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
-  plot(dens_obs, xlab = " ", ylab = " ", main = paste(names[c], sep = ""), axes = FALSE) 
-  axis(1, pos = 0, tck = -0.02, cex.axis = 0.9, mgp = c(3, 0.2, 0))
+  setwd("D:/PhD/Third chapter/Data/Results_species")
+  pdf(paste("14.2_DATA_allsp_", names[c], ".pdf"))
+  par(mfrow = c(5,4),
+      mar = c(2,1,2,0.5)) 
   
-  x1 <- min(which(dens_obs$x  >= lci_obs))  
-  x2 <- max(which(dens_obs$x  <  uci_obs))
-  polygon(x = c(dens_obs$x[c(x1,x1:x2, x2)]), y= c(0, dens_obs$y[x1:x2], 0), col="gray")
-  
-  segments(x0 = mean_obs, y0 = 0, x1 = , mean_obs, y1 = max(dens_obs$y)+2, col = "black", lwd = 2) #abline( a = 0,  v = mean_obs, col = "red", lwd = 1.5)
-  segments(x0 = 0, y0 = 0, x1 = 0, y1 = max(dens_obs$y)+2, col = "red", lwd = 2)
+  for (i in 1:nSpecies){
+    dens_obs <- density(outall[ ,which(colnames(outall) == coef_sorted[i])]) # Density of iterations for coefficient
+    mean_obs <- mean(outall[ ,which(colnames(outall) == coef_sorted[i])] )
+    lci_obs  <- quantile(outall[ ,which(colnames(outall) == coef_sorted[i])], probs = 0.025) 
+    uci_obs  <- quantile(outall[ ,which(colnames(outall) == coef_sorted[i])], probs = 0.975)
+    
+    
+    # Plot
+    
+    plot(dens_obs, xlab = " ", ylab = " ", main = sp_sorted[i], axes = FALSE) 
+    axis(1, pos = 0, tck = -0.02, cex.axis = 0.9, mgp = c(3, 0.2, 0))
+    
+    x1 <- min(which(dens_obs$x  >= lci_obs))  
+    x2 <- max(which(dens_obs$x  <  uci_obs))
+    polygon(x = c(dens_obs$x[c(x1,x1:x2, x2)]), y= c(0, dens_obs$y[x1:x2], 0), col="gray")
+    
+    segments(x0 = mean_obs, y0 = 0, x1 = , mean_obs, y1 = max(dens_obs$y)+2, col = "black", lwd = 1.2) #abline( a = 0,  v = mean_obs, col = "red", lwd = 1.5)
+    segments(x0 = 0, y0 = 0, x1 = 0, y1 = max(dens_obs$y)+2, col = "red", lwd = 1.2, lty = 5)
+  }
+  mtext(names[c], line = -1, side = 1, outer = TRUE, cex = 1) 
+  dev.off()
 }
-  mtext(sp[i], line = 0, side = 1, outer = TRUE) 
-}
-i = 1
 
+# 2. ---- Bp-values ----
 
+sp.df <- data.frame(sp = sp,
+                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
+                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+
+# Bp.Obs.sp
+values <- summary[grep("Bp.Obs.sp", rownames(summary)), ]
+values$param<- rownames(values)
+colnames(values)[which(colnames(values) == "param")] <- "Bp.Obs.sp"
+values2 <- left_join(values, sp.df)
+df.bp_obs <- values2[,colnames(values2) %in% c("Bp.Obs.sp", "sp", "mean")]
+bad_bp_obs <- df.bp_obs[which(df.bp_obs$mean < 0.1 | df.bp_obs$mean > 0.9), ]
+
+# Bp.N.sp
+values <- summary[grep("Bp.N.sp", rownames(summary)), ]
+values$param<- rownames(values)
+colnames(values)[which(colnames(values) == "param")] <- "Bp.N.sp"
+values2 <- left_join(values, sp.df)
+df.bp_n <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
+bad_bp_n <- df.bp_n[which(df.bp_n$mean < 0.1 | df.bp_n$mean > 0.9), ]
 
 ###########################################################################################
+
+
+
+
+
+
+
+

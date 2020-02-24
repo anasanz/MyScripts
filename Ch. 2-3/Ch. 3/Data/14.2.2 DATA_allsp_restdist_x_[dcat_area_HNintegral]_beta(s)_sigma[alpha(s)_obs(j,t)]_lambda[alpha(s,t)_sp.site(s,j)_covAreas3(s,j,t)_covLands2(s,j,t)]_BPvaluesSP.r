@@ -14,10 +14,8 @@ library(dplyr)
 # ---- Data ----
 
 setwd("D:/PhD/Third chapter/Data")
-d <- read.csv("DataDS_ch3_20_19_READY.csv")
-d <- d[ ,colnames(d) %in% c("Species2", "Zone", "distance", "transectID", "Temp", "Observer", "Banda", "Year", "Sample.Label", "Count")]
-colnames(d)[which(colnames(d) == "Species2")] <- "Species"
-d <- d[which(d$Year %in% c(2015,2016,2017,2018,2019)), ] 
+d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
+d <- d[ ,colnames(d) %in% c("Species", "Zone", "distance", "transectID", "Temp", "Observer", "Banda", "Year", "Sample.Label", "Count")]
 
 # Information: bins, years, sites, species
 
@@ -53,9 +51,6 @@ for (i in 1:nrow(count)){
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
 # --- Select the species that I want to analyze ----
-# Whole community except TERAX and BUOED (really bad, so I will see later how to include them)
-
-d <- d[-which(d$Species %in% c("TERAX_M", "TERAX_ind", "BUOED")), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)

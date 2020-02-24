@@ -14,10 +14,7 @@ library(dplyr)
 # ---- Data ----
 
 setwd("D:/PhD/Third chapter/Data")
-d <- read.csv("DataDS_ch3_20_19_READY.csv")
-d <- d[ ,colnames(d) %in% c("Species2", "Zone", "distance", "transectID", "Temp", "Observer", "Banda", "Year", "Sample.Label", "Count")]
-colnames(d)[which(colnames(d) == "Species2")] <- "Species"
-d <- d[which(d$Year %in% c(2015,2016,2017,2018,2019)), ] 
+d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
 
 # Information: bins, years, sites, species
 
@@ -53,9 +50,9 @@ for (i in 1:nrow(count)){
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
 # --- Select the species that I want to analyze ----
-# Whole community except TERAX and BUOED (really bad, so I will see later how to include them)
+# Remove PTALC and CABRA because I need to restrict their distribution and so far it doesn't work
 
-d <- d[-which(d$Species %in% c("TERAX_M", "TERAX_ind", "BUOED")), ]
+d <- d[-which(d$Species %in% c("PTALC", "CABRA")), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -475,7 +472,9 @@ out <- jags(data1, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lam
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/ANA/Results/chapter3")
-save(out, file = "15.1_DATA_2.RData") # 15.1_DATA_2 because I didnt save the parameters the first time
+save(out, file = "15.1_DATA.RData") 
+
+####################################################################
 
 load("D:/PhD/Third chapter/Data/Results_model/15.1_DATA.RData")
 print(out)
