@@ -7,35 +7,32 @@ library(jagsUI)
 library(dplyr)
 library(rtrim)
 
-# Compare methods using the HDS model 6. Same as comparemethods6 but using the HAZARD RATE detection function on the
-# species that have bad bayesian p-values
+# Compare methods using the HDS model 5.1 (temperature but no wind) and the se as a measure of significance of model 3 (TRIM)
+# From script 5. Comparemethods but removing wind co-variate (less important) and scaling temperature.
+
 
 ###################################################################
 ##                       Prepare data                           ###
 ###################################################################
 
-#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-setwd("D:/PhD/Second chapter/Resubmission")
-d <- read.csv("DataDS_ready_ALL_revch2.csv")
+setwd("D:/Ana/Model/Ganga")
 
+d <- read.csv("DataDS_ready_para_Ganga_hq.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
+colnames(d)[which(colnames(d) == "ZONA")] <- "hq"
 
-#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-setwd("D:/PhD/Second chapter/Resubmission")
-zep <- read.csv("zepa.csv")
+# Delete transects out of the zones where I want to calculate densities (Hab.quality = 0)
+d <- d[-which(d$transectID %in% c("AF31", "AF35", "AF38", "AF39", "AF41", "AF42")), ]
+
+
 
 # Load species names
 
-all <- c("TERAX", "BUOED", "TUMER","ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
-         "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
-s_good <- c("MECAL")
-
-# ONLY for TERAX_F and TERAX_M
-#d$Species <- d$Species2
-#d <- d[,-27]
-
+s_good <- c("PTALC")
+xxx = 1
 # Start loop
 for (xxx in 1:length(s_good)){
+  
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
@@ -88,13 +85,13 @@ for (xxx in 1:length(s_good)){
   
   # ---- Information: bins, years, sites ----
   
-  strip.width <- 500 				# strip half-width, w (in this example only one side of the line transect is surveyed)
+  strip.width <- 500 				
   dist.breaks <- c(0,25,50,100,200,500)
   int.w <- diff(dist.breaks) # width of distance categories (v)
-  midpt <- (int.w/2) + dist.breaks[-6]
-  nG <- length(dist.breaks)-1	
+  midpt <- diff(dist.breaks)/2+dist.breaks[-6]
+  nG <- length(dist.breaks)-1
   
-  yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
+  yrs <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019) # I HAVE TO CONVERT THIS FROM 0-7 (but nyrs is still 8!)
   nyrs <- length(yrs)
   
   # ---- Distance observations ----
@@ -129,7 +126,7 @@ for (xxx in 1:length(s_good)){
   
   
   # Year
-  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) # To make it as a continuous variable, otherwise it doesnt work
+  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) # To make it as a continuous variable, otherwise it doesnt work
   year <- matrix(NA,nrow = max.sites, ncol = nyrs)
   colnames(year) <- yrs
   for (i in 1:nyrs){
@@ -177,10 +174,13 @@ for (xxx in 1:length(s_good)){
   
   m  # Counts per year and site
   
+  # Number of sites sampled per year
+  nsites_year <- apply(m, 2, function(x) sum(complete.cases(x)))
+  
   # Co-variates
   
-  yrs <- 1:9 
-  year_number <- 0:8
+  yrs <- 1:10 
+  year_number <- 0:9
   
   
   # Matrix with observers
@@ -222,57 +222,54 @@ for (xxx in 1:length(s_good)){
       year.dclass <- c(year.dclass, rep(t, m_index[j,t]))
     } }
   
-  # Create one matrix for indexing SITE (SPA) when calculating abundance per year and spa in JAGS (works for all species)
+  # Create one matrix for indexing HABITAT QUALITY (SPA) when calculating abundance per year and spa in JAGS (works for all species)
   # Vector where SPA = numbers
   sites_df <- data.frame(all.sites)
   colnames(sites_df)[1] <- "transectID"
-  zepas <- left_join(sites_df, zep)
   
-  # Missing AL21 and AL4 (not digitalized, I add them manually here)
-  zepas[zepas$transectID == "AL04", c(3,4)] <- c("no", "AL")
-  zepas[zepas$transectID == "AL21", c(3,4)] <- c("no", "AL")
+  setwd("D:/Ana/Model/Ganga")
+  hq <- read.csv("transect_habquality_ganga_reclas.csv", sep = ";")
+  colnames(hq)[3] <- "transectID"
+  hq <- hq[,c(3,4)]
   
-  zepas$Zepa <- as.character(zepas$Zepa)
-  zepas$SECTOR <- as.character(zepas$SECTOR)
-  
-  zepas$index <- zepas$SECTOR # Add category "no zepa"
-  zepas$index[which(zepas$Zepa == "no")] <- "NZ"
-  allzepas <- rep(zepas$index,nyrs)
+  zonas_hq <- left_join(sites_df, hq)
   
   
-  a <- data.frame(allzepas = zepas$index)
-  a$allzepas <- as.factor(a$allzepas)
-  indexZepas <- model.matrix(~ allzepas-1, data = a)
+  a <- data.frame(allzones_hq = zonas_hq$ZONA)
+  a$allzones_hq <- as.factor(a$allzones_hq)
+  indexZONA <- model.matrix(~ allzones_hq-1, data = a)
   
-  nspa <- length(unique(zepas$index))
+  nZona <- length(unique(zonas_hq$ZONA)) 
   
-  # Check (conteo de individuos por zepa. EN modelo se hace lo mismo pero con la abundancia)
+  # Check (conteo de individuos por zona EN modelo se hace lo mismo pero con la abundancia)
   m_index <- m
   m_index[is.na(m_index)] <- 0
   
-  pop_zepa <- matrix(NA, nrow = nspa, ncol = nyrs)
-  rownames(pop_zepa) <- colnames(indexZepas)
-  colnames(pop_zepa) <- yrs
+  pop_zona <- matrix(NA, nrow = nZona, ncol = nyrs)
+  rownames(pop_zona) <- colnames(indexZONA)
+  colnames(pop_zona) <- yrs
   
   
   for(t in 1:nyrs){
-    for(s in 1:nspa){
-      pop_zepa[s,t] <- sum(m_index[,t]*indexZepas[,s])
+    for(s in 1:nZona){
+      pop_zona[s,t] <- sum(m_index[,t]*indexZONA[,s])
     }}
   
+  df_max.sites_zona <- aggregate(zonas_hq$transectID, by = list(zonas_hq$ZONA), FUN = length) # Number of transects per zepa
+  max.sites_zona <- df_max.sites_zona$x
+  a_zona <- c(2210.331,1063.809, 1636.691) # Area per habitat quality zone
   
   ####
   # ---- Compile data for JAGS model ----
   
   data1 <- list(nyears = nyrs, nsites = max.sites, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
                 year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs,  nspa = nspa, indexSPA = indexZepas)
+                tempCov = temp, ob = ob, nobs = nobs, year1 = year_number, site = site, year_index = yrs, max.sites = max.sites_zona,
+                nZona = nZona, indexZONA = indexZONA, a_zona = a_zona)
   
   # ---- JAGS model ----
   
-  #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Model")
-  setwd("D:/ANA/Model")
-  
+  setwd("D:/PhD/Second chapter/Data/Model")
   cat("model{
       
       # PRIORS
@@ -282,22 +279,20 @@ for (xxx in 1:length(s_good)){
       tau <- pow(sd, -2) # Prior for overdispersion in eps
       sd ~ dunif(0, 3)
       
-      bYear.lam ~ dnorm(0,0.1)# MORE RESTRICTIVE # Prior for the trend
+      bYear.lam ~ dnorm(0, 0.001) # Prior for the trend
       
       # Random effects for lambda per site
-      mu.lam.site ~ dnorm(0,0.1)# MORE RESTRICTIVE
-
-      tau.lam.site ~ dgamma(0.1, 0.1) # Prior in tau.lam.site rather in sig.lam.site
-                                       # sig.lam.site as a derived quantity
+      mu.lam.site ~ dunif(-10, 10) 
+      sig.lam.site ~ dunif(0, 10)
+      tau.lam.site <- 1/(sig.lam.site*sig.lam.site)
       
       for (j in 1:nsites){
       log.lambda.site[j] ~ dnorm(mu.lam.site, tau.lam.site)
       }
       
       # Random effects for lambda per year
-      
-      tau.lam.year ~ dgamma(0.1, 0.1) # Prior in tau.lam.year rather in sig.lam.year
-                                       # sig.lam.year as a derived quantity
+      sig.lam.year ~ dunif(0, 10) 
+      tau.lam.year <- 1/(sig.lam.year*sig.lam.year)
       
       log.lambda.year[1] <- 0
       for (t in 2:nyears){
@@ -306,7 +301,7 @@ for (xxx in 1:length(s_good)){
       
       
       # PRIORS FOR SIGMA
-      bTemp.sig ~ dnorm(0,0.1)# MORE RESTRICTIVE
+      bTemp.sig ~ dnorm(0, 0.001)
       
       mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
       sig.sig ~ dunif(0, 10)
@@ -318,18 +313,12 @@ for (xxx in 1:length(s_good)){
       }
       
       # Random effects for sigma per year
-      
-      tau.sig.year ~ dgamma(0.1, 0.1) # Prior in tau.sig.year rather in sig.sig.year
-      # sig.sig.year as a derived quantity
+      sig.sig.year ~ dunif(0, 10) 
+      tau.sig.year <- 1/(sig.sig.year*sig.sig.year)
       
       for (t in 1:nyears){
       log.sigma.year[t] ~ dnorm(0, tau.sig.year)
       }
-      
-      
-      # PRIOR FOR BETA
-      b ~ dgamma(0.1, 0.1) # MORE RESTRICTIVE PRIOR
-      
       
       for(i in 1:nind){
       dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
@@ -354,13 +343,18 @@ for (xxx in 1:length(s_good)){
       
       for(k in 1:nG){ 
       
-      p[j,1,k]<-1-exp(-(midpt[k]/sigma[j,1])^-b)
+      up[j,1,k]<-pnorm(db[k+1], 0, 1/sigma[j,1]^2) ##db are distance bin limits
+      low[j,1,k]<-pnorm(db[k], 0, 1/sigma[j,1]^2) 
+      p[j,1,k]<- 2 * (up[j,1,k] - low[j,1,k])
       pi[j,1,k] <- int.w[k] / strip.width 
-      fc[j,1,k]<- p[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
+      f[j,1,k]<- p[j,1,k]/f.0[j,1]/int.w[k]                   ## detection prob. in distance category k                      
+      fc[j,1,k]<- f[j,1,k] * pi[j,1,k]                 ## pi=percent area of k; drops out if constant
       fct[j,1,k]<-fc[j,1,k]/pcap[j,1] 
       }
       
       pcap[j,1] <- sum(fc[j,1, 1:nG]) # Different per site and year (sum over all bins)
+      
+      f.0[j,1] <- 2 * dnorm(0,0, 1/sigma[j,1]^2) # Prob density at 0
       
       
       y[j,1] ~ dbin(pcap[j,1], N[j,1]) 
@@ -389,13 +383,18 @@ for (xxx in 1:length(s_good)){
       
       for(k in 1:nG){ 
       
-      p[j,t,k]<-1-exp(-(midpt[k]/sigma[j,t])^-b)
+      up[j,t,k]<-pnorm(db[k+1], 0, 1/sigma[j,t]^2) ##db are distance bin limits
+      low[j,t,k]<-pnorm(db[k], 0, 1/sigma[j,t]^2) 
+      p[j,t,k]<- 2 * (up[j,t,k] - low[j,t,k])
       pi[j,t,k] <- int.w[k] / strip.width 
-      fc[j,t,k]<- p[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
+      f[j,t,k]<- p[j,t,k]/f.0[j,t]/int.w[k]                   ## detection prob. in distance category k                      
+      fc[j,t,k]<- f[j,t,k] * pi[j,t,k]                 ## pi=percent area of k; drops out if constant
       fct[j,t,k]<-fc[j,t,k]/pcap[j,t] 
       }
       
       pcap[j,t] <- sum(fc[j,t, 1:nG]) # Different per site and year (sum over all bins)
+      
+      f.0[j,t] <- 2 * dnorm(0,0, 1/sigma[j,t]^2) # Prob density at 0
       
       
       y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
@@ -422,14 +421,29 @@ for (xxx in 1:length(s_good)){
       
       # Derived parameters
       
+      #TOTAL ABUNDANCE PER YEAR
       for(t in 1:nyears){
       popindex[t] <- sum(lambda[,t])
       }
       
+      # DENSITY PER HABITAT QUALITY ZONE
       for(t in 1:nyears){
-      for(s in 1:nspa){
-      popindex_zepa[s,t] <- sum(lambda[,t]*indexSPA[,s])
+      for(s in 1:nZona){
+      popindex_zona[s,t] <- sum(lambda[,t]*indexZONA[,s])
+      area_transect_zona[s,t] <- (max.sites[s]*500*1000)/10000 # nsites[t]*length(500)*width(1000): Area de superficie censada 
+      D_zona[s,t] <- popindex_zona[s,t]/area_transect_zona[s,t]
+      A_zona[s,t] <- D_zona[s,t] * a_zona[s] # D*Total sup. censada (ha of the 3 zones with different habitat quality)
+      
+      # TOTAL DENSITY (NOT HERE, MORE ACCURATE PER ZONE)
+      # for(t in 1:nyears){
+      #    popindex[t] <- sum(lambda[,t])  
+      #   area[t] <- (max.sites*500*400)/10000 # nsites[t]*length(500)*width(400): Area de superficie censada 
+      #  D[t] <- popindex[t]/area[t]
+      # A[t] <- D[t] * 7000 # D*Total sup. censada (tamaÃ±o de la cepa de AlfÃ©s en Ha)
+      #}
+      
       }}
+      
       
       # Expected abundance per year inside model
       
@@ -438,50 +452,39 @@ for (xxx in 1:length(s_good)){
       lam.tot[i] <- lam.tot[i-1] * # Here I add the starting population size as a baseline for the trend 
       exp(bYear.lam)}
       
-      # sig.sig (because I used tau.sig as prior)
-      sig.lam.year <- sqrt(1/tau.lam.year)
-      sig.sig.year <- sqrt(1/tau.sig.year)
-      sig.lam.site <- sqrt(1/tau.lam.site)
-
       
-}",fill=TRUE, file = "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt")
+}",fill=TRUE, file = "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP_GANGA_densHQ.txt")
 
-  
   
   # Inits
   Nst <- m + 1
-  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1), b = runif(1),
-                           mu.lam.site = runif(1), tau.lam.site = 0.2, tau.lam.year = 0.3, bYear.lam = runif(1),
+  inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
+                           mu.lam.site = runif(1), sig.lam.site = 0.2, sig.lam.year = 0.3, bYear.lam = runif(1),
                            N = Nst)} 
   
   # Params
-  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", "b", 
-               "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", 
-               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year", "popindex_zepa",
-               "tau.lam.year", "tau.sig.year", "tau.lam.site"
+  params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
+               "mu.lam.site", "sig.lam.site", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
+               "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N', "sig.sig.year", "area_transect_zona", "D_zona", "A_zona", "popindex_zona"
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 400000 ; nb <- 100000 ; nt <- 5
+  nc <- 3 ; ni <- 700000 ; nb <- 100000 ; nt <- 5
   
   # With jagsUI 
-  out <- jags(data1, inits, params, "s_sigma_beta(HRdetect)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
+  out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP_GANGA_densHQ.txt", n.chain = nc,
               n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
   summary <- out$summary
   print(out)
   
-  #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
-  
-  save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
+  setwd("D:/Ana/Results/Ganga")
+  save(out, file = "PTALC_HDS_HQ.RData")
   
   
   # ---- Results ----
   
-  #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
-  
-  load(paste("HDS_",s_good[xxx],".RData", sep = ""))
+  setwd("D:/Ana/Results/Ganga")
+  load("PTALC_HDS_HQ.RData")
   
   
   summary <- as.data.frame(as.matrix(out$summary))
@@ -493,7 +496,7 @@ for (xxx in 1:length(s_good)){
   
   # Based on expected N
   
-  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8) 
+  yrs2 <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) 
   
   # 1. Calculate predictions for both zones
   
@@ -523,16 +526,20 @@ for (xxx in 1:length(s_good)){
   
   # 2. Plot
   
-  #setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/Final")
-  setwd("D:/ANA/Results/chapter2/Plots/HR/Changed_params_400000")
-
   
-  pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
+  setwd("D:/Ana/Results/Ganga")
+  pdf("PTALC_HDS_HQ.pdf", height = 5, width = 7)
   
-  par(mfrow = c(1,2))
+  par(mfrow = c(1,1))
   
-  plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = "Year", ylab = "Abundance")
-  mtext("HDS", side = 3, line = 1, cex = 1.2)
+  plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = " ", ylab = " ", axes = FALSE)
+  axis(2)
+  axis(1,at = c(0:8), labels = c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018"))
+  mtext("Hierarchical Distance Sampling model", side = 3, line = 1, cex = 1.5)
+  mtext("Year", side = 1, line = 3, cex = 1)
+  mtext("Abundance in transects", side = 2, line = 3, cex = 1)
+  
+  
   
   
   polygon( x = c(yrs2, rev(yrs2)),
@@ -543,9 +550,9 @@ for (xxx in 1:length(s_good)){
   
   ##add in actual abundance estimates to check
   
-  pop <- out$summary[grep("popindex", rownames(out$summary)),1]
-  points(yrs2, pop[1:9], pch = 19, type = "l", col = "blue")
-  points(yrs2, pop[1:9], pch = 19)
+  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col = "blue")
+  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
+  
   
   # Print estimate
   est <- round(results[3,1],2)
@@ -555,7 +562,9 @@ for (xxx in 1:length(s_good)){
                              est)
   col_est <- ifelse(est>0, "blue", "red")
   
-  text(7.5,1.5, significance_est, col = col_est)
+  text(6.5,1.5, paste("b = ",significance_est, "+/-", round(results[3,2],2)), col = col_est)
+  
+  dev.off()
   
   ###################################################################
   ##                       TRIM ANALYSIS                          ###
@@ -589,17 +598,18 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
-  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
-  
+  setwd("D:/Ana/Results/Ganga")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
   
   #Plot with overall slope
+  setwd("D:/Ana/Results/Ganga")
   
+  par(mfrow = c(1,1))
+  pdf("PTALC_HDS_HQ.pdf", height = 5, width = 7)
   plot(overall(m3))
-  mtext("TRIM", side = 3, line = 1, cex = 1.2)
+  mtext("TRIM model", side = 3, line = 1, cex = 1.2)
   
   # Print estimate
   est <- round(coef$add[1], 2)
@@ -614,17 +624,12 @@ for (xxx in 1:length(s_good)){
   
   col_est <- ifelse(est > 0, "blue", "red")
   
-  text(2017.5,1.5, significance_est_ci, col = col_est) # Significance for the ci in the right and 
-  text(2011,1.5, significance_est_waldM3, col = col_est) # significance for the wald test of m3 in the left
-  
-  title(s_good[xxx], line = -1, cex = 2, outer = TRUE)
+  text(2017,1.5, paste("b = ",significance_est_ci, "+/-", round(coef$se_add,2)), col = col_est) # Significance for the ci in the right and 
   
   dev.off()
   
   # Save TRIM estimate + CI
-  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
-  setwd("D:/ANA/Results/chapter2/HR/Changed_params_400000")
-  
+  setwd("D:/Ana/Results/Ganga")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
@@ -632,3 +637,14 @@ for (xxx in 1:length(s_good)){
   print(s_good[xxx])
   
   }
+
+setwd("D:/Ana/Results/Ganga")
+load("PTALC_HDS_HQ.RData")
+write.csv(out$summary, file = "Results_PTALC_HQ.csv")
+
+
+# Resultados
+# Pag 454 HDS 
+# 1. Area de superficie censada cada aÃ±o t: area[t] <- nsites[t]*length(500)*width(400)
+# 2. Densidad: pop.index[t]/area[t]
+# 3. Abundancia: D[t]*Sup.censada[t]

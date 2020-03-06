@@ -6,7 +6,7 @@ library(rgeos)
 library(dplyr)
 
 #Area of the study area
-sa<- readOGR("C:/Users/ana.sanz/Documents/GIS Ana/Fincas", "Study_area")
+sa<- readOGR("D:/PhD/GIS Ana_14_Mayo/Fincas", "Study_area")
 proj4string(sa)
 a<-gArea(sa,byid = TRUE) #Area = 3580111544 m2 = 3580.111544 km2 = 358011.1544 ha
 
