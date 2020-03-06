@@ -546,9 +546,9 @@ cat("model{
     file = "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvalues.txt")
 
 # Inits
-Nst <- yLong.sp + 1
+Nst <- (yLong.sp + 1)*restrict.sp
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
-                         #N=Nst,
+                         N=Nst,
                          mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
                          mu_cd = runif(1), sig_cd = runif(1), mu_fs = runif(1), sig_fs = runif(1),
                          sig.sig.ob = runif(1),
@@ -561,7 +561,7 @@ params <- c( "mu_l", "sig_l", "sig_spsite",
              "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
              "mu_cd", "sig_cd", "mu_fs", "sig_fs",
              "sig.sig.ob", "Bp.N", "Bp.Obs",
-             "mu_s", "sig_s", "N")
+             "mu_s", "sig_s")
 
 # MCMC settings
 nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10

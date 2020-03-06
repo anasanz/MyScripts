@@ -201,10 +201,14 @@ hist(dat$distance[which(dat$Species2  == "TERAX_F")], breaks = c(0,25,50,99,200,
 
 # MECAL (BAD BP) 
 
+# Explore
+nrow(dat[which(dat$Species  == "MECAL" & dat$Obs_type == "V"), ])/nrow(dat[which(dat$Species  == "MECAL"), ])
+
 # All obs
 par(mfrow = c(1, 1))
 hist(dat$distance[which(dat$Species  == "MECAL")], breaks = c(0,25,50,99,200,500),
      main = "MECAL - all observations", col = "grey", freq = FALSE, xlab = " ")
+
 
 # By zone
 zepas <- unique(dat$Region.Label)
@@ -235,6 +239,9 @@ for (i in 1:length(ob)){
 
 
 # MICAL
+# Explore
+nrow(dat[which(dat$Species  == "MICAL" & dat$Obs_type == "V"), ])/nrow(dat[which(dat$Species  == "MICAL"), ])
+
 # All obs
 par(mfrow = c(1, 1))
 hist(dat$distance[which(dat$Species  == "MICAL")], breaks = c(0,25,50,99,200,500),

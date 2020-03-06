@@ -565,6 +565,7 @@ colnames(values)[which(colnames(values) == "param")] <- "Bp.Obs.sp"
 values2 <- left_join(values, sp.df)
 df.bp_obs <- values2[,colnames(values2) %in% c("Bp.Obs.sp", "sp", "mean")]
 bad_bp_obs <- df.bp_obs[which(df.bp_obs$mean < 0.1 | df.bp_obs$mean > 0.9), ]
+nrow(bad_bp_obs)
 
 # Bp.N.sp
 values <- summary[grep("Bp.N.sp", rownames(summary)), ]
