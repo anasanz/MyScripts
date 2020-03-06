@@ -7,7 +7,7 @@ library(rgdal)
 
 # ---- 1.  Create MCP per individual (remove field of periods for now) ---- 
 
-gps <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
+gps <- readOGR("D:/PhD/Fourth chapter/Congreso SEO/Data/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps")
 
 c <- gps@data[ ,-c(4)]
 c <- c@data
