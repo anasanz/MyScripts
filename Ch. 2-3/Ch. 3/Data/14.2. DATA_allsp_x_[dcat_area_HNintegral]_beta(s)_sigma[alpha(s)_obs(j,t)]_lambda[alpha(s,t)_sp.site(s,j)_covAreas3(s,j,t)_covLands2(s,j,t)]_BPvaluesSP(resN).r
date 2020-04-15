@@ -5,7 +5,9 @@ library(jagsUI)
 library(dplyr)
 
 
-# MODEL 15.1 in Community data (all species): HR df and 1 beta for whole community
+# MODEL 14.2 in Community data (35 species). Calculate species specific BPvalues
+# Calculate residuals for bp.obs with the total N instead of the FT test (resN)
+# Restricted distribution of PTALC and CABRA
 
 
 # sigma = exp(alpha(s) + observer(j,t) 
@@ -55,11 +57,8 @@ for (i in 1:nrow(count)){
 
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
-# --- Select the species that I want to analyze ----
-# Remove PTALC and CABRA because I need to restrict their distribution and so far it doesn't work
+# --- Select the species that I want to analyze (all) ----
 
-bad_bp <- c("COLIV", "COOEN", "COPAL", "FATIN", "HIRUS", "LAMIC", "LASEN", "LUARB", "MEAPI", "PAMON", "STSSP") # to remove all species with bad bp except MICAL and MECAL
-d <- d[-which(d$Species %in% bad_bp), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -194,18 +193,18 @@ yLong.sp <- matrix(NA, nrow = total.sites, ncol = nSpecies)
 for (s in 1:nSpecies){
   yLong.sp[ ,s] <- unlist(as.data.frame(data_sp[,,s]), use.names = F) # With NA included (model estimating abundance in sites with no information)
 }
-
+sp 
 # Restrict the presence of PTALC (26) and CABRA(5)
 # Vector of 1 or 0 indicating the transects
 restrict.sp <- as.data.frame(matrix(1, nrow = total.sites, ncol = nSpecies))
 restrict.sp$sites <- rep(all.sites, nyrs)
+colnames(restrict.sp) <- sp
 
 sites_ptalc <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites))]
 sites_cabra <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites), grep("BE", all.sites))]
-restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), 26] <- 0
-restrict.sp[which(!restrict.sp$sites %in% sites_cabra), 5] <- 0
-
-restrict.sp <- as.matrix(restrict.sp[,-33])
+restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), which(colnames(restrict.sp) %in% c("PTALC"))] <- 0
+restrict.sp[which(!restrict.sp$sites %in% sites_cabra), which(colnames(restrict.sp) %in% c("CABRA"))] <- 0
+restrict.sp <- as.matrix(restrict.sp[,-c(nSpecies+1)])
 
 # Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
 yLong.sp[!is.na(yLong.sp) & restrict.sp == 0] <- 0
@@ -316,24 +315,23 @@ dim(indexSP)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, midpt = midpt,
+data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, 
               y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
               area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
               ob = ob, nobs = nobs, db = dist.breaks,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP, restrict.sp = restrict.sp)
 
-
 # ---- JAGS model ----
 
-setwd("D:/PhD/Third chapter/Data/Model")
+setwd("D:/PhD/Third chapter/Data")
 cat("model{
     
     # PRIORS
     
     # SPECIES SPECIFIC PARAMETERS (random effects)
     
-    for (s in 1:nSpecies){             
-    asig[s] ~ dnorm(mu_s, tau_s)    # Random intercept for sigma (dif detection per species)
+    for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
+    asig[s] ~ dnorm(mu_s, tau_s)
     b.a1[s] ~ dnorm(mu_a1, tau_a1)
     b.a2[s] ~ dnorm(mu_a2, tau_a2)
     b.a3[s] ~ dnorm(mu_a3, tau_a3)
@@ -395,27 +393,9 @@ cat("model{
     sig.obs[o] ~ dnorm(0, tau.sig.ob)
     }
     
-    # PRIOR FOR BETA
-    beta ~ dunif(0, 100)
-    
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])
-    
-    # FOR BP.OBS
-    # Generate new observations, calculate residuals for Bayesian p-value on detection component
-    
-    dclassnew[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i],1:nG]) 
-    Tobsp[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclass[i]]),2)
-    Tobspnew[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclassnew[i]]),2)
     }
-    
-    # SP-SPECIFIC BP.OBS
-    for (s in 1:nSpecies){
-    Bp.Obs.sp[s]<-sum(Tobspnew*indexSP[,s]) > sum(Tobsp*indexSP[,s]) 
-    }
-    
-    # COMMUNITY BP.OBS
-    Bp.Obs <- sum(Tobspnew[1:nind]) > sum(Tobsp[1:nind])
     
     for (s in 1:nSpecies){
     
@@ -423,13 +403,18 @@ cat("model{
     
     sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]])
     
+    f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
+    
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
     
-    p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta)
+    up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) ##db are distance bin limits
+    low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
+    p[s,j,k]<- 2 * (up[s,j,k] - low[s,j,k])
     pi[s,j,k] <- int.w[k] / strip.width 
-    fc[s,j,k]<- p[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
+    f[s,j,k]<- p[s,j,k]/f.0[s,j]/int.w[k]                   ## detection prob. in distance category k                      
+    fc[s,j,k]<- f[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
     fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
     }
     
@@ -443,6 +428,15 @@ cat("model{
     
     lambda.eff[j,s] <- lambda[j,s] * restrict.sp[j,s]
 
+    # FOR BP.OBS
+    # Create a new Y (detections)
+    y.new[j,s]~ dbin(pcap[s,j], N[j,s])
+
+    # Calculate residuals residuals: look at the total number of individuals detected instead 
+    Tobsp[j,s] <- pow(  (y[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    Tobsnewp[j,s] <- pow(  (y.new[j,s] - (pcap[s,j] * N[j,s])) ,2)
+
+
     # FOR BP.N
     # Create replicate abundances (new observations) for Bayesian p-value on abundance component
     Nnew[j,s]~dpois(lambda.eff[j,s])
@@ -451,7 +445,18 @@ cat("model{
     FT1[j,s] <- pow(sqrt(N[j,s]) - sqrt(lambda.eff[j,s]),2)
     FT1new[j,s] <- pow(sqrt(Nnew[j,s]) - sqrt(lambda.eff[j,s]),2)
     } 
-    # Sum residuals over sites and years
+
+    # FOR BP.OBS:
+    # Sum residuals over sites and years to get sp-specific bp.obs.values
+    T1obsp[s]<-sum(Tobsp[1:n.allSiteYear,s])
+    T1obsnewp[s]<-sum(Tobsnewp[1:n.allSiteYear,s])
+
+    # SP-SPECIFIC BP.OBS
+    Bp.Obs.sp[s] <-  T1obsp[s] > T1obsnewp[s] 
+
+
+    # FOR BP.N
+    # Sum residuals over sites and years to get sp-specific bp.N.values
     T1p[s]<-sum(FT1[1:n.allSiteYear,s])
     T1newp[s]<-sum(FT1new[1:n.allSiteYear,s])
     
@@ -459,22 +464,30 @@ cat("model{
     Bp.N.sp[s] <- T1p[s] > T1newp[s]
     }
     
+    # COMMUNITY BP.OBS
+    Bp.Obs <- sum(T1obsnewp[1:nSpecies]) > sum(T1obsp[1:nSpecies])
+
+
     # COMMUNITY BP.N
     Bp.N <- sum(T1newp[1:nSpecies]) > sum(T1p[1:nSpecies])
     
     # Derived parameters
+    
+    #for (i in 1:nyears){
+    #Ntotal[i] <- sum(N[s]*indexYears[,i]) 
+    #}
     
     for (s in 1:nSpecies){
     for (i in 1:nyears){
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt")
+    file = "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda(rest.sp)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP_resN.txt")
 
 # Inits
-Nst <- (yLong.sp + 1)*restrict.sp
+Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
-                         N=Nst, beta = runif(1),
+                         N=Nst,
                          mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
                          mu_cd = runif(1), sig_cd = runif(1), mu_fs = runif(1), sig_fs = runif(1),
                          sig.sig.ob = runif(1),
@@ -483,7 +496,7 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 
 
 # Params
-params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
+params <- c( "mu_l", "sig_l", "sig_spsite",
              "b.a1", "mu_a1", "sig_a1", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
              "bCropdiv", "mu_cd", "sig_cd", "bFieldsize", "mu_fs", "sig_fs",
              "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
@@ -493,25 +506,25 @@ params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
 nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda(rest.sp)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP_resN.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/ANA/Results/chapter3")
-save(out, file = "15.1_DATA_allsp[bp].RData") 
+save(out, file = "14.2_DATA_allsp_bp(resiN).RData")
 
-####################################################################
+####################################################
 
-load("D:/PhD/Third chapter/Data/Results_model/15.1_DATA_allsp[bp].RData")
-print(out)
+load("D:/PhD/Third chapter/Data/Results_model/14.2_DATA_allsp_bp(resiN).RData")
+
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-
-t <- traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite", "beta",
+t <- traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
                                    "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
                                    "mu_cd", "sig_cd", "mu_fs", "sig_fs",
-                                   "sig.sig.ob",
+                                   "sig.sig.ob", "Bp.N", "Bp.Obs",
                                    "mu_s", "sig_s"))
+
 
 # ---- Process results ----
 # 1. ---- Coefficients----
@@ -543,7 +556,7 @@ for (c in 1:length(coeff)){
   coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
   setwd("D:/PhD/Third chapter/Data/Results_species")
-  pdf(paste("15.1_DATA_allsp[bp]_", names[c], ".pdf"))
+  pdf(paste("14.2_DATA_allsp_resiN", names[c], ".pdf"))
   par(mfrow = c(5,4),
       mar = c(2,1,2,0.5)) 
   
@@ -594,3 +607,11 @@ df.bp_n <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
 bad_bp_n <- df.bp_n[which(df.bp_n$mean < 0.1 | df.bp_n$mean > 0.9), ]
 
 ###########################################################################################
+
+
+
+
+
+
+
+

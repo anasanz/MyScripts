@@ -200,13 +200,14 @@ dat[which(is.na(dat$Wind)), ]
 dat$Wind[which(dat$T_Y == "BM06_2010")] <- 1
 
 # FOR THE CONSERVATION_MEASURES PAPER, select the YEARS OF STUDY (2015 - 2019)
-dat <- dat[which(dat$Year %in% c(2015, 2016, 2017, 2018, 2019)), ]
+#dat <- dat[which(dat$Year %in% c(2015, 2016, 2017, 2018, 2019)), ]
 
 setwd("D:/PhD/Third chapter/Data")
 write.csv(dat,"DataDS_ch3_allsp_1519_FIXED.csv") # Data set with everything fixed EXCEPT SPECIES
 
 
-
+#setwd("D:/PhD/Third chapter/Data")
+#write.csv(dat,"DataDS_ch3_allsp_1019_FIXED_forspMECAL.csv") # Data set with everything fixed EXCEPT SPECIES
 
 
 

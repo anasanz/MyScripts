@@ -5,8 +5,9 @@ library(jagsUI)
 library(dplyr)
 
 
-# MODEL 15.1 in Community data (all species): HR df and 1 beta for whole community
-
+# MODEL 15.2 in Community data (all species): HR df and 2 betas for the community
+# Calculate residuals for bp.obs with the total N instead of the FT test (resN)
+# Restricted distribution of PTALC and CABRA
 
 # sigma = exp(alpha(s) + observer(j,t) 
 # lambda = exp(alpha(s,t) + sp.site (s,j) + b1*fallowSG(j,t) + b2(s)*fallowAES(j,t) + b3(s)*fallowGREEN(j,t) + b3(s)*cropdiver(j,t) + b4(s)*fsize(j,t)
@@ -55,11 +56,7 @@ for (i in 1:nrow(count)){
 
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
-# --- Select the species that I want to analyze ----
-# Remove PTALC and CABRA because I need to restrict their distribution and so far it doesn't work
-
-bad_bp <- c("COLIV", "COOEN", "COPAL", "FATIN", "HIRUS", "LAMIC", "LASEN", "LUARB", "MEAPI", "PAMON", "STSSP") # to remove all species with bad bp except MICAL and MECAL
-d <- d[-which(d$Species %in% bad_bp), ]
+# --- Select the species that I want to analyze (all) ----
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -199,13 +196,13 @@ for (s in 1:nSpecies){
 # Vector of 1 or 0 indicating the transects
 restrict.sp <- as.data.frame(matrix(1, nrow = total.sites, ncol = nSpecies))
 restrict.sp$sites <- rep(all.sites, nyrs)
+colnames(restrict.sp) <- sp
 
 sites_ptalc <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites))]
 sites_cabra <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites), grep("BE", all.sites))]
-restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), 26] <- 0
-restrict.sp[which(!restrict.sp$sites %in% sites_cabra), 5] <- 0
-
-restrict.sp <- as.matrix(restrict.sp[,-33])
+restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), which(colnames(restrict.sp) %in% c("PTALC"))] <- 0
+restrict.sp[which(!restrict.sp$sites %in% sites_cabra), which(colnames(restrict.sp) %in% c("CABRA"))] <- 0
+restrict.sp <- as.matrix(restrict.sp[,-c(nSpecies+1)])
 
 # Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
 yLong.sp[!is.na(yLong.sp) & restrict.sp == 0] <- 0
@@ -322,7 +319,6 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = sit
               ob = ob, nobs = nobs, db = dist.breaks,
               nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP, restrict.sp = restrict.sp)
 
-
 # ---- JAGS model ----
 
 setwd("D:/PhD/Third chapter/Data/Model")
@@ -340,7 +336,6 @@ cat("model{
     bCropdiv[s] ~ dnorm(mu_cd, tau_cd)
     bFieldsize[s] ~ dnorm(mu_fs, tau_fs)
     }
-    
     
     for(s in 1:nSpecies){              # Random intercept for lambda (dif abundance per species and year)
     for(t in 1:nyrs){
@@ -396,26 +391,20 @@ cat("model{
     }
     
     # PRIOR FOR BETA
-    beta ~ dunif(0, 100)
+    
+    p.g ~ dbeta(1,1) #♠ Prior for probability of group membership
+    
+    for (s in 1:nSpecies){ # To model group membership (index for beta)
+    g[s] ~ dbern(p.g)
+    g.eff[s] <- g[s] + 1 #just turn it into a 1/2 index 
+    }
+    
+    for (g in 1:2){              # Random beta per species (2 different ones)
+    beta[g] ~ dunif(0, 100)}
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])
-    
-    # FOR BP.OBS
-    # Generate new observations, calculate residuals for Bayesian p-value on detection component
-    
-    dclassnew[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i],1:nG]) 
-    Tobsp[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclass[i]]),2)
-    Tobspnew[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclassnew[i]]),2)
     }
-    
-    # SP-SPECIFIC BP.OBS
-    for (s in 1:nSpecies){
-    Bp.Obs.sp[s]<-sum(Tobspnew*indexSP[,s]) > sum(Tobsp*indexSP[,s]) 
-    }
-    
-    # COMMUNITY BP.OBS
-    Bp.Obs <- sum(Tobspnew[1:nind]) > sum(Tobsp[1:nind])
     
     for (s in 1:nSpecies){
     
@@ -427,7 +416,7 @@ cat("model{
     
     for(k in 1:nG){ 
     
-    p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta)
+    p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta[g.eff[s]])
     pi[s,j,k] <- int.w[k] / strip.width 
     fc[s,j,k]<- p[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
     fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
@@ -443,6 +432,15 @@ cat("model{
     
     lambda.eff[j,s] <- lambda[j,s] * restrict.sp[j,s]
 
+    # FOR BP.OBS
+    # Create a new Y (detections)
+    y.new[j,s]~ dbin(pcap[s,j], N[j,s])
+    
+    # Calculate residuals residuals: look at the total number of individuals detected instead 
+    Tobsp[j,s] <- pow(  (y[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    Tobsnewp[j,s] <- pow(  (y.new[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    
+    
     # FOR BP.N
     # Create replicate abundances (new observations) for Bayesian p-value on abundance component
     Nnew[j,s]~dpois(lambda.eff[j,s])
@@ -451,13 +449,28 @@ cat("model{
     FT1[j,s] <- pow(sqrt(N[j,s]) - sqrt(lambda.eff[j,s]),2)
     FT1new[j,s] <- pow(sqrt(Nnew[j,s]) - sqrt(lambda.eff[j,s]),2)
     } 
-    # Sum residuals over sites and years
+    
+    # FOR BP.OBS:
+    # Sum residuals over sites and years to get sp-specific bp.obs.values
+    T1obsp[s]<-sum(Tobsp[1:n.allSiteYear,s])
+    T1obsnewp[s]<-sum(Tobsnewp[1:n.allSiteYear,s])
+    
+    # SP-SPECIFIC BP.OBS
+    Bp.Obs.sp[s] <-  T1obsp[s] > T1obsnewp[s] 
+    
+    
+    # FOR BP.N
+    # Sum residuals over sites and years to get sp-specific bp.N.values
     T1p[s]<-sum(FT1[1:n.allSiteYear,s])
     T1newp[s]<-sum(FT1new[1:n.allSiteYear,s])
     
     # SP-SPECIFIC BP.N
     Bp.N.sp[s] <- T1p[s] > T1newp[s]
     }
+    
+    # COMMUNITY BP.OBS
+    Bp.Obs <- sum(T1obsnewp[1:nSpecies]) > sum(T1obsp[1:nSpecies])
+    
     
     # COMMUNITY BP.N
     Bp.N <- sum(T1newp[1:nSpecies]) > sum(T1p[1:nSpecies])
@@ -469,12 +482,12 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt")
+    file = "s_HR_beta(2groups)_sigma[alpha(s)_obs(j,t)]_lambda(rest.sp)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP_resN.txt")
 
 # Inits
-Nst <- (yLong.sp + 1)*restrict.sp
+Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
-                         N=Nst, beta = runif(1),
+                         N=Nst, beta = runif(2), 
                          mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
                          mu_cd = runif(1), sig_cd = runif(1), mu_fs = runif(1), sig_fs = runif(1),
                          sig.sig.ob = runif(1),
@@ -483,8 +496,8 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 
 
 # Params
-params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
-             "b.a1", "mu_a1", "sig_a1", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
+params <- c( "mu_l", "sig_l", "sig_spsite", "beta", "p.g",
+             "b.a1","mu_a1", "sig_a1", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
              "bCropdiv", "mu_cd", "sig_cd", "bFieldsize", "mu_fs", "sig_fs",
              "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
              "mu_s", "sig_s")
@@ -493,15 +506,25 @@ params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
 nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt", n.chain = nc,
+out <- jags(data1, inits, params, "s_HR_beta(2groups)_sigma[alpha(s)_obs(j,t)]_lambda(rest.sp)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP_resN.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/ANA/Results/chapter3")
-save(out, file = "15.1_DATA_allsp[bp].RData") 
+save(out, file = "15.2_DATA_allsp_bp(resiN).RData")
 
-####################################################################
+print(out)
 
-load("D:/PhD/Third chapter/Data/Results_model/15.1_DATA_allsp[bp].RData")
+summary <- as.data.frame(as.matrix(out$summary))
+
+
+traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite", "beta", "p.g",
+                              "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
+                              "mu_cd", "sig_cd", "mu_fs", "sig_fs",
+                              "sig.sig.ob", "mu_s", "sig_s"))
+
+###########################################################################################
+
+load("D:/PhD/Third chapter/Data/Results_model/15.2_DATA_allsp_bp(resiN).RData")
 print(out)
 
 summary <- as.data.frame(as.matrix(out$summary))
@@ -543,7 +566,7 @@ for (c in 1:length(coeff)){
   coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
   setwd("D:/PhD/Third chapter/Data/Results_species")
-  pdf(paste("15.1_DATA_allsp[bp]_", names[c], ".pdf"))
+  pdf(paste("15.2_DATA_allsp_resiN", names[c], ".pdf"))
   par(mfrow = c(5,4),
       mar = c(2,1,2,0.5)) 
   

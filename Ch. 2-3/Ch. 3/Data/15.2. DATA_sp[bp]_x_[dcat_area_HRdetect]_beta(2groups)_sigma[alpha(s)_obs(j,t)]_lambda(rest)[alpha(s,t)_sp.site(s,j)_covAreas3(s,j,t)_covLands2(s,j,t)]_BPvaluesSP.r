@@ -207,6 +207,9 @@ restrict.sp[which(!restrict.sp$sites %in% sites_cabra), 5] <- 0
 
 restrict.sp <- as.matrix(restrict.sp[,-33])
 
+# Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
+yLong.sp[!is.na(yLong.sp) & restrict.sp == 0] <- 0
+
 
 ##### For multinomial model (model the observations in bins) ######
 

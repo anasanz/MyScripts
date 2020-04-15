@@ -4,9 +4,11 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
+### 15.1.1 ######
 
 # MODEL 15.1 in Community data (all species): HR df and 1 beta for whole community
-
+# Calculate residuals for bp.obs with the total N instead of the FT test (resN)
+# Restricted distribution of PTALC and CABRA
 
 # sigma = exp(alpha(s) + observer(j,t) 
 # lambda = exp(alpha(s,t) + sp.site (s,j) + b1*fallowSG(j,t) + b2(s)*fallowAES(j,t) + b3(s)*fallowGREEN(j,t) + b3(s)*cropdiver(j,t) + b4(s)*fsize(j,t)
@@ -20,7 +22,7 @@ d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
 unique(d$Region.Label)
 d <- d[-which(d$Species == "CABRA" & d$Region.Label %in% c("BA", "SI", "BM", "AL")), ]
 d[which(d$Species == "PTALC" & d$Region.Label %in% c("BA", "SI", "BM", "AL", "BE")), ]
-
+d[which(d$Species == "PTORI" & d$Region.Label %in% c("AF","SI", "BM", "AL", "BE")), ]
 
 # Information: bins, years, sites, species
 
@@ -56,9 +58,9 @@ for (i in 1:nrow(count)){
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
 # --- Select the species that I want to analyze ----
-# Remove PTALC and CABRA because I need to restrict their distribution and so far it doesn't work
 
-bad_bp <- c("COLIV", "COOEN", "COPAL", "FATIN", "HIRUS", "LAMIC", "LASEN", "LUARB", "MEAPI", "PAMON", "STSSP") # to remove all species with bad bp except MICAL and MECAL
+# Remove species with bad bp-values in 
+bad_bp <- c("GACRI", "GATHE", "PADOM", "STSSP") # to remove all species with bad bp except MICAL and MECAL
 d <- d[-which(d$Species %in% bad_bp), ]
 
 sp <- as.character(unique(d$Species))
@@ -199,17 +201,19 @@ for (s in 1:nSpecies){
 # Vector of 1 or 0 indicating the transects
 restrict.sp <- as.data.frame(matrix(1, nrow = total.sites, ncol = nSpecies))
 restrict.sp$sites <- rep(all.sites, nyrs)
+colnames(restrict.sp) <- sp
 
 sites_ptalc <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites))]
 sites_cabra <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites), grep("BE", all.sites))]
-restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), 26] <- 0
-restrict.sp[which(!restrict.sp$sites %in% sites_cabra), 5] <- 0
+sites_ptori <- all.sites[c(grep("GR", all.sites), grep("BA", all.sites))]
 
-restrict.sp <- as.matrix(restrict.sp[,-33])
+restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), which(colnames(restrict.sp) %in% c("PTALC"))] <- 0
+restrict.sp[which(!restrict.sp$sites %in% sites_cabra), which(colnames(restrict.sp) %in% c("CABRA"))] <- 0
+restrict.sp[which(!restrict.sp$sites %in% sites_ptori), which(colnames(restrict.sp) %in% c("PTORI"))] <- 0
+restrict.sp <- as.matrix(restrict.sp[,-c(nSpecies+1)])
 
 # Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
 yLong.sp[!is.na(yLong.sp) & restrict.sp == 0] <- 0
-
 
 ##### For multinomial model (model the observations in bins) ######
 
@@ -316,7 +320,7 @@ dim(indexSP)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, midpt = midpt,
+data <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, midpt = midpt,
               y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
               area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
               ob = ob, nobs = nobs, db = dist.breaks,
@@ -325,7 +329,7 @@ data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = sit
 
 # ---- JAGS model ----
 
-setwd("D:/PhD/Third chapter/Data/Model")
+setwd("D:/PhD/Third chapter/Data/model")
 cat("model{
     
     # PRIORS
@@ -400,22 +404,7 @@ cat("model{
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])
-    
-    # FOR BP.OBS
-    # Generate new observations, calculate residuals for Bayesian p-value on detection component
-    
-    dclassnew[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i],1:nG]) 
-    Tobsp[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclass[i]]),2)
-    Tobspnew[i] <- pow(1- sqrt(fct[sp.dclass[i],siteYear.dclass[i],dclassnew[i]]),2)
     }
-    
-    # SP-SPECIFIC BP.OBS
-    for (s in 1:nSpecies){
-    Bp.Obs.sp[s]<-sum(Tobspnew*indexSP[,s]) > sum(Tobsp*indexSP[,s]) 
-    }
-    
-    # COMMUNITY BP.OBS
-    Bp.Obs <- sum(Tobspnew[1:nind]) > sum(Tobsp[1:nind])
     
     for (s in 1:nSpecies){
     
@@ -439,10 +428,19 @@ cat("model{
     N[j,s] ~ dpois(lambda.eff[j,s]) 
     
     lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
-    + b.a1[s]*area1[j] + b.a2[s]*area2[j] + b.a3[s]*area3[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] ) 
+    + b.a1[s]*area1[j] + b.a2[s]*area2[j] + b.a3[s]*area3[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] )# * restrict.sp[j,s]
     
     lambda.eff[j,s] <- lambda[j,s] * restrict.sp[j,s]
-
+    
+    # FOR BP.OBS
+    # Create a new Y (detections)
+    y.new[j,s]~ dbin(pcap[s,j], N[j,s])
+    
+    # Calculate residuals residuals: look at the total number of individuals detected instead 
+    Tobsp[j,s] <- pow(  (y[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    Tobsnewp[j,s] <- pow(  (y.new[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    
+    
     # FOR BP.N
     # Create replicate abundances (new observations) for Bayesian p-value on abundance component
     Nnew[j,s]~dpois(lambda.eff[j,s])
@@ -451,13 +449,28 @@ cat("model{
     FT1[j,s] <- pow(sqrt(N[j,s]) - sqrt(lambda.eff[j,s]),2)
     FT1new[j,s] <- pow(sqrt(Nnew[j,s]) - sqrt(lambda.eff[j,s]),2)
     } 
-    # Sum residuals over sites and years
+    
+    # FOR BP.OBS:
+    # Sum residuals over sites and years to get sp-specific bp.obs.values
+    T1obsp[s]<-sum(Tobsp[1:n.allSiteYear,s])
+    T1obsnewp[s]<-sum(Tobsnewp[1:n.allSiteYear,s])
+    
+    # SP-SPECIFIC BP.OBS
+    Bp.Obs.sp[s] <-  T1obsp[s] > T1obsnewp[s] 
+    
+    
+    # FOR BP.N
+    # Sum residuals over sites and years to get sp-specific bp.N.values
     T1p[s]<-sum(FT1[1:n.allSiteYear,s])
     T1newp[s]<-sum(FT1new[1:n.allSiteYear,s])
     
     # SP-SPECIFIC BP.N
     Bp.N.sp[s] <- T1p[s] > T1newp[s]
     }
+    
+    # COMMUNITY BP.OBS
+    Bp.Obs <- sum(T1obsnewp[1:nSpecies]) > sum(T1obsp[1:nSpecies])
+    
     
     # COMMUNITY BP.N
     Bp.N <- sum(T1newp[1:nSpecies]) > sum(T1p[1:nSpecies])
@@ -469,10 +482,10 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt")
+    file = "model15.1.1.txt")
 
 # Inits
-Nst <- (yLong.sp + 1)*restrict.sp
+Nst <- yLong.sp + 1
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst, beta = runif(1),
                          mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
@@ -493,65 +506,125 @@ params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
 nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP.txt", n.chain = nc,
+out <- jags(data, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP(resiN).txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
-setwd("D:/ANA/Results/chapter3")
-save(out, file = "15.1_DATA_allsp[bp].RData") 
+setwd("D:/PhD/Third chapter/Data/Results_model")
+save(out, file = "15.1_DATA_GOODsp_bp(resiN).RData") 
 
 ####################################################################
+# Save to tun in the server of cyril
+# MCMC settings
+n.chain <- 3
+n.iter <- 200000
+n.burnin <- 30000
+n.thin <- 10
+model.file <- "model15.1.1.txt"
 
-load("D:/PhD/Third chapter/Data/Results_model/15.1_DATA_allsp[bp].RData")
-print(out)
+setwd("D:/PhD/Third chapter/Data/model")
+save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="15.1.1.RData")
 
-summary <- as.data.frame(as.matrix(out$summary))
+# With jagsUI 
+out <- jags(data, inits, params, model.file = "model15.1.1.txt", n.chain,
+            n.thin, n.iter, n.burnin, parallel = TRUE)
+
+###############################################################################
+#rm(list=ls())
+
+library(rjags)
+library(jagsUI)
+library(dplyr)
+
+# Load the three chains
+load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1a.RData")
+outa <- out
+load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1b.RData")
+outb <- out
+load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1c.RData")
+outc <- out
+class(outc)
 
 
-t <- traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite", "beta",
-                                   "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
-                                   "mu_cd", "sig_cd", "mu_fs", "sig_fs",
-                                   "sig.sig.ob",
-                                   "mu_s", "sig_s"))
+out.list<- list()
+out.list[[1]] <- as.mcmc(outa$samples[[1]])
+out.list[[2]] <- as.mcmc(outb$samples[[1]])
+out.list[[3]] <- as.mcmc(outc$samples[[1]])
+
+out.list <- as.mcmc.list(out.list)
+
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Data/ProcessCodaOutput.R")
+
+out <- ProcessCodaOutput(out.list)
+
+param <- out$colnames.sims[grep("b.a2", out$colnames.sims)]
+pdf("yooo.pdf")
+PlotJagsParams(out.list,params = param)
+dev.off()
+getwd()
+
+
+PlotJagsParams(out.list,params = "b.a2[34]")
+PlotJagsParams(out.list,params = "sig_a2")
+PlotJagsParams(out.list,params = "mu_a2")
+
+PlotJagsParams(out.list,params = "sig_a1")
+PlotJagsParams(out$samples,params = "sig_a1")
+
+PlotJagsParams(out.list,params = "sig_a3")
+PlotJagsParams(out$samples,params = "sig_a3")
+
+PlotJagsParams(out.list,params = "mu_a2")
+
+
+PlotJagsParams(out$samples,params = "sig_a2")
+PlotJagsParams(out$samples,params = "mu_a2")
+
 
 # ---- Process results ----
 # 1. ---- Coefficients----
 
 # Create data frame with species - coefficients together
-sp.df <- data.frame(sp = sp, b.a1 = rownames(summary)[grep("b.a1", rownames(summary))],
-                    b.a2 = rownames(summary)[grep("b.a2", rownames(summary))],
-                    b.a3 = rownames(summary)[grep("b.a3", rownames(summary))],
-                    bCropdiv = rownames(summary)[grep("bCropdiv", rownames(summary))],
-                    bFieldsize = rownames(summary)[grep("bFieldsize", rownames(summary))],
-                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
-                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+sp.df <- data.frame(sp = sp, b.a1 = out$colnames.sims[grep("b.a1", out$colnames.sims)],
+                    b.a2 = out$colnames.sims[grep("b.a2", out$colnames.sims)],
+                    b.a3 = out$colnames.sims[grep("b.a3", out$colnames.sims)],
+                    bCropdiv = out$colnames.sims[grep("bCropdiv", out$colnames.sims)],
+                    bFieldsize = out$colnames.sims[grep("bFieldsize", out$colnames.sims)],
+                    Bp.N.sp = out$colnames.sims[grep("Bp.N.sp", out$colnames.sims)],
+                    Bp.Obs.sp = out$colnames.sims[grep("Bp.Obs.sp", out$colnames.sims)] )
 
 # Process samples
-outall <- do.call(rbind,out$samples) # 3 chains together
+outall <- out$sims.list # 3 chains together
 coeff <- c("b.a1", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
 names <- c("b.SG", "b.AES", "b.GREEN", "bCropdiv", "bFieldsize")
-
 
 for (c in 1:length(coeff)){
   
   # Sort species by the mean value of each coefficient and keep track of name of species and coef
-  values <- summary[grep(coeff[c], rownames(summary)), ]
-  values$param<- rownames(values)
-  colnames(values)[which(colnames(values) == "param")] <- coeff[c]
-  values2 <- left_join(values, sp.df)
+  # Here the code is different than when the models are runned with three chains
+  
+  v1 <- data.frame(out$mean[names(out$mean) %in% coeff[c]])
+  v2 <- data.frame(sp.df[ ,colnames(sp.df) %in% coeff[c]])
+  values <- cbind(v1,v2)
+  colnames(values)[1] <- "mean"
+  colnames(values)[2] <- coeff[c]
+  values2 <- left_join(sp.df,values)
   values_sorted <- arrange(values2, mean)
   sp_sorted <-  values_sorted$sp
   coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
-  setwd("D:/PhD/Third chapter/Data/Results_species")
-  pdf(paste("15.1_DATA_allsp[bp]_", names[c], ".pdf"))
+  setwd("D:/PhD/Third chapter/Data/Results_species/15.1")
+  pdf(paste("15.1.1_DATA_GOODsp_resiN", names[c], ".pdf"))
   par(mfrow = c(5,4),
       mar = c(2,1,2,0.5)) 
   
   for (i in 1:nSpecies){
-    dens_obs <- density(outall[ ,which(colnames(outall) == coef_sorted[i])]) # Density of iterations for coefficient
-    mean_obs <- mean(outall[ ,which(colnames(outall) == coef_sorted[i])] )
-    lci_obs  <- quantile(outall[ ,which(colnames(outall) == coef_sorted[i])], probs = 0.025) 
-    uci_obs  <- quantile(outall[ ,which(colnames(outall) == coef_sorted[i])], probs = 0.975)
+    sims_coef <- data.frame(outall[names(outall) %in% coeff[c]])
+    colnames(sims_coef) <- values2[,which(colnames(values2) %in% coeff[c])]
+    sims_coef <- as.matrix(sims_coef)
+    dens_obs <- density(sims_coef[,which(colnames(sims_coef) %in% coef_sorted[i])] )# Density of iterations for coefficient
+    mean_obs <- mean(sims_coef[,which(colnames(sims_coef) %in% coef_sorted[i])] )
+    lci_obs  <- quantile(sims_coef[,which(colnames(sims_coef) %in% coef_sorted[i])], probs = 0.025) 
+    uci_obs  <- quantile(sims_coef[,which(colnames(sims_coef) %in% coef_sorted[i])], probs = 0.975)
     
     
     # Plot
@@ -573,24 +646,44 @@ for (c in 1:length(coeff)){
 # 2. ---- Bp-values ----
 
 sp.df <- data.frame(sp = sp,
-                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
-                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+                    Bp.N.sp = out$colnames.sims[grep("Bp.N.sp", out$colnames.sims)],
+                    Bp.Obs.sp = out$colnames.sims[grep("Bp.Obs.sp", out$colnames.sims)] )
 
 # Bp.Obs.sp
-values <- summary[grep("Bp.Obs.sp", rownames(summary)), ]
-values$param<- rownames(values)
-colnames(values)[which(colnames(values) == "param")] <- "Bp.Obs.sp"
-values2 <- left_join(values, sp.df)
+
+v1 <- data.frame(out$mean[names(out$mean) %in% "Bp.Obs.sp"])
+v2 <- data.frame(sp.df[ ,colnames(sp.df) %in% "Bp.Obs.sp"])
+values <- cbind(v1,v2)
+colnames(values)[1] <- "mean"
+colnames(values)[2] <- "Bp.Obs.sp"
+values2 <- left_join(sp.df,values)
 df.bp_obs <- values2[,colnames(values2) %in% c("Bp.Obs.sp", "sp", "mean")]
 bad_bp_obs <- df.bp_obs[which(df.bp_obs$mean < 0.1 | df.bp_obs$mean > 0.9), ]
 nrow(bad_bp_obs)
 
+# Community bp.obs
+out$mean$Bp.Obs
+
 # Bp.N.sp
-values <- summary[grep("Bp.N.sp", rownames(summary)), ]
-values$param<- rownames(values)
-colnames(values)[which(colnames(values) == "param")] <- "Bp.N.sp"
-values2 <- left_join(values, sp.df)
-df.bp_n <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
-bad_bp_n <- df.bp_n[which(df.bp_n$mean < 0.1 | df.bp_n$mean > 0.9), ]
+v1 <- data.frame(out$mean[names(out$mean) %in% "Bp.N.sp"])
+v2 <- data.frame(sp.df[ ,colnames(sp.df) %in% "Bp.N.sp"])
+values <- cbind(v1,v2)
+colnames(values)[1] <- "mean"
+colnames(values)[2] <- "Bp.N.sp"
+values2 <- left_join(sp.df,values)
+df.bp_N <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
+bad_bp_N <- df.bp_N[which(df.bp_N$mean < 0.1 | df.bp_N$mean > 0.9), ]
+nrow(bad_bp_N)
+
+# Community bp.N
+out$mean$Bp.N
 
 ###########################################################################################
+
+
+
+
+
+
+
+

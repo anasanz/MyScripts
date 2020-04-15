@@ -13,27 +13,27 @@ library(dplyr)
 # ---- Load data (layers without overlap) ----
 
 # Transects
-tr <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS", "Trans_2018_EPSG23031") # Contains transects sampled each year (1/0)
+tr <- readOGR("D:/PhD/Third chapter/GIS", "Trans_2018_EPSG23031") # Contains transects sampled each year (1/0)
 
 # SG
 
 #sg14 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2014_EPSG23031")
 #colnames(sg14@data)[colnames(sg14@data) == "Codi"] <- "Codi.2"
-sg15 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2015_EPSG23031")
-sg16 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2016_EPSG23031")
-sg17 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2017_EPSG23031")
-sg18 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2018_EPSG23031")
-sg19 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/SG", layer = "SG_2019_EPSG23031")
+sg15 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/SG", layer = "mdm_SG_2015_EPSG23031")
+sg16 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/SG", layer = "mdm_SG_2016_EPSG23031")
+sg17 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/SG", layer = "mdm_SG_2017_EPSG23031")
+sg18 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/SG", layer = "mdm_SG_2018_EPSG23031")
+sg19 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/SG", layer = "mdm_SG_2019_EPSG23031")
 
 
 # AES 
 
 #aes14 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2014_EPSG23031")
-aes15 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2015_EPSG23031")
-aes16 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2016_EPSG23031")
-aes17 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2017_EPSG23031")
-aes18 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2018_EPSG23031")
-aes19 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2019_EPSG23031")
+aes15 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2015_EPSG23031")
+aes16 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2016_EPSG23031")
+aes17 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2017_EPSG23031")
+aes18 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2018_EPSG23031")
+aes19 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/AES", layer = "AEScutted_2019_EPSG23031")
 
 # SELECT ONLY FALLOW FIELDS IN AES (In 2016 it was already done, and in 2015 is all together)
 aes17 <- aes17[which(aes17$PROD_NOM == "FALLOW"), ]
@@ -44,11 +44,11 @@ aes19 <- aes19[which(aes19$PROD_NOM == "FALLOW"), ]
 # GREEN
 
 #?green14 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2014_EPSG23031")
-green15 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2015_EPSG23031")
-green16 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2016_EPSG23031")
-green17 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2017_EPSG23031")
-green18 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2018_EPSG23031")
-green19 <- readOGR("C:/Users/Ana/Documents/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2019_EPSG23031")
+green15 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2015_EPSG23031")
+green16 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2016_EPSG23031")
+green17 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2017_EPSG23031")
+green18 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2018_EPSG23031")
+green19 <- readOGR("D:/PhD/Third chapter/GIS/Fallow/Greening", layer = "GREENcutted_2019_EPSG23031")
 
 # ---- Create buffers and calculate area ----
 
@@ -134,7 +134,7 @@ for (i in 1:length(layers)){
 }
 
 #### SAVE ####
-setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
+setwd("D:/PhD/Third chapter/Data")
 write.csv(management, "AES_15_19.csv")
 
 
@@ -167,7 +167,7 @@ for (i in 1:length(layers)){
 }
 
 #### SAVE ####
-setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
+setwd("D:/PhD/Third chapter/Data")
 write.csv(management, "SG_15_19.csv")
 
 # ---- GREENING ----
@@ -196,8 +196,20 @@ for (i in 1:length(layers)){
   management[is.na(management)] <- 0 # Substitute NA by 0
 }
 
+# CHeck
+plot(buf[153,])
+plot(poli[which(poli$Codi == "BE14"), ], col = "red", add = TRUE)
+be14 <- poli[which(poli$Codi == "BE14"), ]
+be14$area <- area(be14)/10000
+sum(be14$area)
+
+plot(buf[149,])
+plot(poli[which(poli$Codi == "BE06"), ], col = "red", add = TRUE)
+be06 <- poli[which(poli$Codi == "BE06"), ]
+be06$area <- area(be06)/10000
+sum(be06$area)
 #### SAVE ####
-setwd("C:/Users/Ana/Documents/PhD/Third chapter/Data")
+setwd("D:/PhD/Third chapter/Data")
 write.csv(management, "GREEN_15_19.csv")
 
 

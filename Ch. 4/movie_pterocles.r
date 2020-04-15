@@ -11,7 +11,9 @@ library(readr)
 
 # Load used positions and create date-time
 
-gps <- readOGR("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps_datetime")
+gps <- readOGR("D:/PhD/Fourth chapter/GPS Cataluña/Ganga/Updated_24-2-2020", "XYgps_positions")
+#gps <- readOGR("D:/PhD/Fourth chapter/GPS Cataluña/Ganga/17-18_rep/periods_no_flying", "gps_datetime")
+
 
 gps@data$date <- as.Date(with(gps@data, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
 gps@data$time <- paste(gps@data$Hour,":",gps@data$Minute,":",gps@data$Second, sep="")
@@ -22,7 +24,7 @@ gps_data <- gps@data
 
 time_stack <- as.POSIXlt(paste(gps_data$date, gps_data$time), format="%Y-%m-%d %H:%M:%S", tz="UTC")
 
-gps_data <- gps_data[ ,c(1,8,9)]
+gps_data <- gps_data[ ,c(2,9,10)]
 
 proj4string(gps)
 

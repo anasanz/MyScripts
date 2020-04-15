@@ -193,19 +193,23 @@ yLong.sp <- matrix(NA, nrow = total.sites, ncol = nSpecies)
 for (s in 1:nSpecies){
   yLong.sp[ ,s] <- unlist(as.data.frame(data_sp[,,s]), use.names = F) # With NA included (model estimating abundance in sites with no information)
 }
-sp
+sp #+IMPORTANT TO CHECK IN WHICH POSITION OF THE SP VECTOR ARE PTALC AND CABRA TO RESTRICT IN THE NEXT STEP!!!
+
 
 # Restrict the presence of PTALC (26) and CABRA(5)
 # Vector of 1 or 0 indicating the transects
 restrict.sp <- as.data.frame(matrix(1, nrow = total.sites, ncol = nSpecies))
 restrict.sp$sites <- rep(all.sites, nyrs)
+colnames(restrict.sp) <- sp
 
 sites_ptalc <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites))]
 sites_cabra <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites), grep("BE", all.sites))]
-restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), 26] <- 0
-restrict.sp[which(!restrict.sp$sites %in% sites_cabra), 5] <- 0
+restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), which(colnames(restrict.sp) %in% c("PTALC"))] <- 0
+restrict.sp[which(!restrict.sp$sites %in% sites_cabra), which(colnames(restrict.sp) %in% c("CABRA"))] <- 0
+restrict.sp <- as.matrix(restrict.sp[,-c(nSpecies+1)])
 
-restrict.sp <- as.matrix(restrict.sp[,-33])
+# Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
+yLong.sp[!is.na(yLong.sp) & restrict.sp == 0] <- 0
 
 
 ##### For multinomial model (model the observations in bins) ######
