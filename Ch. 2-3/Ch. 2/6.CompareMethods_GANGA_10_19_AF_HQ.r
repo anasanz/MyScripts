@@ -15,7 +15,7 @@ library(rtrim)
 ##                       Prepare data                           ###
 ###################################################################
 
-setwd("D:/Ana/Model/Ganga")
+setwd("D:/PhD/Otros/Ganga")
 
 d <- read.csv("DataDS_ready_para_Ganga_hq.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
@@ -29,10 +29,7 @@ d <- d[-which(d$transectID %in% c("AF31", "AF35", "AF38", "AF39", "AF41", "AF42"
 # Load species names
 
 s_good <- c("PTALC")
-xxx = 1
-# Start loop
-for (xxx in 1:length(s_good)){
-  
+
   # To take into account transects with abundance 0
   # 1. Select all transects IDs from all species observations
   # 2. Join the observations of MECAL (for example) with all transects so that they remain with NA if the
@@ -227,7 +224,7 @@ for (xxx in 1:length(s_good)){
   sites_df <- data.frame(all.sites)
   colnames(sites_df)[1] <- "transectID"
   
-  setwd("D:/Ana/Model/Ganga")
+  setwd("D:/PhD/Otros/Ganga")
   hq <- read.csv("transect_habquality_ganga_reclas.csv", sep = ";")
   colnames(hq)[3] <- "transectID"
   hq <- hq[,c(3,4)]
@@ -483,7 +480,7 @@ for (xxx in 1:length(s_good)){
   
   # ---- Results ----
   
-  setwd("D:/Ana/Results/Ganga")
+  setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
   load("PTALC_HDS_HQ.RData")
   
   
@@ -527,14 +524,14 @@ for (xxx in 1:length(s_good)){
   # 2. Plot
   
   
-  setwd("D:/Ana/Results/Ganga")
+  setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
   pdf("PTALC_HDS_HQ.pdf", height = 5, width = 7)
   
   par(mfrow = c(1,1))
   
-  plot(-15, xlim=c(0,8), ylim=c(0,max(uci.exp)+20), main = " ", xlab = " ", ylab = " ", axes = FALSE)
+  plot(-15, xlim=c(0,9), ylim=c(0,max(uci.exp)+20), main = " ", xlab = " ", ylab = " ", axes = FALSE)
   axis(2)
-  axis(1,at = c(0:8), labels = c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018"))
+  axis(1,at = c(0:9), labels = c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019"))
   mtext("Hierarchical Distance Sampling model", side = 3, line = 1, cex = 1.5)
   mtext("Year", side = 1, line = 3, cex = 1)
   mtext("Abundance in transects", side = 2, line = 3, cex = 1)
@@ -550,8 +547,9 @@ for (xxx in 1:length(s_good)){
   
   ##add in actual abundance estimates to check
   
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19, type = "l", col = "blue")
-  points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
+  pop <- out$summary[grep("popindex", rownames(out$summary)),1]
+  points(yrs2, pop[1:10], pch = 19, type = "l", col = "blue")
+  points(yrs2, pop[1:10], pch = 19)
   
   
   # Print estimate
@@ -598,16 +596,16 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-  setwd("D:/Ana/Results/Ganga")
+  setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
   
   #Plot with overall slope
-  setwd("D:/Ana/Results/Ganga")
+  setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
   
   par(mfrow = c(1,1))
-  pdf("PTALC_HDS_HQ.pdf", height = 5, width = 7)
+  pdf("PTALC_TRIM_HQ.pdf", height = 5, width = 7)
   plot(overall(m3))
   mtext("TRIM model", side = 3, line = 1, cex = 1.2)
   
@@ -629,20 +627,112 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("D:/Ana/Results/Ganga")
+  setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
   write.csv(results_TRIM, file = paste("res_trim",s_good[xxx],".csv", sep = ""))
   
-  print(s_good[xxx])
+  ########################################################################################
+  ####      Process results DENSITY AND ABUNDANCE per quality zone                    ####
+  ########################################################################################
+
+  setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
+  load("PTALC_HDS_HQ.RData")
   
+  summary <- as.data.frame(as.matrix(out$summary))
+
+  # Create data frame to store Abundances and Density
+  
+  # Abundance
+  df_ab <- as.data.frame(matrix(NA,ncol = nyrs, nrow = 3))
+  colnames(df_ab) <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+  rownames(df_ab) <- c("Abundance_HQ1", "Abundance_HQ2", "Abundance_HQ3")
+  
+  for (i in 1:3){
+    for (j in 1:nyrs){
+      df_ab[i,j] <- summary[which(rownames(summary) %in% paste("A_zona[",i,",",j,"]", sep = "")), 1]
+    } }
+  df_ab <- round(df_ab,3)
+  total <- colSums(df_ab)
+  df_abundance <- rbind(df_ab, total)
+  rownames(df_abundance)[4] <- "Abundance_total"
+  
+  # Density
+  df_dens <- as.data.frame(matrix(NA,ncol = nyrs, nrow = 3))
+  colnames(df_dens) <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+  rownames(df_dens) <- c("Density_HQ1", "Density_HQ2", "Density_HQ3")
+  
+  for (i in 1:3){
+    for (j in 1:nyrs){
+      df_dens[i,j] <- summary[which(rownames(summary) %in% paste("D_zona[",i,",",j,"]", sep = "")), 1]
+    } }
+  df_dens <- round(df_dens,3)
+  total <- colSums(df_dens)
+  df_density <- rbind(df_dens, total)
+  rownames(df_density)[4] <- "Density_total"
+  
+  # ADD CI
+  
+  # Abundance
+  df_ab_ci <- as.data.frame(matrix(NA,ncol = nyrs, nrow = 4))
+  colnames(df_ab_ci) <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+  rownames(df_ab_ci) <- c("Abundance_HQ1", "Abundance_HQ2", "Abundance_HQ3", "Abundance_total")
+
+
+    for (j in 1:nyrs){
+      lowCI <- list()
+      upCI <- list()
+      
+      
+      for (i in 1:3){
+      df_ab_ci[i,j] <- paste("[", round(summary[which(rownames(summary) %in% paste("A_zona[",i,",",j,"]", sep = "")), 3],3), "-", round(summary[which(rownames(summary) %in% paste("A_zona[",i,",",j,"]", sep = "")), 7],3), "]", sep = "")
+      lowCI <- c(lowCI, round(summary[which(rownames(summary) %in% paste("A_zona[",i,",",j,"]", sep = "")), 3],3))
+      upCI <- c(upCI, round(summary[which(rownames(summary) %in% paste("A_zona[",i,",",j,"]", sep = "")), 7],3))
+      }
+    total_lowCI <- sum(unlist(lowCI))
+    total_upCI <- sum(unlist(upCI))
+    
+    df_ab_ci[4,j] <- paste("[", total_lowCI, "-", total_upCI, "]", sep = "")
+    }
+  
+  # Join
+abundance <- cbind(df_abundance, df_ab_ci)
+abundance <- abundance[,order(names(abundance))]
+
+# DENSITY
+df_den_ci <- as.data.frame(matrix(NA,ncol = nyrs, nrow = 4))
+colnames(df_den_ci) <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+rownames(df_den_ci) <- c("Density_HQ1", "Density_HQ2", "Density_HQ3", "Density_total")
+
+
+for (j in 1:nyrs){
+  lowCI <- list()
+  upCI <- list()
+  
+  
+  for (i in 1:3){
+    df_den_ci[i,j] <- paste("[", round(summary[which(rownames(summary) %in% paste("D_zona[",i,",",j,"]", sep = "")), 3],3), "-", round(summary[which(rownames(summary) %in% paste("D_zona[",i,",",j,"]", sep = "")), 7],3), "]", sep = "")
+    lowCI <- c(lowCI, round(summary[which(rownames(summary) %in% paste("D_zona[",i,",",j,"]", sep = "")), 3],3))
+    upCI <- c(upCI, round(summary[which(rownames(summary) %in% paste("D_zona[",i,",",j,"]", sep = "")), 7],3))
   }
+  total_lowCI <- sum(unlist(lowCI))
+  total_upCI <- sum(unlist(upCI))
+  
+  df_den_ci[4,j] <- paste("[", total_lowCI, "-", total_upCI, "]", sep = "")
+}
 
-setwd("D:/Ana/Results/Ganga")
-load("PTALC_HDS_HQ.RData")
-write.csv(out$summary, file = "Results_PTALC_HQ.csv")
+# Join
+density <- cbind(df_density, df_den_ci)
+density <- density[,order(names(density))]
 
+# JOIN ALL AND EXPORT
+data <- rbind(abundance,density)
 
+setwd("D:/PhD/Otros/Ganga/5. Bin5Fixed_10_19_AF")
+write.csv(data, "resultados_ganga.csv")
+  
+  
+  
 # Resultados
 # Pag 454 HDS 
 # 1. Area de superficie censada cada aÃ±o t: area[t] <- nsites[t]*length(500)*width(400)

@@ -16,15 +16,14 @@ library(rtrim)
 
 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-#setwd("D:/ANA/Data/chapter2")
-
+#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+setwd("D:/ANA/Data/chapter2")
 d <- read.csv("DataDS_ready_ALL_revch2.csv")
 
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
-#setwd("D:/ANA/Data/chapter2")
+#setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+setwd("D:/ANA/Data/chapter2")
 
 zep <- read.csv("zepa.csv")
 
@@ -35,8 +34,7 @@ hn <- c("ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ",
 hr <- c("TERAX", "BUOED", "TUMER")
 all <- c("TERAX", "BUOED", "TUMER","ALRUF","CACAR","COOEN","COPAL","GACRI","GATHE","MEAPI","MECAL","PAMAJ","SESER","STSSP","SYCAN","SYMEL","UPEPO",
          "MICAL","HIRUS","PADOM","PIPIC","PAMON", "COMON", "FATIN", "LUARB", "COGAR", "CACHL", "PYRAX", "LASEN", "CAINA", "ALARV", "CABRA") 
-s_good <- all[21:26]
-#s_good <- all[27:32]
+s_good <- c("ALRUF", "PAMAJ", "ALARV", "CABRA")
 
 # Start loop
 for (xxx in 1:length(s_good)){
@@ -276,7 +274,7 @@ for (xxx in 1:length(s_good)){
   # ---- JAGS model ----
   
   #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Data/Model")
-  setwd("S:/Results/chapter2/HN")
+  setwd("D:/ANA/Model")
   
   cat("model{
       
@@ -462,7 +460,7 @@ for (xxx in 1:length(s_good)){
   )
   
   # MCMC settings
-  nc <- 3 ; ni <- 170000 ; nb <- 5000 ; nt <- 5
+  nc <- 3 ; ni <- 400000 ; nb <- 100000 ; nt <- 10
   
   # With jagsUI 
   out <- jags(data1, inits, params, "s_sigma(integral)[obs(o,j,t)_covTemp(j,t)_year.random(t)]_lambda[alpha.site.random(j)_year.random(t)_beta.year(j)_w]_BayesP.txt", n.chain = nc,
@@ -470,13 +468,15 @@ for (xxx in 1:length(s_good)){
   summary <- out$summary
   print(out)
   
-  setwd("S:/Results/chapter2/HN")
+  #setwd("C:/Users/ana.sanz/Documents/PhD/Second chapter/Resubmission")
+  setwd("D:/ANA/Results/chapter2/HN")
   save(out, file = paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
   # ---- Results ----
   
-  setwd("S:/Results/chapter2/HN")
+  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/HN")
   load(paste("HDS_",s_good[xxx],".RData", sep = ""))
   
   
@@ -519,7 +519,8 @@ for (xxx in 1:length(s_good)){
   
   # 2. Plot
   
-  setwd("S:/Results/chapter2/Plots/HN")
+  #setwd("S:/PhD/Second chapter/Data/Results/Plots/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/Plots/HN")
   pdf(paste(s_good[xxx],"_TrimComp6.pdf", sep = ""), height = 5, width = 9)
   
   par(mfrow = c(1,2))
@@ -582,8 +583,8 @@ for (xxx in 1:length(s_good)){
   cont_zero <- between(0,lci,uci)
   
   # Save deviations
-
-  setwd("S:/Results/chapter2/HN")
+  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/HN")
   coef_dev <- coefficients(m3, representation = c("deviations"))
   write.csv(coef_dev, file = paste("coef_dev",s_good[xxx],".csv", sep = ""))
   
@@ -614,8 +615,8 @@ for (xxx in 1:length(s_good)){
   dev.off()
   
   # Save TRIM estimate + CI
-  setwd("S:/Results/chapter2/HN")
-  
+  #setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp/Final")
+  setwd("D:/ANA/Results/chapter2/HN")
   
   results_TRIM <- matrix (c(est, lci, uci, cont_zero), ncol = 4, nrow = 1)
   colnames(results_TRIM) <- c("Estimate", "LCI", "UCI", "Sig")
