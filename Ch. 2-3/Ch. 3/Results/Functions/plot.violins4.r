@@ -35,13 +35,13 @@
 #'
 
 
-dat.list = g[[i]][[2]]
+dat.list = list(g[[i]][[2]])
 dat.list = list(out$sims.list$b.a1[,i])
-x = i
-at = i
+x = x.pos[i]
+at = x.pos[i]
 i = 1
 
-plot.violins3<-function(dat.list
+plot.violins4<-function(dat.list
                         , 
                         x
                         , 
@@ -104,9 +104,9 @@ plot.violins3<-function(dat.list
       temp$x<-inv.logit(temp$x)
     }
     
-
+    
     #violin.width<-0.20 #in units x (group variable)
-
+    
     #if(scale.width) scal.y<-DoScale(c(0,temp$y),0,violin.width[1]*amp[i]/max(amp))[-1]#--scaled to a portion of the year for plotting
     
     if(scale.width) scal.y<-DoScale(c(0,temp$y),0,violin.width*max(temp$y))[-1]
@@ -120,11 +120,11 @@ plot.violins3<-function(dat.list
     poly.y<-c(temp$x,temp$x[length(temp$x):1])#---the number
     
     #points(poly.y~poly.x,type="l")
-
+    
     yv<-poly.y
     xv<-poly.x
     
-
+    
     rgb.col<-as.vector(col2rgb(col)/255)
     
     polygon.col<-adjustcolor(col,alpha=alpha)#rgb(rgb.col[1],rgb.col[2],rgb.col[3],alpha)
@@ -148,9 +148,9 @@ plot.violins3<-function(dat.list
     }else{
       polygon(xvci,yvci,col=polygon.col,border=border.col, lwd = lwd.CI)#polygon.col
     }
-
+    
     # }
-
+    
     if(median==TRUE){
       this.median<-ifelse(invlogit,inv.logit(median(dat.list[[i]])),median(dat.list[[i]]))
     }else{
@@ -159,13 +159,13 @@ plot.violins3<-function(dat.list
     
     if(horizontal==TRUE){
       points(at[i]~this.median,pch=19,col="white",cex=cex)
-      }else{
+    }else{
       points(this.median~at[i],pch=19,col="white",cex=cex)
       
     }
     
     
-
+    
     
     
   }#####

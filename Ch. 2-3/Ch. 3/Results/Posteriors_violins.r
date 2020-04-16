@@ -7,7 +7,7 @@ library(jagsUI)
 library(dplyr)
 
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins2.r")
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins3.r")
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/DoScale.r")
 
 
@@ -132,6 +132,71 @@ names <- c("b.SG", "b.AES", "b.GREEN")
   
   dev.off()
   
-  # ---- Long ----
+# ---- Long ----
+  
+  # ORDER SG
+  
+  v1 <- data.frame(out$mean[names(out$mean) %in% coeff[1]])
+  v2 <- data.frame(sp.df[ ,colnames(sp.df) %in% coeff[1]])
+  values <- cbind(v1,v2)
+  colnames(values)[1] <- "mean"
+  colnames(values)[2] <- coeff[1]
+  values$index <- rownames(values)
+  values2 <- left_join(sp.df,values)
+  values_sorted <- arrange(values2, mean)
+  sp_sorted <-  values_sorted$sp
+  
+  coef_sorted <- values_sorted[,-c(1,5)]
+  
+  outall <- out$sims.list # 3 chains together
+  
+
+  
+  g <- list()
+  s <- list()
+  for (i in 1:nSpecies){
+    for (c in 1:length(coeff)){
+      sims_coef <- data.frame(outall[names(outall) %in% coeff[c]])
+      colnames(sims_coef) <- values2[,which(colnames(values2) %in% coeff[c])]
+      s[[c]] <- sims_coef[,which(colnames(sims_coef) %in% coef_sorted[i,c])]
+    }
+   g[[i]] <- s
+  }
+  
+#h <- unlist(g, recursive = FALSE)
+
+setwd("D:/PhD/Third chapter/Data/Results_species/15.1/15.1.1_DATA_GOODsp_resiN")
+pdf(paste("15.1.1.ViolinLong.pdf"),width=10,height = 20)
+
+  # PLOT
+  plot(10, ylim = c(1, nSpecies*3), 
+       xlim = c(-1,1.7), 
+       type ="n", yaxt="n", xlab = "Beta", ylab = "", main = "SG")
+  
+  mtext("Species", line = 3, side = 2, cex = 0.8, outer = TRUE) 
+  axis(2, at = seq(1,nSpecies*3, by =3), labels = sp_sorted, las = 2, cex.axis = 0.9)
+  x.pos <- seq(1,111, by = 3)
+  col=c("darkorange","blue","red")
+  offset <- c(-0.7,0,0.7)
+  
+  abline(h=seq(1,nSpecies*3, by = 6) ,col=adjustcolor(grey(0.8),alpha=0.5), lwd=40)
+  ii <- seq(1,nSpecies*3, by =3)
+  for(c in 1:3){
+  for(i in 1:nSpecies){
+    plot.violins3(list(g[[i]][[c]]),
+                  x = i,
+                  at =  ii[i]+offset[c],
+                  violin.width = 0.3,
+                  col = col[c],
+                  add = T,
+                  alpha = 0.3,
+                  scale.width = FALSE,
+                  border.col = col[c],
+                  horizontal = TRUE) }
+  }
+  abline(v=0)
+  
+  dev.off()
+
   
   #Colours: "darkmagenta", "darkorange", "darkolivegreen4"
