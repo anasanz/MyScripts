@@ -4,7 +4,15 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-### 15.1.1 ######
+### 15.1.3 ######
+
+# Try again to run 15.1.1 with new data arrangement (LAST):
+# - Without species with no biological sense (LAMIC,MIMIL,TUMER,MIMIG)
+# - Without species with bad bpvalues (remove here)
+# - 15.1.3 = With PTORI; 15.1.4 = Without PTORI
+
+# If the results for AES of this model are skewed, it means that removing the species causes it (EMAIL RAHEL)
+# If the results are not skewed, it means there was a mistake before (USE LAST RESULTS)
 
 # MODEL 15.1 in Community data (all species): HR df and 1 beta for whole community
 # Calculate residuals for bp.obs with the total N instead of the FT test (resN)
@@ -16,13 +24,16 @@ library(dplyr)
 # ---- Data ----
 
 setwd("D:/PhD/Third chapter/Data")
-d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
+d <- read.csv("DataDS_ch3_15_19_READY_FIXED_LAST.csv")
+sort(unique(d$Species))
+d <- d[-which(d$Species %in% c("GACRI", "GATHE", "PADOM", "STSSP", "PTORI")), ]
+sort(unique(d$Species))
 
 # To restrict distribution of PTALC and CABRA: remove observations out of the distr.range (probably a mistake)
 unique(d$Region.Label)
 d <- d[-which(d$Species == "CABRA" & d$Region.Label %in% c("BA", "SI", "BM", "AL")), ]
 d[which(d$Species == "PTALC" & d$Region.Label %in% c("BA", "SI", "BM", "AL", "BE")), ]
-d[which(d$Species == "PTORI" & d$Region.Label %in% c("AF","SI", "BM", "AL", "BE")), ]
+
 
 # Information: bins, years, sites, species
 
@@ -60,8 +71,8 @@ not_sampled <- is.na(m) # These are the sites not sampled in a given year. There
 # --- Select the species that I want to analyze ----
 
 # Remove species with bad bp-values in 
-bad_bp <- c("GACRI", "GATHE", "PADOM", "STSSP") # to remove all species with bad bp except MICAL and MECAL
-d <- d[-which(d$Species %in% bad_bp), ]
+#bad_bp <- c("GACRI", "GATHE", "PADOM", "STSSP") # to remove all species with bad bp except MICAL and MECAL (NO EN ESTA PRUEBA)
+#d <- d[-which(d$Species %in% bad_bp), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -205,11 +216,9 @@ colnames(restrict.sp) <- sp
 
 sites_ptalc <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites))]
 sites_cabra <- all.sites[c(grep("AF", all.sites), grep("GR", all.sites), grep("BE", all.sites))]
-sites_ptori <- all.sites[c(grep("GR", all.sites), grep("BA", all.sites))]
 
 restrict.sp[which(!restrict.sp$sites %in% sites_ptalc), which(colnames(restrict.sp) %in% c("PTALC"))] <- 0
 restrict.sp[which(!restrict.sp$sites %in% sites_cabra), which(colnames(restrict.sp) %in% c("CABRA"))] <- 0
-restrict.sp[which(!restrict.sp$sites %in% sites_ptori), which(colnames(restrict.sp) %in% c("PTORI"))] <- 0
 restrict.sp <- as.matrix(restrict.sp[,-c(nSpecies+1)])
 
 # Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
@@ -294,8 +303,7 @@ ob <- as.numeric(factor(ob)) # JAGS doesn't accept categorical variables
 # Then, you can fill observer NAs with random IDs and it wont affect the model estimates.
 # (ONLY BECAUSE THERE IS NO DATA ASSOCIATED WITH THE OBSERVER NAs)
 
-#obs_id <- unique(ob)[-3] # THE ORDER OF THE NA I DONT KNOW WHY CHANGED AND SUPER ERROR, BETTER TO SPECIFY THINGS BY NAME AND NOT INDEX
-obs_id <- unique(ob)[-which(is.na(unique(ob)))]
+obs_id <- unique(ob)[-3]
 ob[which(is.na(ob))] <- sample(obs_id, length(which(is.na(ob))), replace = TRUE)
 
 nobs <- length(unique(ob))
@@ -322,10 +330,10 @@ dim(indexSP)
 # ---- Compile data for JAGS model ----
 
 data <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, midpt = midpt,
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
-              ob = ob, nobs = nobs, db = dist.breaks,
-              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP, restrict.sp = restrict.sp)
+             y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
+             area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
+             ob = ob, nobs = nobs, db = dist.breaks,
+             nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP, restrict.sp = restrict.sp)
 
 
 # ---- JAGS model ----
@@ -483,7 +491,7 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "model15.1.1.txt")
+    file = "model15.1.4.txt")
 
 # Inits
 Nst <- yLong.sp + 1
@@ -520,14 +528,14 @@ n.chain <- 1
 n.iter <- 200000
 n.burnin <- 30000
 n.thin <- 10
-model.file <- "model15.1.1.txt"
+model.file <- "model15.1.4.txt"
 
 setwd("D:/PhD/Third chapter/Data/model")
-save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="15.1.1.RData")
+save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="15.1.4.RData")
 
 # With jagsUI 
-out <- jags(data, inits, params, model.file = "model15.1.1.txt", n.chain,
-            n.thin, n.iter, n.burnin, parallel = FALSE)
+out <- jags(data, inits, params, model.file = "model15.1.4.txt", n.chain,
+            n.thin, n.iter, n.burnin, parallel = TRUE)
 
 ###############################################################################
 #rm(list=ls())
@@ -537,11 +545,11 @@ library(jagsUI)
 library(dplyr)
 
 # Load the three chains
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1a.RData")
+load("D:/PhD/Third chapter/Data/model/15.1.4/JagsOutFOR15.1.4a.RData")
 outa <- out
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1b.RData")
+load("D:/PhD/Third chapter/Data/model/15.1.4/JagsOutFOR15.1.4b.RData")
 outb <- out
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1c.RData")
+load("D:/PhD/Third chapter/Data/model/15.1.4/JagsOutFOR15.1.4c.RData")
 outc <- out
 class(outc)
 
@@ -557,28 +565,6 @@ source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 
 out <- ProcessCodaOutput(out.list)
 
-param <- out$colnames.sims[grep("b.a2", out$colnames.sims)]
-pdf("yooo.pdf")
-PlotJagsParams(out.list,params = param)
-dev.off()
-getwd()
-
-
-PlotJagsParams(out.list,params = "b.a2[34]")
-PlotJagsParams(out.list,params = "sig_a2")
-PlotJagsParams(out.list,params = "mu_a2")
-
-PlotJagsParams(out.list,params = "sig_a1")
-PlotJagsParams(out$samples,params = "sig_a1")
-
-PlotJagsParams(out.list,params = "sig_a3")
-PlotJagsParams(out$samples,params = "sig_a3")
-
-PlotJagsParams(out.list,params = "mu_a2")
-
-
-PlotJagsParams(out$samples,params = "sig_a2")
-PlotJagsParams(out$samples,params = "mu_a2")
 
 
 # ---- Process results ----
@@ -613,8 +599,8 @@ for (c in 1:length(coeff)){
   sp_sorted <-  values_sorted$sp
   coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
-  setwd("D:/PhD/Third chapter/Data/Results_species/15.1")
-  pdf(paste("15.1.1_DATA_GOODsp_resiN", names[c], ".pdf"))
+  setwd("D:/PhD/Third chapter/Data/Results_species/15.1/15.1.4")
+  pdf(paste("15.1.4_", names[c], ".pdf"))
   par(mfrow = c(5,4),
       mar = c(2,1,2,0.5)) 
   

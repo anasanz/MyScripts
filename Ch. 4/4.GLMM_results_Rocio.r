@@ -16,7 +16,7 @@ library(ggplot2)
 
 # Run models and plot predictions
 
-setwd("C:/Users/Ana/Documents/PhD/PhD_12_Nov/Fourth chapter/Data")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation

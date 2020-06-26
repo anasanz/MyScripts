@@ -562,7 +562,7 @@ out.list[[3]] <- outc$samples[[1]]
 
 out.list <- as.mcmc.list(out.list)
 
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Data/ProcessCodaOutput.R")
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 
 out <- ProcessCodaOutput(out.list)
 
@@ -648,6 +648,7 @@ values2 <- left_join(sp.df,values)
 df.bp_obs <- values2[,colnames(values2) %in% c("Bp.Obs.sp", "sp", "mean")]
 bad_bp_obs <- df.bp_obs[which(df.bp_obs$mean < 0.1 | df.bp_obs$mean > 0.9), ]
 nrow(bad_bp_obs)
+hist(df.bp_obs$mean)
 
 # Community bp.obs
 out$mean$Bp.Obs

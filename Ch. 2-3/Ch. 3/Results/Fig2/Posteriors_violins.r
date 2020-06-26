@@ -76,7 +76,7 @@ names <- c("b.SG", "b.AES", "b.GREEN")
 # SG
   plot(10, ylim = c(1, nSpecies+1), 
        xlim = c(-1,1.7), 
-       type ="n", yaxt="n", xlab = "Beta", ylab = "", main = "SG")
+       type ="n", yaxt="n", xlab = "Beta", ylab = "", main = "TFM")
   
   mtext("Species", line = 3, side = 2, cex = 0.8, outer = TRUE) 
   axis(2, c(1:nSpecies), labels = sp_sorted, las = 2, cex.axis = 0.9)
@@ -115,7 +115,7 @@ names <- c("b.SG", "b.AES", "b.GREEN")
   #GREEN
   plot(10, ylim = c(1, nSpecies+1), 
        xlim = c(-1,1.7), 
-       type ="n", yaxt="n", xlab = "Beta", ylab = "", main = "Greening")
+       type ="n", yaxt="n", xlab = "Beta", ylab = "", main = "GREEN")
   
   for(i in 1:nSpecies){
     plot.violins3(list(out$sims.list$b.a3[ ,as.numeric(coef_sorted$index[i])]),

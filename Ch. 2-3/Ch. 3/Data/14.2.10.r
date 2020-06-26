@@ -4,11 +4,19 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-### 15.1.1 ######
+# Try again to run 14.2.1 with new data arrangement (LAST):
+# - Without species with no biological sense (LAMIC,MIMIL,TUMER,MIMIG)
+# - Without species with bad bpvalues (remove here)
+# - Like 15.1.3 = With PTORI
+# - Calculating bp.obs values as Rahel said (squared residuals)
+# MONITOR ALAM  
+# Include MECAL, MICAL AND GASSP
+# Nested random effect
 
-# MODEL 15.1 in Community data (all species): HR df and 1 beta for whole community
+# MODEL 14.2 in Community data (35 species). Calculate species specific BPvalues
 # Calculate residuals for bp.obs with the total N instead of the FT test (resN)
 # Restricted distribution of PTALC and CABRA
+
 
 # sigma = exp(alpha(s) + observer(j,t) 
 # lambda = exp(alpha(s,t) + sp.site (s,j) + b1*fallowSG(j,t) + b2(s)*fallowAES(j,t) + b3(s)*fallowGREEN(j,t) + b3(s)*cropdiver(j,t) + b4(s)*fsize(j,t)
@@ -16,13 +24,17 @@ library(dplyr)
 # ---- Data ----
 
 setwd("D:/PhD/Third chapter/Data")
-d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
+d <- read.csv("DataDS_ch3_15_19_READY_FIXED_LAST_GASSP.csv")
+sort(unique(d$Species))
+d <- d[-which(d$Species %in% c("GACRI", "GATHE", "PADOM", "STSSP")), ]
+sort(unique(d$Species))
 
 # To restrict distribution of PTALC and CABRA: remove observations out of the distr.range (probably a mistake)
 unique(d$Region.Label)
 d <- d[-which(d$Species == "CABRA" & d$Region.Label %in% c("BA", "SI", "BM", "AL")), ]
 d[which(d$Species == "PTALC" & d$Region.Label %in% c("BA", "SI", "BM", "AL", "BE")), ]
 d[which(d$Species == "PTORI" & d$Region.Label %in% c("AF","SI", "BM", "AL", "BE")), ]
+
 
 # Information: bins, years, sites, species
 
@@ -57,11 +69,9 @@ for (i in 1:nrow(count)){
 
 not_sampled <- is.na(m) # These are the sites not sampled in a given year. There are errors (NA por fichas no pasadas)
 
-# --- Select the species that I want to analyze ----
+# --- Select the species that I want to analyze (all) ----
 
 # Remove species with bad bp-values in 
-bad_bp <- c("GACRI", "GATHE", "PADOM", "STSSP") # to remove all species with bad bp except MICAL and MECAL
-d <- d[-which(d$Species %in% bad_bp), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -196,7 +206,7 @@ yLong.sp <- matrix(NA, nrow = total.sites, ncol = nSpecies)
 for (s in 1:nSpecies){
   yLong.sp[ ,s] <- unlist(as.data.frame(data_sp[,,s]), use.names = F) # With NA included (model estimating abundance in sites with no information)
 }
-
+sp 
 # Restrict the presence of PTALC (26) and CABRA(5)
 # Vector of 1 or 0 indicating the transects
 restrict.sp <- as.data.frame(matrix(1, nrow = total.sites, ncol = nSpecies))
@@ -214,6 +224,7 @@ restrict.sp <- as.matrix(restrict.sp[,-c(nSpecies+1)])
 
 # Be sure that where Im gonna restrict it to 0 is actually 0 (error model because there is one observation in SIO)
 yLong.sp[!is.na(yLong.sp) & restrict.sp == 0] <- 0
+
 
 ##### For multinomial model (model the observations in bins) ######
 
@@ -321,25 +332,24 @@ dim(indexSP)
 
 # ---- Compile data for JAGS model ----
 
-data <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, midpt = midpt,
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
-              ob = ob, nobs = nobs, db = dist.breaks,
-              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP, restrict.sp = restrict.sp)
-
+data <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, 
+             y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
+             area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
+             ob = ob, nobs = nobs, db = dist.breaks,
+             nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, restrict.sp = restrict.sp)
 
 # ---- JAGS model ----
 
-setwd("D:/PhD/Third chapter/Data/model")
+setwd("D:/PhD/Third chapter/Data/model/14.2.10_f")
 cat("model{
     
     # PRIORS
     
     # SPECIES SPECIFIC PARAMETERS (random effects)
     
-    for (s in 1:nSpecies){             
-    asig[s] ~ dnorm(mu_s, tau_s)    # Random intercept for sigma (dif detection per species)
-    b.a1[s] ~ dnorm(mu_a1, tau_a1)
+    for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
+    asig[s] ~ dnorm(mu_s, tau_s)
+    #b.a1[s] ~ dnorm(mu_a1, tau_a1)
     b.a2[s] ~ dnorm(mu_a2, tau_a2)
     b.a3[s] ~ dnorm(mu_a3, tau_a3)
     bCropdiv[s] ~ dnorm(mu_cd, tau_cd)
@@ -355,6 +365,12 @@ cat("model{
     for (i in 1:max.sites){
     spsite[s,i] ~ dnorm(0, tau_spsite) }}  
     
+    for(s in 1:nSpecies){                       # Random effect per species and year (nested within species) for covariate ba1 
+    mu_a1.sp[s] ~ dnorm(mu_a1.com,tau_a1.com)   # Level 1: One beta mean per species
+    for(t in 1:nyrs){
+    b.a1[s,t] ~ dnorm(mu_a1.sp[s],tau_a1.year)  # Level 2: Year variation of the effect within species (nested)
+    }} 
+    
     # Hyperparameters of species level random effects
     
     mu_s ~ dnorm(0,0.01) # Hyperparameters for sigma intercept
@@ -365,9 +381,12 @@ cat("model{
     tau_l <- 1/(sig_l*sig_l)
     sig_l ~ dunif(0,500)
     
-    mu_a1 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area1
-    tau_a1 <- 1/(sig_a1*sig_a1)
-    sig_a1 ~ dunif(0,500)
+    mu_a1.com ~ dnorm(0,0.01) # Hyperparameters for AVERAGE beta coefficient (per species) area1: Level 1 of ranfom effect
+    tau_a1.com <- 1/(sig_a1.com*sig_a1.com)
+    sig_a1.com ~ dunif(0,500)
+    
+    tau_a1.year <- 1/(sig_a1.year*sig_a1.year) # Hyperparameters for anual variation WITHIN species area1: Level 2 of ranfom effect (NESTED)
+    sig_a1.year ~ dunif(0,500)    
     
     mu_a2 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area2
     tau_a2 <- 1/(sig_a2*sig_a2)
@@ -400,9 +419,6 @@ cat("model{
     sig.obs[o] ~ dnorm(0, tau.sig.ob)
     }
     
-    # PRIOR FOR BETA
-    beta ~ dunif(0, 100)
-    
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])
     }
@@ -413,13 +429,18 @@ cat("model{
     
     sigma[s,j] <- exp(asig[s] + sig.obs[ob[j]])
     
+    f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
+    
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
     
-    p[s,j,k]<-1-exp(-(midpt[k]/sigma[s,j])^-beta)
+    up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) ##db are distance bin limits
+    low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
+    p[s,j,k]<- 2 * (up[s,j,k] - low[s,j,k])
     pi[s,j,k] <- int.w[k] / strip.width 
-    fc[s,j,k]<- p[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
+    f[s,j,k]<- p[s,j,k]/f.0[s,j]/int.w[k]                   ## detection prob. in distance category k                      
+    fc[s,j,k]<- f[s,j,k] * pi[s,j,k]                 ## pi=percent area of k; drops out if constant
     fct[s,j,k]<-fc[s,j,k]/pcap[s,j] 
     }
     
@@ -429,7 +450,7 @@ cat("model{
     N[j,s] ~ dpois(lambda.eff[j,s]) 
     
     lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
-    + b.a1[s]*area1[j] + b.a2[s]*area2[j] + b.a3[s]*area3[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] )# * restrict.sp[j,s]
+    + b.a1[s, allyears[j]]*area1[j] + b.a2[s]*area2[j] + b.a3[s]*area3[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] ) 
     
     lambda.eff[j,s] <- lambda[j,s] * restrict.sp[j,s]
     
@@ -438,8 +459,8 @@ cat("model{
     y.new[j,s]~ dbin(pcap[s,j], N[j,s])
     
     # Calculate residuals residuals: look at the total number of individuals detected instead 
-    Tobsp[j,s] <- pow(  (y[j,s] - (pcap[s,j] * N[j,s])) ,2)
-    Tobsnewp[j,s] <- pow(  (y.new[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    Tobsp[j,s] <- pow(  sqrt(y[j,s]) - sqrt(pcap[s,j] * N[j,s]) ,2)
+    Tobsnewp[j,s] <- pow(  sqrt(y.new[j,s]) - sqrt(pcap[s,j] * N[j,s]) ,2)
     
     
     # FOR BP.N
@@ -449,7 +470,7 @@ cat("model{
     # Residuals for 'observed' and new abundances: species and site specific residuals
     FT1[j,s] <- pow(sqrt(N[j,s]) - sqrt(lambda.eff[j,s]),2)
     FT1new[j,s] <- pow(sqrt(Nnew[j,s]) - sqrt(lambda.eff[j,s]),2)
-    } 
+    }
     
     # FOR BP.OBS:
     # Sum residuals over sites and years to get sp-specific bp.obs.values
@@ -478,18 +499,23 @@ cat("model{
     
     # Derived parameters
     
+    #for (i in 1:nyears){
+    #Ntotal[i] <- sum(N[s]*indexYears[,i]) 
+    #}
+    
     for (s in 1:nSpecies){
     for (i in 1:nyears){
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "model15.1.1.txt")
+    file = "model14.2.10_f.txt")
 
 # Inits
-Nst <- yLong.sp + 1
+Nst <- (yLong.sp + 1)*restrict.sp
 inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
-                         N=Nst, beta = runif(1),
-                         mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
+                         N=Nst,
+                         mu_a1.com = runif(1), sig_a1.com = runif(1), sig_a1.year = runif(1),
+                         mu_a2 = runif(1), sig_a2 = runif(1),
                          mu_cd = runif(1), sig_cd = runif(1), mu_fs = runif(1), sig_fs = runif(1),
                          sig.sig.ob = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1)
@@ -497,37 +523,29 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
 
 
 # Params
-params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
-             "b.a1", "mu_a1", "sig_a1", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
+
+params <- c( "mu_l", "sig_l", "sig_spsite",
+             "b.a1", "mu_a1.com", "sig_a1.com", "sig_a1.year", "mu_a1.sp", "b.a2", "mu_a2", "sig_a2", "b.a3", "mu_a3", "sig_a3",
              "bCropdiv", "mu_cd", "sig_cd", "bFieldsize", "mu_fs", "sig_fs",
              "sig.sig.ob", "Bp.N", "Bp.N.sp", "Bp.Obs", "Bp.Obs.sp",
-             "mu_s", "sig_s")
+             "mu_s", "sig_s", "alam")
 
-# MCMC settings
-nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
-
-# With jagsUI 
-out <- jags(data, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP(resiN).txt", n.chain = nc,
-            n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
-
-setwd("D:/PhD/Third chapter/Data/Results_model")
-save(out, file = "15.1_DATA_GOODsp_bp(resiN).RData") 
-
+####################################################
 ####################################################################
 # Save to tun in the server of cyril
 # MCMC settings
 n.chain <- 1
-n.iter <- 200000
-n.burnin <- 30000
+n.iter <- 500000
+n.burnin <- 50000
 n.thin <- 10
-model.file <- "model15.1.1.txt"
+model.file <- "model14.2.10_f.txt"
 
-setwd("D:/PhD/Third chapter/Data/model")
-save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="15.1.1.RData")
+setwd("D:/PhD/Third chapter/Data/model/14.2.10_f")
+save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="14.2.10_f.RData")
 
 # With jagsUI 
-out <- jags(data, inits, params, model.file = "model15.1.1.txt", n.chain,
-            n.thin, n.iter, n.burnin, parallel = FALSE)
+out <- jags(data, inits, params, model.file = "model14.2.10_f.txt", n.chain,
+            n.thin, n.iter, n.burnin, parallel = TRUE)
 
 ###############################################################################
 #rm(list=ls())
@@ -536,20 +554,21 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
+
 # Load the three chains
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1a.RData")
+load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fa.RData")
 outa <- out
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1b.RData")
+load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fb.RData")
 outb <- out
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1c.RData")
+load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fc.RData")
 outc <- out
 class(outc)
 
 
 out.list<- list()
-out.list[[1]] <- as.mcmc(outa$samples[[1]])
-out.list[[2]] <- as.mcmc(outb$samples[[1]])
-out.list[[3]] <- as.mcmc(outc$samples[[1]])
+out.list[[1]] <- outa$samples[[1]]
+out.list[[2]] <- outb$samples[[1]]
+out.list[[3]] <- outc$samples[[1]]
 
 out.list <- as.mcmc.list(out.list)
 
@@ -557,35 +576,13 @@ source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 
 out <- ProcessCodaOutput(out.list)
 
-param <- out$colnames.sims[grep("b.a2", out$colnames.sims)]
-pdf("yooo.pdf")
-PlotJagsParams(out.list,params = param)
-dev.off()
-getwd()
-
-
-PlotJagsParams(out.list,params = "b.a2[34]")
-PlotJagsParams(out.list,params = "sig_a2")
-PlotJagsParams(out.list,params = "mu_a2")
-
-PlotJagsParams(out.list,params = "sig_a1")
-PlotJagsParams(out$samples,params = "sig_a1")
-
-PlotJagsParams(out.list,params = "sig_a3")
-PlotJagsParams(out$samples,params = "sig_a3")
-
-PlotJagsParams(out.list,params = "mu_a2")
-
-
-PlotJagsParams(out$samples,params = "sig_a2")
-PlotJagsParams(out$samples,params = "mu_a2")
-
+out$colnames.sims
 
 # ---- Process results ----
 # 1. ---- Coefficients----
 
 # Create data frame with species - coefficients together
-sp.df <- data.frame(sp = sp, b.a1 = out$colnames.sims[grep("b.a1", out$colnames.sims)],
+sp.df <- data.frame(sp = sp, mu_a1.sp = out$colnames.sims[grep("mu_a1.sp", out$colnames.sims)],
                     b.a2 = out$colnames.sims[grep("b.a2", out$colnames.sims)],
                     b.a3 = out$colnames.sims[grep("b.a3", out$colnames.sims)],
                     bCropdiv = out$colnames.sims[grep("bCropdiv", out$colnames.sims)],
@@ -595,8 +592,9 @@ sp.df <- data.frame(sp = sp, b.a1 = out$colnames.sims[grep("b.a1", out$colnames.
 
 # Process samples
 outall <- out$sims.list # 3 chains together
-coeff <- c("b.a1", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
+coeff <- c("mu_a1.sp", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
 names <- c("b.SG", "b.AES", "b.GREEN", "bCropdiv", "bFieldsize")
+
 
 for (c in 1:length(coeff)){
   
@@ -613,8 +611,8 @@ for (c in 1:length(coeff)){
   sp_sorted <-  values_sorted$sp
   coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
-  setwd("D:/PhD/Third chapter/Data/Results_species/15.1")
-  pdf(paste("15.1.1_DATA_GOODsp_resiN", names[c], ".pdf"))
+  setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.10")
+  pdf(paste("14.2.10_", names[c], ".pdf"))
   par(mfrow = c(5,4),
       mar = c(2,1,2,0.5)) 
   
@@ -675,16 +673,13 @@ values2 <- left_join(sp.df,values)
 df.bp_N <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
 bad_bp_N <- df.bp_N[which(df.bp_N$mean < 0.1 | df.bp_N$mean > 0.9), ]
 nrow(bad_bp_N)
-
-# Community bp.N
 out$mean$Bp.N
 
-###########################################################################################
+# 2. ---- Year effect in the effect of SG
 
+df <- as.data.frame(round(out$mean$b.a1, 3))
+colnames(df) <- yrs
+rownames(df) <- sp
 
-
-
-
-
-
-
+setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.10")
+write.csv(df, file = "year_random.csv")

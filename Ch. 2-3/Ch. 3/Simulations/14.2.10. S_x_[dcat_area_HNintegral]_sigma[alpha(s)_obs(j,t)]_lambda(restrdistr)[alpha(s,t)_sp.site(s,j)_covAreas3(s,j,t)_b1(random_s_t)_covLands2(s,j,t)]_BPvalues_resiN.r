@@ -6,15 +6,14 @@ library(plyr)
 
 set.seed(2013)
 
-# 10.1 BUT RE: REMOVE SP-SITE RANDOM EFFECT
-# Adding species random effects in coefficients of variable area 1 AND VARIABLE AREA 2
-# Use HN detection function instead of HR (one parameter less)
-
+# Model 14.1 (2 random coefficient crop div.&fsize and sp-site), and add to this an extra random coefficient (a3)
+# Add df with 0 and 1 to define distribution of species
 
 # ---- Data simulation ----
 
 # 30 species
 # 5 years (unbalanced number of transects per year) 
+# Add calculation of bp values based on the total number of observations (resiN)
 
 # Observation model calculated with Half Normal detection function
 # Sigma site-year specific
@@ -60,8 +59,6 @@ s.alpha <- rnorm(nSpecies, mu.sig.sp, sig.sig.sp)
 # Look at distribution of sigma intercepts (to see if I chose reasonable)
 hist(exp(rnorm(1000, mu.sig.sp, sig.sig.sp)))
 
-
-
 # RANDOM EFFECT IN OBSERVER
 obs <- 1:9
 nobs <- length(obs)
@@ -91,20 +88,49 @@ lam.alpha.spyear <- rnorm(nyrs*nSpecies, mu.lam.alpha.spyear, sig.lam.alpha.spye
 
 lam.alpha.spyear_data <- array(rep(lam.alpha.spyear, each = max.sites), c(max.sites, nyrs, nSpecies))
 
+# RANDOM EFFECT IN SPECIES-SITE (Independent of year)
+sig.lam.spsite <- 0.3
+lam.spsite <- rnorm(nSpecies*max.sites, 0, sig.lam.spsite) 
+ar <- array(rep(lam.spsite, each = nyrs), c(nyrs, max.sites, nSpecies)) # I need to make it in wide format and transpose it to long
+ar1 <- list() 
+for (i in 1:nSpecies){
+  df <- as.data.frame(ar[,,i])
+  df <- t(df)
+  df <- as.matrix(df)
+  ar1[[i]] <- df
+}
+
+lam.spsite_data <- array(as.numeric(unlist(ar1)), c(max.sites, nyrs, nSpecies))
+
 #AREA COVARIATE (SITE AND YEAR)
 #Coefficients
 
-mu.a1 <- 0.2
-sig.a1 <- 0.8
-b.a1 <- rnorm(nSpecies, mu.a1, sig.a1)
+# Area1: Nested random effect of year within species
+mu.a1.com <- 0.2
+sig.a1.com <- 0.8
 
+mu.a1.sp <- rnorm(nSpecies, mu.a1.com, sig.a1.com) # One different value PER species (what was beta before)
+sig.a1.year <- 1
+
+b.a1 <- array(NA, c(max.sites, nyrs, nSpecies))
+for (s in 1:nSpecies){
+b.a1[,,s] <-  rep(rnorm(nyrs, mu.a1.sp[s], sig.a1.year), each = max.sites) # Per species, 5 values (1 per year)
+}
+
+
+# Area 2 and 3: Random effect of species
 mu.a2 <- -0.5
 sig.a2 <- 0.3
 b.a2 <- rnorm(nSpecies, mu.a2, sig.a2)
 
+mu.a3 <- 0
+sig.a3 <- 0.5
+b.a3 <- rnorm(nSpecies, mu.a3, sig.a3)
+
 #Covariates
 a1 <- abs(rnorm(max.sites*nyrs, 10, 5)) # Although it makes sense to make them positive, it wouldnt matter (you put them on the exp)
 a2 <- abs(rnorm(max.sites*nyrs, 5, 2.5))
+a3 <- abs(rnorm(max.sites*nyrs, 2, 1))
 
 #SCALED
 area1_mean <- mean(a1)
@@ -115,15 +141,54 @@ area2_mean <- mean(a2)
 area2_sd <- sd(a2)
 area2_sc <- (a2 - area2_mean) / area2_sd
 
-#ARRANGED INTO AN ARRAY
+area3_mean <- mean(a3)
+area3_sd <- sd(a3)
+area3_sc <- (a3 - area3_mean) / area3_sd
 
-area1_sc_data <- array(area1_sc, c(max.sites, nyrs, nSpecies))
-area2_sc_data <- array(area2_sc, c(max.sites, nyrs, nSpecies))
+
+# LANDSCAPE COVARIATES
+
+# Coefficients
+mu.cd <- 1
+sig.cd <- 0.2
+bCropdiv <- rnorm(nSpecies, mu.cd, sig.cd)
+
+mu.fs <- -0.8
+sig.fs <- 0.5
+bFieldsize <- rnorm(nSpecies, mu.fs, sig.fs)
+
+# Covariates
+crop_diversity <- round(abs(rnorm(max.sites*nyrs, 7, 3)),0)
+field_size <- abs(rnorm(max.sites*nyrs, 2, 0.5))
+
+
+#SCALED
+cropdiv_mean <- mean(crop_diversity)
+cropdiv_sd <- sd(crop_diversity)
+cropdiv_sc <- (crop_diversity - cropdiv_mean) / cropdiv_sd
+
+fieldsize_mean <- mean(field_size)
+fieldsize_sd <- sd(field_size)
+fieldsize_sc <- (field_size - fieldsize_mean) / fieldsize_sd
+
 
 lam <- exp(lam.alpha.spyear_data + 
-             array(rep(b.a1,each=max.sites*nyrs)*area1_sc, c(max.sites, nyrs, nSpecies)) +
-             array(rep(b.a2,each=max.sites*nyrs)*area2_sc, c(max.sites, nyrs, nSpecies)) ) 
+             lam.spsite_data +
+             array(b.a1*area1_sc, c(max.sites, nyrs, nSpecies)) +
+             array(rep(b.a2,each=max.sites*nyrs)*area2_sc, c(max.sites, nyrs, nSpecies)) +
+             array(rep(b.a3,each=max.sites*nyrs)*area3_sc, c(max.sites, nyrs, nSpecies)) +
+             array(rep(bCropdiv,each=max.sites*nyrs)*cropdiv_sc, c(max.sites, nyrs, nSpecies)) +
+             array(rep(bFieldsize,each=max.sites*nyrs)*fieldsize_sc, c(max.sites, nyrs, nSpecies))) 
 
+# Restrict the presence of some species to certain transects
+# Vector of 1 or 0 indicating the transects
+restrict_zone <- array(1, c(max.sites, nyrs, nSpecies)) # Only 1
+restrict_zone[1:50,,2] <- 0 # The species 2, 7 and 15 are not present in transects 1:50
+restrict_zone[1:50,,7] <- 0
+restrict_zone[1:50,,15] <- 0
+
+# Create lambda.eff which is the effective lambda (excluding species out of their range)
+lam.eff <- lam*restrict_zone
 
 # Abundance per site year (different abundance per species): N.sysp[j,t,s] 
 N <- list()
@@ -131,7 +196,7 @@ N.sysp <- list()
 
 for (s in 1:nSpecies){
   for (t in 1:nyrs){
-    N[[t]] <- rpois(nSites[t],lam[1:nSites[t], t, s]) 
+    N[[t]] <- rpois(nSites[t],lam.eff[1:nSites[t], t, s]) 
   } 
   NLong <- ldply(N,cbind) # 1 long vector with all abundances per site and year
   N3 <- ldply(N,rbind)
@@ -232,10 +297,32 @@ for (s in 1:nSpecies){
   yLong.sp[,s] <- yLong.na[complete.cases(yLong.na)]
 }
 
+# Get matrix in format sites*species for restrict distribution zone
+
+y.sum.prov <- array(unlist(y.sum), c(max.sites, nyrs, nSpecies)) # ssame but array
+restrict_zone[is.na(y.sum.prov)] <- NA # First include NA where restrict_zone to make it match
+
+restrict.sp <- matrix(NA, nrow = total.sites, ncol = nSpecies)
+for (s in 1:nSpecies){
+  restrict.sp.na <- unlist(as.data.frame(restrict_zone[,,s]), use.names = F) 
+  restrict.sp[,s] <- restrict.sp.na[complete.cases(restrict.sp.na)] 
+}
+
+
+# All this index and variables are site-speficic (not species specific) so they stay like this
+sitesYears <- NULL # I did that loop but the normal version actually works, since is an index per site-year
+for (i in 1:nyrs){
+  sitesYears <- c(sitesYears,c(1:nSites[i]))
+}
+
 
 # Create one long vector with covariate values
 a1.m <- matrix(area1_sc, nrow = max.sites, ncol = nyrs, byrow = F) # I need to make it from the same matrix
-a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)# from which I created lambda, to make it fit!
+a2.m <- matrix(area2_sc, nrow = max.sites, ncol = nyrs, byrow = F)
+a3.m <- matrix(area3_sc, nrow = max.sites, ncol = nyrs, byrow = F)
+cropdiv.m <- matrix(cropdiv_sc, nrow = max.sites, ncol = nyrs, byrow = F)
+fieldsize.m <- matrix(fieldsize_sc, nrow = max.sites, ncol = nyrs, byrow = F)
+
 
 area1 <- NULL
 for (i in 1:nyrs){
@@ -247,6 +334,20 @@ for (i in 1:nyrs){
   area2 <- c(area2,a2.m[1:nSites[i],i])
 }
 
+area3 <- NULL
+for (i in 1:nyrs){
+  area3 <- c(area3,a3.m[1:nSites[i],i])
+}
+
+cdiv <- NULL
+for (i in 1:nyrs){
+  cdiv <- c(cdiv, cropdiv.m[1:nSites[i],i])
+}
+
+fsiz <- NULL
+for (i in 1:nyrs){
+  fsiz <- c(fsiz, fieldsize.m[1:nSites[i],i])
+}
 
 ob <- NULL
 for (i in 1:nyrs){
@@ -306,14 +407,14 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width,
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, indexYears = indexYears, allyears = allyears,
-              area1 = area1, area2 = area2, ob = ob, nobs = nobs, db = dist.breaks,
-              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs)
+data <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w=int.w, strip.width = strip.width,
+              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
+              area1 = area1, area2 = area2, area3 = area3, cdiv = cdiv, fsiz = fsiz, ob = ob, nobs = nobs, db = dist.breaks,
+              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, restrict.sp = restrict.sp)
 
 # ---- JAGS model ----
 
-setwd("D:/PhD/Third chapter/Data/Model")
+setwd("D:/PhD/Third chapter/Data/model/14.2.4_SIM")
 cat("model{
     
     # PRIORS
@@ -322,14 +423,27 @@ cat("model{
     
     for (s in 1:nSpecies){              # Random intercept for sigma (dif detection per species)
     asig[s] ~ dnorm(mu_s, tau_s)
-    b.a1[s] ~ dnorm(mu_a1, tau_a1)
-    b.a2[s] ~ dnorm(mu_a2, tau_a2)}
+    #b.a1[s] ~ dnorm(mu_a1, tau_a1)
+    b.a2[s] ~ dnorm(mu_a2, tau_a2)
+    b.a3[s] ~ dnorm(mu_a3, tau_a3)
+    bCropdiv[s] ~ dnorm(mu_cd, tau_cd)
+    bFieldsize[s] ~ dnorm(mu_fs, tau_fs)
+    }
     
     
     for(s in 1:nSpecies){              # Random intercept for lambda (dif abundance per species and year)
     for(t in 1:nyrs){
     alam[s,t] ~ dnorm(mu_l,tau_l)}}
     
+    for (s in 1:nSpecies){             # Random effect for lambda (dif abundance per species and site)
+    for (i in 1:max.sites){
+    spsite[s,i] ~ dnorm(0, tau_spsite) }}  
+
+    for(s in 1:nSpecies){                       # Random effect per species and year (nested within species) for covariate ba1 
+    mu_a1.sp[s] ~ dnorm(mu_a1.com,tau_a1.com)   # Level 1: One beta mean per species
+    for(t in 1:nyrs){
+    b.a1[s,t] ~ dnorm(mu_a1.sp[s],tau_a1.year)  # Level 2: Year variation of the effect within species (nested)
+    }} 
     
     # Hyperparameters of species level random effects
     
@@ -341,15 +455,33 @@ cat("model{
     tau_l <- 1/(sig_l*sig_l)
     sig_l ~ dunif(0,500)
     
-    mu_a1 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area1
-    tau_a1 <- 1/(sig_a1*sig_a1)
-    sig_a1 ~ dunif(0,500)
+    mu_a1.com ~ dnorm(0,0.01) # Hyperparameters for AVERAGE beta coefficient (per species) area1: Level 1 of ranfom effect
+    tau_a1.com <- 1/(sig_a1.com*sig_a1.com)
+    sig_a1.com ~ dunif(0,500)
 
-    mu_a2 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area1
+    tau_a1.year <- 1/(sig_a1.year*sig_a1.year) # Hyperparameters for anual variation WITHIN species area1: Level 2 of ranfom effect (NESTED)
+    sig_a1.year ~ dunif(0,500)    
+    
+    mu_a2 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area2
     tau_a2 <- 1/(sig_a2*sig_a2)
     sig_a2 ~ dunif(0,500)
     
-
+    mu_a3 ~ dnorm(0,0.01) # Hyperparameters for beta coefficient area3
+    tau_a3 <- 1/(sig_a3*sig_a3)
+    sig_a3 ~ dunif(0,500)
+    
+    mu_cd ~ dnorm(0,0.01) # Hyperparameters for beta coefficient crop diversity
+    tau_cd <- 1/(sig_cd*sig_cd)
+    sig_cd ~ dunif(0,500)
+    
+    mu_fs ~ dnorm(0,0.01) # Hyperparameters for beta coefficient field size
+    tau_fs <- 1/(sig_fs*sig_fs)
+    sig_fs ~ dunif(0,500)
+    
+    tau_spsite <- 1/(sig_spsite*sig_spsite) # Hyperparameter for site random effect in lambda
+    sig_spsite ~ dunif(0,500)
+    
+    
     # PRIORS FOR SIGMA
     
     sig.sig.ob ~ dunif(0, 10) # Random effects for sigma per observer
@@ -362,7 +494,7 @@ cat("model{
     }
     
     for(i in 1:nind){
-    dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])  
+    dclass[i] ~ dcat(fct[sp.dclass[i],siteYear.dclass[i], 1:nG])
     }
     
     for (s in 1:nSpecies){
@@ -389,10 +521,56 @@ cat("model{
     pcap[s,j] <- sum(fc[s,j,1:nG]) # Different per site and year (sum over all bins)
     
     y[j,s] ~ dbin(pcap[s,j], N[j,s]) 
-    N[j,s] ~ dpois(lambda[j,s]) 
+    N[j,s] ~ dpois(lambda.eff[j,s]) 
     
-    lambda[j,s] <- exp(alam[s,allyears[j]] + b.a1[s]*area1[j]  + b.a2[s]*area2[j]) 
-    } }
+    lambda[j,s] <- exp(alam[s,allyears[j]] + spsite[s,sitesYears[j]] 
+    + b.a1[s, allyears[j]]*area1[j] + b.a2[s]*area2[j] + b.a3[s]*area3[j] + bCropdiv[s]*cdiv[j] + bFieldsize[s]*fsiz[j] ) 
+    
+    lambda.eff[j,s] <- lambda[j,s] * restrict.sp[j,s]
+    
+    # FOR BP.OBS
+    # Create a new Y (detections)
+    y.new[j,s]~ dbin(pcap[s,j], N[j,s])
+    
+    # Calculate residuals residuals: look at the total number of individuals detected instead 
+    Tobsp[j,s] <- pow(  sqrt(y[j,s]) - sqrt(pcap[s,j] * N[j,s]) ,2)
+    Tobsnewp[j,s] <- pow(  sqrt(y.new[j,s]) - sqrt(pcap[s,j] * N[j,s]) ,2)
+    
+    
+    # FOR BP.N
+    # Create replicate abundances (new observations) for Bayesian p-value on abundance component
+    Nnew[j,s]~dpois(lambda.eff[j,s])
+    
+    # Residuals for 'observed' and new abundances: species and site specific residuals
+    FT1[j,s] <- pow(sqrt(N[j,s]) - sqrt(lambda.eff[j,s]),2)
+    FT1new[j,s] <- pow(sqrt(Nnew[j,s]) - sqrt(lambda.eff[j,s]),2)
+    }
+    
+    # FOR BP.OBS:
+    # Sum residuals over sites and years to get sp-specific bp.obs.values
+    T1obsp[s]<-sum(Tobsp[1:n.allSiteYear,s])
+    T1obsnewp[s]<-sum(Tobsnewp[1:n.allSiteYear,s])
+    
+    # SP-SPECIFIC BP.OBS
+    Bp.Obs.sp[s] <-  T1obsp[s] > T1obsnewp[s] 
+    
+    
+    # FOR BP.N
+    # Sum residuals over sites and years to get sp-specific bp.N.values
+    T1p[s]<-sum(FT1[1:n.allSiteYear,s])
+    T1newp[s]<-sum(FT1new[1:n.allSiteYear,s])
+    
+    # SP-SPECIFIC BP.N
+    Bp.N.sp[s] <- T1p[s] > T1newp[s]
+    }
+    
+    # COMMUNITY BP.OBS
+    Bp.Obs <- sum(T1obsnewp[1:nSpecies]) > sum(T1obsp[1:nSpecies])
+    
+    
+    # COMMUNITY BP.N
+    Bp.N <- sum(T1newp[1:nSpecies]) > sum(T1p[1:nSpecies])
+    
     # Derived parameters
     
     #for (i in 1:nyears){
@@ -404,52 +582,96 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_covAreas(s,j,t)].txt")
+    file = "model14.2.4_SIM.txt")
 
 # Inits
-Nst <- yLong.sp + 1
-inits <- function(){list(mu_l = runif(1), sig_l = 0.2, 
+Nst <- (yLong.sp + 1)*restrict.sp
+inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          N=Nst,
-                         mu_a1 = runif(1), sig_a1 = runif(1), mu_a2 = runif(1), sig_a2 = runif(1),
+                         mu_a1.com = runif(1), sig_a1.com = runif(1), sig_a1.year = runif(1),
+                         mu_a2 = runif(1), sig_a2 = runif(1),
+                         mu_cd = runif(1), sig_cd = runif(1), mu_fs = runif(1), sig_fs = runif(1),
                          sig.sig.ob = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1)
 )}
 
 
 # Params
-params <- c( "mu_l", "sig_l", 
-             "mu_a1", "sig_a1", "mu_a2", "sig_a2",
-             "sig.sig.ob",
-             "mu_s", "sig_s"
-)
+params <- c( "mu_l", "sig_l", "sig_spsite",
+             "mu_a1.com", "sig_a1.com", "sig_a1.year",
+             "mu_a2", "sig_a2", "mu_a3", "sig_a3",
+             "mu_cd", "sig_cd", "mu_fs", "sig_fs",
+             "sig.sig.ob", "Bp.N", "Bp.Obs",
+             "mu_s", "sig_s")
 
+####################################################
+####################################################################
+# Save to tun in the server of cyril
 # MCMC settings
-nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
+n.chain <- 1
+n.iter <- 200000
+n.burnin <- 30000
+n.thin <- 10
+model.file <- "model14.2.4_SIM.txt"
+
+setwd("D:/PhD/Third chapter/Data/model/14.2.4_SIM")
+save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="14.2.4_SIM.RData")
 
 # With jagsUI 
-out <- jags(data1, inits, params, "s_HNintegral_sigma[alpha(s)_obs(j,t)]_lambda[alpha(s,t)_covAreas(s,j,t)].txt", n.chain = nc,
-            n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
-
-save(out, file = "RE4_10.1.7_S.RData")
-
-print(out)
-
-summary <- as.data.frame(as.matrix(out$summary))
+out <- jags(data, inits, params, model.file = "model14.2.4_SIM.txt", n.chain,
+            n.thin, n.iter, n.burnin, parallel = TRUE)
 
 # To compare:
-data_comp <- list(N.tot = N.tot, mu.a1 = mu.a1, sig.a1 = sig.a1, mu.a2 = mu.a2, sig.a2 = sig.a2,
-                  mu.lam.alpha.spyear = mu.lam.alpha.spyear,
+data_comp <- list(mu.a1.com = mu.a1.com, sig.a1.com = sig.a1.com, sig.a1.year = sig.a1.year,
+                  mu.a2 = mu.a2, sig.a2 = sig.a2, mu.a3 = mu.a3, sig.a3 = sig.a3,
+                  mu.cd = mu.cd, sig.cd = sig.cd, mu.fs = mu.fs, sig.fs = sig.fs,
+                  mu.lam.alpha.spyear = mu.lam.alpha.spyear, sig.lam.spsite = sig.lam.spsite,
                   sig.lam.alpha.spyear = sig.lam.alpha.spyear,
                   sig.sig.obs = sig.sig.obs,
                   mu.sig.sp = mu.sig.sp,
                   sig.sig.sp = sig.sig.sp
 )
 
-traceplot(out, parameters = c("mu_l", "sig_l", 
-                              "mu_a1", "sig_a1", "mu_a2", "sig_a2",
-                              "sig.sig.ob",
+traceplot(out, parameters = c("mu_l", "sig_l", "sig_spsite",
+                              "mu_a1", "sig_a1", "mu_a2", "sig_a2", "mu_a3", "sig_a3",
+                              "mu_cd", "sig_cd", "mu_fs", "sig_fs",
+                              "sig.sig.ob", "Bp.N", "Bp.Obs",
                               "mu_s", "sig_s"))
 
 ###########################################################################################
 
+#rm(list=ls())
 
+library(rjags)
+library(jagsUI)
+library(dplyr)
+
+# Load the three chains
+load("D:/PhD/Third chapter/Data/model/14.2.4_SIM/JagsOutFOR14.2.4_SIMa.RData")
+outa <- out
+load("D:/PhD/Third chapter/Data/model/14.2.4_SIM/JagsOutFOR14.2.4_SIMb.RData")
+outb <- out
+load("D:/PhD/Third chapter/Data/model/14.2.4_SIM/JagsOutFOR14.2.4_SIMc.RData")
+outc <- out
+#class(outc)
+
+
+out.list<- list()
+out.list[[1]] <- outa$samples[[1]]
+out.list[[2]] <- outb$samples[[1]]
+out.list[[3]] <- outc$samples[[1]]
+
+out.list <- as.mcmc.list(out.list)
+
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
+
+out <- ProcessCodaOutput(out.list)
+
+
+out$mean$sig_s
+out$q2.5$sig_s
+out$q97.5$sig_s
+
+data_comp$sig.sig.sp
+
+# IT WORKS

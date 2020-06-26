@@ -34,16 +34,9 @@
 
 #'
 
-
-dat.list = g[[i]][[2]]
-dat.list = list(out$sims.list$b.a1[,i])
-x = i
-at = i
-i = 1
-
 plot.violins3<-function(dat.list
                         , 
-                        x
+                        x 
                         , 
                         at = NULL
                         , 
@@ -59,7 +52,7 @@ plot.violins3<-function(dat.list
                         , 
                         add = FALSE
                         , 
-                        plot.ci = 1
+                        plot.ci = 0.95
                         , 
                         border.col = "black"
                         , 

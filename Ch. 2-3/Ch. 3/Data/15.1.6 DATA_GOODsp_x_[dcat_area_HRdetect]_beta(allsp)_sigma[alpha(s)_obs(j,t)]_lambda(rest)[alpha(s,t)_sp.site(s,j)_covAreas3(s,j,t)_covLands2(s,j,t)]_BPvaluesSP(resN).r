@@ -4,7 +4,15 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-### 15.1.1 ######
+### 15.1.6 ######
+
+# Try again to run 15.1.1 with new data arrangement (LAST):
+# - Without species with no biological sense (LAMIC,MIMIL,TUMER,MIMIG)
+# - Without species with bad bpvalues (remove here)
+# - Like 15.1.3 = With PTORI
+# - Calculating bp.obs values as Rahel said (squared residuals)
+# - More iterations (some)
+
 
 # MODEL 15.1 in Community data (all species): HR df and 1 beta for whole community
 # Calculate residuals for bp.obs with the total N instead of the FT test (resN)
@@ -16,13 +24,17 @@ library(dplyr)
 # ---- Data ----
 
 setwd("D:/PhD/Third chapter/Data")
-d <- read.csv("DataDS_ch3_15_19_READY_FIXED.csv")
+d <- read.csv("DataDS_ch3_15_19_READY_FIXED_LAST.csv")
+sort(unique(d$Species))
+d <- d[-which(d$Species %in% c("GACRI", "GATHE", "PADOM", "STSSP")), ]
+sort(unique(d$Species))
 
 # To restrict distribution of PTALC and CABRA: remove observations out of the distr.range (probably a mistake)
 unique(d$Region.Label)
 d <- d[-which(d$Species == "CABRA" & d$Region.Label %in% c("BA", "SI", "BM", "AL")), ]
 d[which(d$Species == "PTALC" & d$Region.Label %in% c("BA", "SI", "BM", "AL", "BE")), ]
 d[which(d$Species == "PTORI" & d$Region.Label %in% c("AF","SI", "BM", "AL", "BE")), ]
+
 
 # Information: bins, years, sites, species
 
@@ -60,8 +72,8 @@ not_sampled <- is.na(m) # These are the sites not sampled in a given year. There
 # --- Select the species that I want to analyze ----
 
 # Remove species with bad bp-values in 
-bad_bp <- c("GACRI", "GATHE", "PADOM", "STSSP") # to remove all species with bad bp except MICAL and MECAL
-d <- d[-which(d$Species %in% bad_bp), ]
+#bad_bp <- c("GACRI", "GATHE", "PADOM", "STSSP") # to remove all species with bad bp except MICAL and MECAL (NO EN ESTA PRUEBA)
+#d <- d[-which(d$Species %in% bad_bp), ]
 
 sp <- as.character(unique(d$Species))
 sp <- sort(sp)
@@ -89,6 +101,7 @@ for (s in 1:nSpecies){
   data_sp[,,s] <- m_sp # Store in array with all species
 }
 
+which(is.na(data_sp))
 
 # ---- Co-variates ----
 
@@ -196,6 +209,7 @@ yLong.sp <- matrix(NA, nrow = total.sites, ncol = nSpecies)
 for (s in 1:nSpecies){
   yLong.sp[ ,s] <- unlist(as.data.frame(data_sp[,,s]), use.names = F) # With NA included (model estimating abundance in sites with no information)
 }
+yLong.sp[which(is.na(yLong.sp)), ]
 
 # Restrict the presence of PTALC (26) and CABRA(5)
 # Vector of 1 or 0 indicating the transects
@@ -322,15 +336,15 @@ dim(indexSP)
 # ---- Compile data for JAGS model ----
 
 data <- list(nyears = nyrs, max.sites = max.sites, nG=nG, siteYear.dclass = siteYear.dclass, int.w = int.w, strip.width = strip.width, midpt = midpt,
-              y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
-              area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
-              ob = ob, nobs = nobs, db = dist.breaks,
-              nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, indexSP = indexSP, restrict.sp = restrict.sp)
+             y = yLong.sp, n.allSiteYear = n.allSiteYear, nind=nind, dclass=dclass, sitesYears = sitesYears, indexYears = indexYears, allyears = allyears,
+             area1 = area_SG, area2 = area_AES, area3 = area_GREEN, fsiz = f_size, cdiv = crop_div,
+             ob = ob, nobs = nobs, db = dist.breaks,
+             nSpecies = nSpecies, sp.dclass = sp.dclass, nyrs = nyrs, restrict.sp = restrict.sp)
 
 
 # ---- JAGS model ----
 
-setwd("D:/PhD/Third chapter/Data/model")
+setwd("D:/PhD/Third chapter/Data/model/15.1.6")
 cat("model{
     
     # PRIORS
@@ -438,8 +452,8 @@ cat("model{
     y.new[j,s]~ dbin(pcap[s,j], N[j,s])
     
     # Calculate residuals residuals: look at the total number of individuals detected instead 
-    Tobsp[j,s] <- pow(  (y[j,s] - (pcap[s,j] * N[j,s])) ,2)
-    Tobsnewp[j,s] <- pow(  (y.new[j,s] - (pcap[s,j] * N[j,s])) ,2)
+    Tobsp[j,s] <- pow(  sqrt(y[j,s]) - sqrt(pcap[s,j] * N[j,s]) ,2)
+    Tobsnewp[j,s] <- pow(  sqrt(y.new[j,s]) - sqrt(pcap[s,j] * N[j,s]) ,2)
     
     
     # FOR BP.N
@@ -483,7 +497,7 @@ cat("model{
     Ntotal[i,s] <- sum(N[,s]*indexYears[,i]) }}
     
     }", fill=TRUE, 
-    file = "model15.1.1.txt")
+    file = "model15.1.6.txt")
 
 # Inits
 Nst <- yLong.sp + 1
@@ -495,6 +509,8 @@ inits <- function(){list(mu_l = runif(1), sig_l = 0.2, sig_spsite = runif(1),
                          mu_s = runif(1, log(30), log(50)) , sig_s = runif(1)
 )}
 
+## check if there are nas!
+lapply(data,function(x)sum(is.na(x)))
 
 # Params
 params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
@@ -504,10 +520,10 @@ params <- c( "mu_l", "sig_l", "sig_spsite", "beta",
              "mu_s", "sig_s")
 
 # MCMC settings
-nc <- 3 ; ni <- 200000 ; nb <- 30000 ; nt <- 10
+nc <- 1 ; ni <- 1 ; nb <- 0 ; nt <- 1
 
 # With jagsUI 
-out <- jags(data, inits, params, "s_HR_beta(allsp)_sigma[alpha(s)_obs(j,t)]_lambda(rest)[alpha(s,t)_sp.site(s,j)_covAreas3(s,j,t)_covLands2(s,j,t)]_BPvaluesSP(resiN).txt", n.chain = nc,
+out <- jags(data, inits, params, "model15.1.6.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 setwd("D:/PhD/Third chapter/Data/Results_model")
@@ -517,16 +533,16 @@ save(out, file = "15.1_DATA_GOODsp_bp(resiN).RData")
 # Save to tun in the server of cyril
 # MCMC settings
 n.chain <- 1
-n.iter <- 200000
+n.iter <- 500000
 n.burnin <- 30000
 n.thin <- 10
-model.file <- "model15.1.1.txt"
+model.file <- "model15.1.6.txt"
 
-setwd("D:/PhD/Third chapter/Data/model")
-save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="15.1.1.RData")
+setwd("D:/PhD/Third chapter/Data/model/15.1.6")
+save(data, Nst, inits, params, n.chain, n.thin, n.iter, n.burnin, model.file, file="15.1.6.RData")
 
 # With jagsUI 
-out <- jags(data, inits, params, model.file = "model15.1.1.txt", n.chain,
+out <- jags(data, inits, params, model.file = "model15.1.6.txt", n.chain,
             n.thin, n.iter, n.burnin, parallel = FALSE)
 
 ###############################################################################
@@ -537,19 +553,19 @@ library(jagsUI)
 library(dplyr)
 
 # Load the three chains
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1a.RData")
-outa <- out
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1b.RData")
+#load("D:/PhD/Third chapter/Data/model/15.1.3/JagsOutFOR15.1.6a.RData")
+#outa <- out
+load("D:/PhD/Third chapter/Data/model/15.1.6/JagsOutFOR15.1.6b.RData")
 outb <- out
-load("D:/PhD/Third chapter/Data/model/15.1.1/JagsOutFOR15.1.1c.RData")
+load("D:/PhD/Third chapter/Data/model/15.1.6/JagsOutFOR15.1.6c.RData")
 outc <- out
 class(outc)
 
 
 out.list<- list()
-out.list[[1]] <- as.mcmc(outa$samples[[1]])
-out.list[[2]] <- as.mcmc(outb$samples[[1]])
-out.list[[3]] <- as.mcmc(outc$samples[[1]])
+#out.list[[1]] <- as.mcmc(outa$samples[[1]])
+out.list[[1]] <- as.mcmc(outb$samples[[1]])
+out.list[[2]] <- as.mcmc(outc$samples[[1]])
 
 out.list <- as.mcmc.list(out.list)
 
@@ -557,30 +573,9 @@ source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 
 out <- ProcessCodaOutput(out.list)
 
-param <- out$colnames.sims[grep("b.a2", out$colnames.sims)]
-pdf("yooo.pdf")
-PlotJagsParams(out.list,params = param)
-dev.off()
-getwd()
-
-
-PlotJagsParams(out.list,params = "b.a2[34]")
-PlotJagsParams(out.list,params = "sig_a2")
-PlotJagsParams(out.list,params = "mu_a2")
-
-PlotJagsParams(out.list,params = "sig_a1")
-PlotJagsParams(out$samples,params = "sig_a1")
-
-PlotJagsParams(out.list,params = "sig_a3")
-PlotJagsParams(out$samples,params = "sig_a3")
-
-PlotJagsParams(out.list,params = "mu_a2")
-
-
-PlotJagsParams(out$samples,params = "sig_a2")
-PlotJagsParams(out$samples,params = "mu_a2")
-
-
+out$
+out$Rhat
+out$mean
 # ---- Process results ----
 # 1. ---- Coefficients----
 
@@ -613,8 +608,8 @@ for (c in 1:length(coeff)){
   sp_sorted <-  values_sorted$sp
   coef_sorted <- values_sorted[,which(colnames(values_sorted) %in% coeff[c])]
   
-  setwd("D:/PhD/Third chapter/Data/Results_species/15.1")
-  pdf(paste("15.1.1_DATA_GOODsp_resiN", names[c], ".pdf"))
+  setwd("D:/PhD/Third chapter/Data/Results_species/15.1/15.1.6")
+  pdf(paste("15.1.6_", names[c], ".pdf"))
   par(mfrow = c(5,4),
       mar = c(2,1,2,0.5)) 
   
@@ -680,11 +675,5 @@ nrow(bad_bp_N)
 out$mean$Bp.N
 
 ###########################################################################################
-
-
-
-
-
-
 
 
