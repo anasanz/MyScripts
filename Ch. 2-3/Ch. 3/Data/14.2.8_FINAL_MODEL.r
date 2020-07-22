@@ -536,3 +536,5 @@ out <- jags(data, inits, params, model.file = "model14.2.8_f.txt", n.chain,
             n.thin, n.iter, n.burnin, parallel = TRUE)
 
 ###############################################################################
+# Transform precision to SD
+sd <- sqrt(1/0.01)

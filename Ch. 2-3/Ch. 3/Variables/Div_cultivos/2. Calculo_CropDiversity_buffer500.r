@@ -13,17 +13,17 @@ library(rgeos)
 
 # There are errors in intersect loop below (self intersections in the layers. Modified manually in Arcgis and re-load them here(dun15, dun19))
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_cropdiver_classification")
+setwd("D:/PhD/Third chapter/GIS/Buffers_cropdiver_classification")
 
-dun15 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_cropdiver_classification2", layer = "dun15_crop2") 
-dun16 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_cropdiver_classification2", layer = "dun16_crop2") 
-dun17 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_cropdiver_classification2", layer = "dun17_crop2") 
-dun18 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_cropdiver_classification2", layer = "dun18_crop2") 
-dun19 <- readOGR(dsn = "C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS/Buffers_cropdiver_classification2", layer = "dun19_crop2")
+dun15 <- readOGR(dsn = "D:/PhD/Third chapter/GIS/Buffers_cropdiver_classification", layer = "dun15_crop") 
+dun16 <- readOGR(dsn = "D:/PhD/Third chapter/GIS/Buffers_cropdiver_classification", layer = "dun16_crop") 
+dun17 <- readOGR(dsn = "D:/PhD/Third chapter/GIS/Buffers_cropdiver_classification", layer = "dun17_crop") 
+dun18 <- readOGR(dsn = "D:/PhD/Third chapter/GIS/Buffers_cropdiver_classification", layer = "dun18_crop") 
+dun19 <- readOGR(dsn = "D:/PhD/Third chapter/GIS/Buffers_cropdiver_classification", layer = "dun19_crop")
 
 # Load classification 
 
-setwd("C:/Users/ana.sanz/Documents/PhD/Third chapter/Data")
+setwd("D:/PhD/Third chapter/Data")
 crops <- read.csv("clasificacion_cultivos_div_greening.csv", header = TRUE, sep = ";")
 #crops_years <- crops[c(1:111),c(5:9)]
 crops <- crops[c(1:111),c(1,4)]
@@ -32,7 +32,7 @@ crops <- crops[-which(duplicated(crops$Cultiu)), ] # Otherwise NOTHING works
 
 # For each transect (buffer) and year, calculate number of crops
 
-tr <- readOGR("C:/Users/ana.sanz/Documents/PhD/Third chapter/GIS", "Trans_2018_EPSG23031") # Contains transects sampled each year (1/0)
+tr <- readOGR("D:/PhD/Third chapter/GIS", "Trans_2018_EPSG23031") # Contains transects sampled each year (1/0)
 buf <- gBuffer(tr, byid = TRUE, width = 500)
 buf_id <- unique(buf@data$Codi)
 
