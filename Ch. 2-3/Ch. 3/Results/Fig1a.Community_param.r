@@ -3,9 +3,17 @@ rm(list=ls())
 
 # Community parameters
 
+
+
 library(rjags)
 library(jagsUI)
 library(dplyr)
+
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins3.r")
+source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/DoScale.r")
+
+# Load species analyzed in the model
 
 setwd("D:/PhD/Third chapter/Data")
 d <- read.csv("DataDS_ch3_15_19_READY_FIXED_LAST_GASSP.csv")
@@ -17,30 +25,14 @@ sp <- sort(sp)
 nSpecies <- length(sp)
 
 # Load the three chains
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fa.RData")
-outa <- out
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fb.RData")
-outb <- out
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fc.RData")
-outc <- out
-class(outc)
+load("D:/PhD/Third chapter/Data/model/14.2.8_f/14.2.8_f_results.RData")
 
 
-out.list<- list()
-out.list[[1]] <- as.mcmc(outa$samples[[1]])
-out.list[[2]] <- as.mcmc(outb$samples[[1]])
-out.list[[3]] <- as.mcmc(outc$samples[[1]])
 
-out.list <- as.mcmc.list(out.list)
-
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
-
-out <- ProcessCodaOutput(out.list)
-out$colnames.sims
 # Community MEAN
 table_mu <- data.frame(matrix(NA,ncol = 4, nrow = 5))
 colnames(table_mu) <- c("variable", "est", "lci", "uci")
-var_mu <- c("mu_a1.com", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
+var_mu <- c("mu_a1", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
 var_mu_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop diversity", "Field size")
 
 for (i in 1:length(var_mu)){
@@ -53,7 +45,7 @@ table_mu[i,4] <- out$q97.5[names(out$q97.5) %in% var_mu[i]]
 # Community SIGMA (spread of results among species)
 table_sig <- data.frame(matrix(NA,ncol = 4, nrow = 5))
 colnames(table_sig) <- c("variable", "est", "lci", "uci")
-var_sig <- c("sig_a1.com", "sig_a2", "sig_a3", "sig_cd", "sig_fs")
+var_sig <- c("sig_a1", "sig_a2", "sig_a3", "sig_cd", "sig_fs")
 var_sig_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop diversity", "Field size")
 
 for (i in 1:length(var_sig)){
@@ -63,8 +55,8 @@ for (i in 1:length(var_sig)){
   table_sig[i,4] <- out$q97.5[names(out$q97.5) %in% var_sig[i]]
 }
 
-setwd("D:/PhD/Third chapter/Data/Results/Version 2")
-pdf("Fig1_14.2.10_f.pdf",6,4)
+setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.8_f")
+pdf("Fig1_14.2.8_f.pdf",6,4)
 par(mfrow = c(1,1),
     mar = c(4,7,3,2))
 

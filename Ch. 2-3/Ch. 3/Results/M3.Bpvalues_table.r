@@ -12,6 +12,14 @@ library(dplyr)
 library(data.table)
 
 
+
+rm(list=ls())
+
+
+library(rjags)
+library(jagsUI)
+library(dplyr)
+
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins3.r")
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/DoScale.r")
@@ -28,25 +36,8 @@ sp <- sort(sp)
 nSpecies <- length(sp)
 
 # Load the three chains
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fa.RData")
-outa <- out
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fb.RData")
-outb <- out
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fc.RData")
-outc <- out
-class(outc)
+load("D:/PhD/Third chapter/Data/model/14.2.8_f/14.2.8_f_results.RData")
 
-
-out.list<- list()
-out.list[[1]] <- as.mcmc(outa$samples[[1]])
-out.list[[2]] <- as.mcmc(outb$samples[[1]])
-out.list[[3]] <- as.mcmc(outc$samples[[1]])
-
-out.list <- as.mcmc.list(out.list)
-
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
-
-out <- ProcessCodaOutput(out.list)
 
 # Species 
 setwd("D:/PhD/Third chapter/Data")
@@ -57,9 +48,8 @@ colnames(leg)[1] <- "sp"
 
 
 
-sp.df <- data.frame(sp = sp,
-                    Bp.N.sp = out$colnames.sims[grep("Bp.N.sp", out$colnames.sims)],
-                    Bp.Obs.sp = out$colnames.sims[grep("Bp.Obs.sp", out$colnames.sims)] )
+sp.df <- data.frame(sp = sp, Bp.N.sp = rownames(out$summary)[grep("Bp.N.sp", rownames(out$summary))],
+                    Bp.Obs.sp = rownames(out$summary)[grep("Bp.Obs.sp", rownames(out$summary))])
 
 # Bp.Obs.sp
 
@@ -91,8 +81,8 @@ df <- df[ ,-c(1,4)]
 df <- df[ ,c(3,1,2)]
 colnames(df)[1] <- "Species"
 
-setwd("D:/PhD/Third chapter/Data/Results/Version 2")
-write.csv(df, "TableM_bpvalues.csv")
+setwd("D:/PhD/Third chapter/Data/Results/Version 3")
+write.csv(df, "TableM_bpvalues_14.2.8f.csv")
 
 # Check bad bp
 

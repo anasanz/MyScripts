@@ -538,3 +538,39 @@ out <- jags(data, inits, params, model.file = "model14.2.8_f.txt", n.chain,
 ###############################################################################
 # Transform precision to SD
 sd <- sqrt(1/0.01)
+###############################################################################
+# Load model
+
+library(rjags)
+library(jagsUI)
+library(dplyr)
+500000-50000
+
+# Load the three chains
+load("D:/PhD/Third chapter/Data/model/14.2.8_f/14.2.8_f_results.RData")
+
+summary <- as.data.frame(as.matrix(out$summary))
+
+sp.df <- data.frame(sp = sp,
+                    Bp.N.sp = rownames(summary)[grep("Bp.N.sp", rownames(summary))],
+                    Bp.Obs.sp = rownames(summary)[grep("Bp.Obs.sp", rownames(summary))] )
+
+# Bp.Obs.sp
+values <- summary[grep("Bp.Obs.sp", rownames(summary)), ]
+values$param<- rownames(values)
+colnames(values)[which(colnames(values) == "param")] <- "Bp.Obs.sp"
+values2 <- left_join(values, sp.df)
+df.bp_obs <- values2[,colnames(values2) %in% c("Bp.Obs.sp", "sp", "mean")]
+bad_bp_obs <- df.bp_obs[which(df.bp_obs$mean < 0.1 | df.bp_obs$mean > 0.9), ]
+nrow(bad_bp_obs)
+
+# Bp.N.sp
+values <- summary[grep("Bp.N.sp", rownames(summary)), ]
+values$param<- rownames(values)
+colnames(values)[which(colnames(values) == "param")] <- "Bp.N.sp"
+values2 <- left_join(values, sp.df)
+df.bp_n <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
+bad_bp_n <- df.bp_n[which(df.bp_n$mean < 0.1 | df.bp_n$mean > 0.9), ]
+
+
+

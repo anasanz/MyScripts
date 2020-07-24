@@ -40,7 +40,7 @@ names <- c("b.SG", "b.AES", "b.GREEN")
 
 setwd("D:/PhD/Third chapter/Data")
 leg <- read.csv("leg_species.csv", sep = ";")
-leg <- leg[which(leg$codiEspecie %in% sp), c(1:3)]
+leg <- leg[which(leg$codiEspecie %in% sp), c(1,2,6)]
 leg <- arrange(leg, by = leg$codiEspecie)
 colnames(leg)[1] <- "sp"
 
@@ -62,7 +62,7 @@ coef_sorted <- values_sorted[,-c(1,5)]
 
 # Plot
 setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.8_f")
-pdf(paste("14.2.8_f.ViolinWide.pdf"), 6,7)
+pdf(paste("14.2.8_f.ViolinWide_orangeCI.pdf"), 6,7)
 
 par(mfrow = c(1,3),
     mar = c(1,1.5,1.5,0),
@@ -77,13 +77,13 @@ plot(10, ylim = c(1, nSpecies),
 target1 <- cbind(c(-3.4,-1.3,-1.3,-3.4), c(36.5,36.5,37.5,37.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target1[,1], target1[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target2 <- cbind(c(-2.5,-1.3,-1.3,-2.5), c(34.5,34.5,35.5,35.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target2 <- cbind(c(-2.6,-1.3,-1.3,-2.6), c(34.5,34.5,35.5,35.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target2[,1], target2[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target3 <- cbind(c(-2.7,-1.3,-1.3,-2.7), c(33.5,33.5,34.5,34.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target3 <- cbind(c(-2.8,-1.3,-1.3,-2.8), c(33.5,33.5,34.5,34.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target3[,1], target3[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target4 <- cbind(c(-2.5,-1.3,-1.3,-2.5), c(32.5,32.5,33.5,33.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target4 <- cbind(c(-2.6,-1.3,-1.3,-2.6), c(32.5,32.5,33.5,33.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target4[,1], target4[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
 target5 <- cbind(c(-3.4,-1.3,-1.3,-3.4), c(22.5,22.5,23.5,23.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
@@ -103,15 +103,23 @@ for(i in 1:nSpecies){
                 at = i,
                 violin.width = 0.3,
                 plot.ci = 0.95,
-                col = "grey52",
+                col = "darkgoldenrod2",
                 add = T,
-                alpha = 0.3,
+                alpha = 1,
                 scale.width = FALSE,
-                border.col = "grey52",
+                border.col = "black",
                 lwd.CI = 1,
-                horizontal = TRUE) }
+                horizontal = TRUE,
+                median = TRUE) }
 segments(0, -1, 0, 38.4, col = "red")
 
+# For indicating significant effects
+over0<- as.numeric(data.table::between(0, out$q2.5$b.a1, out$q97.5$b.a1))
+sig_TFM <- ifelse(over0 == 1, " ", "*")
+sig_TFM <- as.data.frame(cbind(sp, sig_TFM))
+sig_TFM_sp <- left_join(values_sorted_legend, sig_TFM, by = "sp")
+
+text(-1, sort(seq(1:37)), labels = sig_TFM_sp$sig_TFM, cex = 1.1)
 
 
 # AES
@@ -125,14 +133,25 @@ for(i in 1:nSpecies){
                 at = i,
                 violin.width = 0.3,
                 plot.ci = 0.95,
-                col = "grey52",
+                col = "darkgoldenrod2",
                 add = T,
-                alpha = 0.3,
+                alpha = 1,
                 scale.width = FALSE,
-                border.col = "grey52",
-                horizontal = TRUE)}
+                border.col = "black",
+                horizontal = TRUE,
+                median = TRUE)}
 
 segments(0, -1, 0, 38.4, col = "red")
+
+over0<- as.numeric(data.table::between(0, out$q2.5$b.a2, out$q97.5$b.a2))
+sig_TFM <- ifelse(over0 == 1, " ", "*")
+sig_TFM <- as.data.frame(cbind(sp, sig_TFM))
+sig_TFM_sp <- left_join(values_sorted_legend, sig_TFM, by = "sp")
+
+text(-1, sort(seq(1:37)), labels = sig_TFM_sp$sig_TFM, cex = 1.1)
+
+
+mtext("Beta", line = 1.5, side = 1, cex = 0.7, outer = TRUE) 
 
 #GREEN
 plot(10, ylim = c(1, nSpecies), 
@@ -145,15 +164,25 @@ for(i in 1:nSpecies){
                 at = i,
                 violin.width = 0.3,
                 plot.ci = 0.95,
-                col = "grey52",
+                col = "darkgoldenrod2",
                 add = T,
-                alpha = 0.3,
+                alpha = 1,
                 scale.width = FALSE,
-                border.col = "grey52",
-                horizontal = TRUE)}
+                border.col = "black",
+                horizontal = TRUE,
+                median = TRUE)}
 segments(0, -1, 0, 38.4, col = "red")
 
+over0<- as.numeric(data.table::between(0, out$q2.5$b.a3, out$q97.5$b.a3))
+sig_TFM <- ifelse(over0 == 1, " ", "*")
+sig_TFM <- as.data.frame(cbind(sp, sig_TFM))
+sig_TFM_sp <- left_join(values_sorted_legend, sig_TFM, by = "sp")
+
+text(-1, sort(seq(1:37)), labels = sig_TFM_sp$sig_TFM, cex = 1.1)
+
+
 mtext("Beta", line = 1.5, side = 1, cex = 0.7, outer = TRUE) 
+
 
 dev.off()
 
