@@ -544,7 +544,6 @@ sd <- sqrt(1/0.01)
 library(rjags)
 library(jagsUI)
 library(dplyr)
-500000-50000
 
 # Load the three chains
 load("D:/PhD/Third chapter/Data/model/14.2.8_f/14.2.8_f_results.RData")
@@ -572,5 +571,35 @@ values2 <- left_join(values, sp.df)
 df.bp_n <- values2[,colnames(values2) %in% c("Bp.N.sp", "sp", "mean")]
 bad_bp_n <- df.bp_n[which(df.bp_n$mean < 0.1 | df.bp_n$mean > 0.9), ]
 
+
+#### Year variation in abundance ####
+
+
+alam <- summary[grep("alam", rownames(summary)), ]
+
+
+ab_year <-data.frame(matrix(NA, nrow = nSpecies, ncol = nyrs))
+for (t in 1:nyrs){
+  for (i in 1:nSpecies){
+   ab_year[i,t] <- alam[which(rownames(alam) %in% paste("alam[",i,",",t,"]", sep = "")), 1] 
+  }
+}
+
+# Backtransform(?)
+ab_year <- exp(ab_year)
+ab_year <- round(ab_year, 3)
+
+# For the table
+setwd("D:/PhD/Third chapter/Data")
+leg <- read.csv("leg_species.csv", sep = ";")
+leg <- leg[which(leg$codiEspecie %in% sp), c(1,2,6)]
+leg <- arrange(leg, by = leg$codiEspecie)
+colnames(leg)[1] <- "sp"
+
+rownames(ab_year) <- leg$English
+colnames(ab_year) <- yrs
+
+setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.8_f")
+write.csv(ab_year, file = "year_intercept.csv")
 
 

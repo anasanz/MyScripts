@@ -5,8 +5,6 @@ rm(list=ls())
 library(rjags)
 library(jagsUI)
 library(dplyr)
-library(data.table)
-
 
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins3.r")
@@ -23,35 +21,25 @@ sp <- as.character(unique(d$Species))
 sp <- sort(sp)
 nSpecies <- length(sp)
 
+# For legend
+
+setwd("D:/PhD/Third chapter/Data")
+leg <- read.csv("leg_species.csv", sep = ";")
+leg <- leg[which(leg$codiEspecie %in% sp), c(1,2,6)]
+leg <- arrange(leg, by = leg$codiEspecie)
+colnames(leg)[1] <- "sp"
+
 # Load the three chains
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fa.RData")
-outa <- out
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fb.RData")
-outb <- out
-load("D:/PhD/Third chapter/Data/model/14.2.10_f/JagsOutFOR14.2.10_fc.RData")
-outc <- out
-class(outc)
+load("D:/PhD/Third chapter/Data/model/14.2.8_f/14.2.8_f_results.RData")
 
-
-out.list<- list()
-out.list[[1]] <- as.mcmc(outa$samples[[1]])
-out.list[[2]] <- as.mcmc(outb$samples[[1]])
-out.list[[3]] <- as.mcmc(outc$samples[[1]])
-
-out.list <- as.mcmc.list(out.list)
-
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
-
-out <- ProcessCodaOutput(out.list)
 outall <- out$sims.list # 3 chains together 
 df.outall <- as.data.frame(outall)
 
-out$colnames.sims
 # Probability of positive effect
 
-sp.df.probpos <- data.frame(sp = sp, mu_a1.sp = NA, b.a2 = NA, b.a3 = NA, bCropdiv= NA, bFieldsize = NA)
+sp.df.probpos <- data.frame(sp = sp, b.a1 = NA, b.a2 = NA, b.a3 = NA, bCropdiv= NA, bFieldsize = NA)
 
-coeff <- c("mu_a1.sp", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
+coeff <- c("b.a1", "b.a2", "b.a3", "bCropdiv", "bFieldsize")
 names <- c("b.SG", "b.AES", "b.GREEN", "bCropdiv", "bFieldsize")
 total.samples <- nrow(df.outall)
 
@@ -67,11 +55,14 @@ prob_positive <- (length(positive)/total.samples)*100
 sp.df.probpos[i,coeff[c]] <- prob_positive
 } }
 
-nrow(sp.df.probpos[which(sp.df.probpos$mu_a1.sp > 70), ])
+sp.df.probpos <- left_join(sp.df.probpos, leg)
+
+nrow(sp.df.probpos[which(sp.df.probpos$b.a1 > 70), ])
 nrow(sp.df.probpos[which(sp.df.probpos$b.a2 > 70), ])
 nrow(sp.df.probpos[which(sp.df.probpos$b.a3 > 70), ])
 nrow(sp.df.probpos[which(sp.df.probpos$bCropdiv > 70), ])
 nrow(sp.df.probpos[which(sp.df.probpos$bFieldsize > 70), ])
+
 # Effect size
 
 sp.df.effect <- data.frame(sp = sp, b.a1 = NA, b.a2 = NA, b.a3 = NA)

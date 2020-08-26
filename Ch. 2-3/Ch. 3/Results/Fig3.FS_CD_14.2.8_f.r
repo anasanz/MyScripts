@@ -167,7 +167,7 @@ polygon(target3[,1], target3[,2], col =  adjustcolor("grey52",alpha.f = 0.4), bo
 target4 <- cbind(c(-6.3,-3.8,-3.8,-6.3), c(29.5,29.5,30.5,30.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target4[,1], target4[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target5 <- cbind(c(-7.6,-3.8,-3.8,-7.6), c(26.5,26.5,27.5,27.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target5 <- cbind(c(-7.5,-3.8,-3.8,-7.5), c(26.5,26.5,27.5,27.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target5[,1], target5[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
 target6 <- cbind(c(-6,-3.8,-3.8,-6), c(22.5,22.5,23.5,23.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y

@@ -62,7 +62,7 @@ coef_sorted <- values_sorted[,-c(1,5)]
 
 # Plot
 setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.8_f")
-pdf(paste("14.2.8_f.ViolinWide_orangeCI.pdf"), 6,7)
+pdf(paste("14.2.8_f.ViolinWide_orangeCI2.pdf"), 6,7)
 
 par(mfrow = c(1,3),
     mar = c(1,1.5,1.5,0),
@@ -77,13 +77,13 @@ plot(10, ylim = c(1, nSpecies),
 target1 <- cbind(c(-3.4,-1.3,-1.3,-3.4), c(36.5,36.5,37.5,37.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target1[,1], target1[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target2 <- cbind(c(-2.6,-1.3,-1.3,-2.6), c(34.5,34.5,35.5,35.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target2 <- cbind(c(-2.5,-1.3,-1.3,-2.5), c(34.5,34.5,35.5,35.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target2[,1], target2[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target3 <- cbind(c(-2.8,-1.3,-1.3,-2.8), c(33.5,33.5,34.5,34.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target3 <- cbind(c(-2.7,-1.3,-1.3,-2.7), c(33.5,33.5,34.5,34.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target3[,1], target3[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
-target4 <- cbind(c(-2.6,-1.3,-1.3,-2.6), c(32.5,32.5,33.5,33.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
+target4 <- cbind(c(-2.5,-1.3,-1.3,-2.5), c(32.5,32.5,33.5,33.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
 polygon(target4[,1], target4[,2], col =  adjustcolor("grey52",alpha.f = 0.4), border = "white")
 
 target5 <- cbind(c(-3.4,-1.3,-1.3,-3.4), c(22.5,22.5,23.5,23.5)) # 1st column X : bottomleft, bottom right, topright, topleft.# 2nd column Y
