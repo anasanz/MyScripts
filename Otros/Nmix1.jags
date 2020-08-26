@@ -1,0 +1,48 @@
+
+    model {
+    
+    # PRIORS
+    omega ~ dunif(0, 1)                   # Prior for site suitability (ZIP)
+
+    alpha1 ~ dunif(-10, 10)               # Prior co-variates lambda and p
+    beta0 ~ dunif(-10, 10)
+    beta1 ~ dunif(-10, 10)
+    
+    mu.alpha0 ~ dunif(-10, 10)            # Prior year random effect
+    sig.alpha0 ~ dunif(0, 10)
+    tau.alpha0 <- 1/(sig.alpha0*sig.alpha0)
+
+
+    # RANDOM INTERCEPT PER YEAR
+    for (t in 1:nyrs){                       # Year random effect in lambda
+    alpha0[t] ~ dnorm(mu.alpha0, sig.alpha0)
+    }
+    
+    # LIKELIHOOD
+
+    # Ecological model for true abundance
+    for (j in 1:nsites){                          
+      for (t in 1:nyrs){                       
+      z[j,t] ~ dbern(omega)                   # Latent suitability state for site (ZIP)
+
+      N[j,t] ~ dpois(lam.eff[j,t])          # Latent abundance state
+      lam.eff[j,t] <- z[j,t] * lambda[j,t]
+      lambda[j,t] <- exp(alpha0[t] + alpha1 * X[j])
+    
+      # Observation model for replicated counts
+    
+      for (i in 1:nrep){                    
+        y[j,i,t] ~ dbin(p[j,i,t], N[j,t])   # Detection
+        p[j,i,t] <- exp(lp[j,i,t])/(1 + exp(lp[j,i,t])) # Transformation p to logit
+        lp[j,i,t] <- beta0 + beta1 * X[j] # SOMETHING WRONG HERE
+      }#i
+      }#t
+      }#j
+    
+    # Derived and other quantities
+    
+    for (t in 1:nyrs){
+    totalN[t] <- sum(N[,t])	# Estimate total pop. size across all sites
+    }
+    }
+    
