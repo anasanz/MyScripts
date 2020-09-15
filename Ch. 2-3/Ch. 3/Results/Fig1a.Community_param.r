@@ -3,8 +3,6 @@ rm(list=ls())
 
 # Community parameters
 
-
-
 library(rjags)
 library(jagsUI)
 library(dplyr)
@@ -40,6 +38,17 @@ table_mu[i,1] <- var_mu_names[i]
 table_mu[i,2] <- out$mean[names(out$mean) %in% var_mu[i]]
 table_mu[i,3] <- out$q2.5[names(out$q2.5) %in% var_mu[i]]
 table_mu[i,4] <- out$q97.5[names(out$q97.5) %in% var_mu[i]]
+}
+
+# Community SD
+table_sd <- data.frame(matrix(NA, ncol = 2, nrow = 5))
+colnames(table_mu) <- c("variable", "sd")
+var_mu <- c("mu_a1", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
+var_mu_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop diversity", "Field size")
+
+for (i in 1:length(var_mu)){
+  table_sd[i,1] <- var_mu_names[i]
+  table_sd[i,2] <- out$sd[names(out$sd) %in% var_mu[i]]
 }
 
 # Community SIGMA (spread of results among species)

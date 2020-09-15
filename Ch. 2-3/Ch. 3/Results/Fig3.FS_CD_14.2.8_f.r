@@ -44,7 +44,7 @@ names <- c("bCropdiv", "bFieldsize")
 
 # Plot Fig3
 setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.8_f")
-pdf("14.2.8_f_ViolinWide_orangeCI_FS_CD.pdf", 6, 7)
+pdf("14.2.8_f_ViolinWide_greyCI_FS_CD.pdf", 6, 7)
 
 par(mfrow = c(1,2),
     mar = c(1,7,1.5,0),
@@ -110,7 +110,7 @@ for(i in 1:nSpecies){
                 at = i,
                 violin.width = 0.3,
                 plot.ci = 0.95,
-                col = "darkgoldenrod2",
+                col = adjustcolor("grey52",alpha.f = 0.4),
                 add = T,
                 alpha = 1,
                 scale.width = FALSE,
@@ -127,6 +127,7 @@ sig_TFM <- as.data.frame(cbind(sp, sig_TFM))
 sig_TFM_sp <- left_join(values_sorted_legend, sig_TFM, by = "sp")
 
 text(-2, sort(seq(1:37)), labels = sig_TFM_sp$sig_TFM, cex = 0.8)
+mtext("Beta", line = 1.4, side = 1, cex = 0.7) 
 
 
 # FS
@@ -188,7 +189,7 @@ for(i in 1:nSpecies){
                 at = i,
                 violin.width = 0.3,
                 plot.ci = 0.95,
-                col = "darkgoldenrod2",
+                col = adjustcolor("grey52",alpha.f = 0.4),
                 add = T,
                 alpha = 1,
                 scale.width = FALSE,
@@ -203,8 +204,8 @@ sig_TFM <- as.data.frame(cbind(sp, sig_TFM))
 sig_TFM_sp <- left_join(values_sorted_legend, sig_TFM, by = "sp")
 
 text(-3, sort(seq(1:37)), labels = sig_TFM_sp$sig_TFM, cex = 0.8)
+mtext("Beta", line = 1.4, side = 1, cex = 0.7) 
 
-mtext("Beta", line = 0.6, side = 1, cex = 0.8, outer = TRUE) 
 
 
 

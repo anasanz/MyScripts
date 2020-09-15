@@ -50,7 +50,8 @@ nyrs = 6
              matrix(alpha1*X, nrow = nsites, ncol = nyrs, byrow = FALSE))
   
   # Generate lambda effective (determines if a site is suitable or not == differenciates between true and false zeros)
-  z <- rbinom(nsites*nyrs, 1, 0.6)
+  omega <- 0.6
+  z <- rbinom(nsites*nyrs, 1, omega)
   lam.eff <- lam * z
   
   # Add Poisson noise: draw N from Poisson(lambda)
@@ -145,7 +146,7 @@ inits <- function(){list(N = Nst, mu.alpha0 = runif(1), sig.alpha0 = runif(1),
                          z = matrix(1, ncol = nyrs, nrow = nsites))}
 
 # Parameters monitored
-params <- c("omega", "alpha0", "alpha1", "beta0", "beta1", "totalN", "p")
+params <- c("omega", "mu.alpha0", "sig.alpha0",  "alpha1", "beta0", "beta1", "totalN")
 
 # MCMC settings
 ni <- 30000
