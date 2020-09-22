@@ -80,3 +80,8 @@ observations <- xtabs(~ Count, farm)
 hist(farm$Count, breaks = 12, at = c(0,1,2,3,4,5,6,7,8,9,10,11,12))
 mean(farm$Count)
 
+farm2 <- farm[which(farm$Count != 12), ]
+observations2 <- xtabs(~ Count, farm2) 
+mean(farm2$Count)
+
+

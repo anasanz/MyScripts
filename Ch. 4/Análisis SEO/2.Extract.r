@@ -57,7 +57,7 @@ stack_pastos <- stack(pastos, forestal)
 
 # 2. ---- Load coordinates ----
 
-setwd("S:/PhD/Fourth chapter/Data")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO")
 
 d <- read.csv("random_used_points.csv", header = TRUE)
 
@@ -128,7 +128,7 @@ write.csv (df, "covariates.csv")
 
 # Check the ones that fall outside
 study_area <- readOGR("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326", "studyarea_pteroclids_EPSG_4326")
-mcp_99 <- readOGR("S:/PhD/Fourth chapter/GPS Cataluña", "mcp99")
+mcp_99 <- readOGR("S:/PhD/Fourth chapter/GPS Catalu?a", "mcp99")
 coordinates(df) <- df[ ,c("x", "y")]
 proj4string(df) <- proj4string(study_area) # As SpatialPointsDataFrame
 
