@@ -11,7 +11,7 @@ library(dplyr)
 
 # Posiciones GPS
 
-setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío")
+setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
 pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
 pos <- pos[-which(pos$Year == 2016), ] #♠?? preguntar rocío
 
