@@ -6,12 +6,14 @@ library(jagsUI)
 library(plyr)
 
 
-#set.seed(2013)
+set.seed(2013)
 
 # ---- Data simulation ----
 
-# Abundance: random intercept in site and random effect in year
-# Detection: random intercept in observer, random year effect, temperature covariate and wind co-variate
+# Model 10: Same than 7 but adding roughness in detection (continuous co-variate)
+
+# Abundance: random intercept in site, random effect in year, trend and overdispersion
+# Detection: random intercept in observer, random year effect, forest covariate 
 
 # 9 years of data
 # Balanced number of transects per year (NA in not sampled ones)
@@ -19,10 +21,10 @@ library(plyr)
 # Model:
 
 # y[jt] ~ bin(p(sigma),N[jt])
-# Sigma[jt] <- obs[jt] + temp[jt] + wind[jt]
+# Sigma[jt] <- obs[jt] + year [t] + forest[jt] 
 
 # N[jt] ~ Pois(lambda[jt])
-# log(lambda[jt]) <- site.alpha.ran[j] + year.ran[t] + beta*yr[t-1] + W
+# log(lambda[jt]) <- site_sec.alpha.ran[j] + year.ran[t] + beta*yr[t-1] + W
 
 #####
 # ---- Distance sampling data ----
@@ -67,17 +69,25 @@ ob <- matrix(sig.obs[ob.id],  nrow = SiteSection, ncol = nyrs) # Matrix with int
 sig.sig.year <- 1		
 sig.year <- rnorm(nyrs, 0, sig.sig.year) 
 
-# TEMPERATURE COVARIATE
-bTemp.sig <- 0.5
-temp <- matrix(rnorm(SiteSection*nyrs, 50, 7), nrow = SiteSection, ncol = nyrs)
+# FOREST COVARIATE
+bforest.sig <- 0.5
+forest <- matrix(rnorm(SiteSection*nyrs, 50, 7), nrow = SiteSection, ncol = nyrs)
 #SCALED
-temp_mean <- mean(temp)
-temp_sd <- sd(temp)
-temp_sc <- (temp - temp_mean) / temp_sd
+forest_mean <- mean(forest)
+forest_sd <- sd(forest)
+forest_sc <- (forest - forest_mean) / forest_sd
+
+# ROUGHNESS COVARIATE
+bRough.sig <- -0.2
+rough <- matrix(rnorm(SiteSection*nyrs, 4, 1.5), nrow = SiteSection, ncol = nyrs)
+#SCALED
+rough_mean <- mean(rough)
+rough_sd <- sd(rough)
+rough_sc <- (rough - rough_mean) / rough_sd
 
 
 #SIGMA
-sigma <- exp(ob + bTemp.sig * temp_sc + 
+sigma <- exp(ob + bforest.sig * forest_sc + bRough.sig * rough_sc +
                matrix(rep(sig.year, each = SiteSection), nrow = SiteSection, ncol = nyrs))
 
 #####
@@ -168,19 +178,6 @@ vec <- seq(1,length(N))
 na <- sample(vec, 100)
 N[na]<-NA
 
-# Cluster size (to correct) per site and year
-clus <- list()
-for (t in 1:nyrs){
-  clus[[t]] <- rpois(nSitesSection[t], 1.5)
-} 
-clusLong <- ldply(clus,cbind) # 1 long vector with all abundances per site and year
-clus3 <- ldply(clus,rbind)
-clus_size <- t(clus3) # CLUSTER SIZE per site and year stored in a matrix with columns (this is not really necessary to do, with inventing an average would be fine)
-average_clus <- mean(clus_size, na.rm = TRUE)
-
-# Correct N with average cluster size
-Nclus <- N * average_clus
-Nclus.tot <- colSums(Nclus,na.rm = TRUE) # Total pop.abundance corrected by cluster size
 
 
 ####
@@ -224,7 +221,8 @@ y.sum # Matrix with counts
 
 # Co-variates
 
-temp_sc
+forest_sc
+rough_sc
 ob.id # Matrix with observers
 year_number # Vector with year variable
 
@@ -275,7 +273,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, SiteSection = SiteSection,  nsites = max.sites, nSection = nSection, sections = sections, sitessections = sitessections, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
               year.dclass = year.dclass, site.dclass = site.dclass, y = y.sum, nind=nind, dclass=dclass,
-              tempCov = temp_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+              forestCov = forest_sc, roughCov = rough_sc,  ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
 
 # ---- JAGS model ----
 
@@ -296,7 +294,7 @@ cat("model{
     mu.site ~ dunif(-10, 10) 
     sig.site ~ dunif(0, 10)
     tau.site <- 1/(sig.site*sig.site)
-
+    
     tau.section <- 1/(sig.section*sig.section) # Hyperparameters for variation WITHIN transect per section: Level 2 of ranfom effect (NESTED)
     sig.section ~ dunif(0,500)  
     
@@ -305,7 +303,7 @@ cat("model{
     for (s in 1:nSection){
     lam.section[j,s] ~ dnorm(mu.lambda.site[j],tau.section)  # Level 2: Section variation within transect (nested)
     }    
-}
+    }
     
     # Random effects for lambda per year
     sig.lam.year ~ dunif(0, 10) 
@@ -318,7 +316,8 @@ cat("model{
     
     
     # PRIORS FOR SIGMA
-    bTemp.sig ~ dnorm(0, 0.001)
+    bforest.sig ~ dnorm(0, 0.001)
+    bRough.sig ~ dnorm(0, 0.001)
     
     mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
     sig.sig ~ dunif(0, 10)
@@ -354,7 +353,7 @@ cat("model{
     # FIRST YEAR
     for(j in 1:SiteSection){ 
     
-    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + log.sigma.year[year_index[1]])
+    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bforest.sig*forestCov[j,1] + bRough.sig*roughCov[j,1] + log.sigma.year[year_index[1]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -394,7 +393,7 @@ cat("model{
     for(j in 1:SiteSection){ 
     for (t in 2:nyears){
     
-    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + log.sigma.year[year_index[t]])
+    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bforest.sig*forestCov[j,t] + bRough.sig*roughCov[j,t] + log.sigma.year[year_index[t]])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -450,18 +449,18 @@ cat("model{
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "model7.txt")
+    }",fill=TRUE, file = "model10.txt")
 
 
 # Inits
 Nst <- y.sum + 1
 inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
                          mu.site = runif(1), sig.site = 0.2, sig.section = runif(1),
-                         sig.lam.year = 0.3, bYear.lam = runif(1),
+                         sig.lam.year = 0.3, bYear.lam = runif(1), bRough.sig = runif(1),
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
+params <- c( "mu.sig", "sig.sig", "bforest.sig", "bRough.sig", "sig.obs", "log.sigma.year", # Save also observer effect
              "mu.site", "sig.site", "sig.section", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
              "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
 )
@@ -472,7 +471,7 @@ nc <- 3 ; ni <- 70000 ; nb <- 3000 ; nt <- 5
 
 # With jagsUI 
 # With jagsUI 
-out <- jags(data1, inits, params, "model7.txt", n.chain = nc,
+out <- jags(data1, inits, params, "model10.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 summary <- out$summary
 print(out)
@@ -486,7 +485,7 @@ load("6.TRIM.RData")
 out$summary
 data_comp <- list(lam.tot = lam.tot, 
                   mu.sig.obs = mu.sig.obs, sig.sig.obs = sig.sig.obs,
-                  bTemp.sig = bTemp.sig, 
+                  bforest.sig = bforest.sig, 
                   mu.lam.alpha.site = mu.lam.alpha.site,
                   sig.lam.alpha.site = sig.lam.alpha.site,
                   sig.lam.year = sig.lam.year,
