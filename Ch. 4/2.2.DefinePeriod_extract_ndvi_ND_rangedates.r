@@ -10,12 +10,12 @@ pos <- pos[-which(pos$Year == 2016), ] #♠?? preguntar rocío
 pos$ndvi <- NA
 
 # Load all rasters
-rastlist <- list.files(path = "D:/PhD/Fourth chapter/GIS/NDVI/Todas", pattern='.tiff$', 
+rastlist <- list.files(path = "D:/PhD/Fourth chapter/GIS/NDVI/Marc/NDVI_DN/Todas", pattern='.tiff$', 
                        all.files=TRUE, full.names=TRUE)
 allrasters <- lapply(rastlist, raster)
 
 
-# Generate dates attribute (NECESSARY TO HAVE FILES IN THE FOLLOWING FORMAT: "01_07_4_2017.tiff")
+# Generate dates attribute (NECESSARY TO HAVE FILES IN THE FOLLOWING FORMAT: "01_07_4_2017.tiff" (rangodiasmes_mes_año.tiff)
 
 allnames <- NULL # Create vector with all names
 for (i in 1:length(allrasters)){
