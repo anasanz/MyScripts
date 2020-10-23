@@ -14,7 +14,7 @@ library(rtrim)
 ##                       Prepare data                           ###
 ###################################################################
 
-setwd("C:/Users/ana.sanz/Documents/PhD_12_Nov/Second chapter/Data")
+setwd("D:/PhD/Second chapter/Data")
 
 d <- read.csv("DataDS_ready_ALL.csv")
 colnames(d)[which(colnames(d) == "Count")] <- "Cluster" 
@@ -25,7 +25,7 @@ s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
 s_good <- s_good[-which(s_good %in% remove_6)] 
 s_good <- c("BUOED", "CIAER", "COMON", "COPAL", "FATIN", "MECAL", "PAMAJ")
-
+xxx = 1
 # Start loop
 for (xxx in 1:length(s_good)){
   

@@ -31,7 +31,7 @@ load("D:/PhD/Third chapter/Data/model/14.2.8_f/14.2.8_f_results.RData")
 table_mu <- data.frame(matrix(NA,ncol = 4, nrow = 5))
 colnames(table_mu) <- c("variable", "est", "lci", "uci")
 var_mu <- c("mu_a1", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
-var_mu_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop diversity", "Field size")
+var_mu_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop richness", "Field size")
 
 for (i in 1:length(var_mu)){
 table_mu[i,1] <- var_mu_names[i]
@@ -44,7 +44,7 @@ table_mu[i,4] <- out$q97.5[names(out$q97.5) %in% var_mu[i]]
 table_sd <- data.frame(matrix(NA, ncol = 2, nrow = 5))
 colnames(table_mu) <- c("variable", "sd")
 var_mu <- c("mu_a1", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
-var_mu_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop diversity", "Field size")
+var_mu_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop richness", "Field size")
 
 for (i in 1:length(var_mu)){
   table_sd[i,1] <- var_mu_names[i]
@@ -55,7 +55,7 @@ for (i in 1:length(var_mu)){
 table_sig <- data.frame(matrix(NA,ncol = 4, nrow = 5))
 colnames(table_sig) <- c("variable", "est", "lci", "uci")
 var_sig <- c("sig_a1", "sig_a2", "sig_a3", "sig_cd", "sig_fs")
-var_sig_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop diversity", "Field size")
+var_sig_names <- c("Fallow TFM", "Fallow AES", "Fallow GREEN", "Crop richness", "Field size")
 
 for (i in 1:length(var_sig)){
   table_sig[i,1] <- var_sig_names[i]

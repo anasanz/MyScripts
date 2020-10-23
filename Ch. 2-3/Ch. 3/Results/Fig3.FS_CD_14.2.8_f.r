@@ -44,7 +44,7 @@ names <- c("bCropdiv", "bFieldsize")
 
 # Plot Fig3
 setwd("D:/PhD/Third chapter/Data/Results_species/14.2/14.2.8_f")
-pdf("14.2.8_f_ViolinWide_greyCI_FS_CD.pdf", 6, 7)
+pdf("14.2.8_f_ViolinWide_greyCI_FS_CD_2.pdf", 6, 7)
 
 par(mfrow = c(1,2),
     mar = c(1,7,1.5,0),
@@ -74,7 +74,7 @@ plot(10, ylim = c(1, nSpecies),
      xlim = c(-2,1.5), 
      type ="n", yaxt="n", 
      #xaxt="n", 
-     xlab = " ", ylab = "", main = "Crop diversity",
+     xlab = " ", ylab = "", main = "Crop richness",
      cex.main = 0.8,
      labels = FALSE)
 
