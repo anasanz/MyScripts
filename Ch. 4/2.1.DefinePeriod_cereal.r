@@ -14,6 +14,7 @@ library(dplyr)
 setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
 pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
 pos <- pos[-which(pos$Year == 2016), ] #♠?? preguntar rocío
+pos$ID_pos <- seq(1,nrow(pos))
 
 # Capas DUN
 
@@ -59,12 +60,22 @@ pos <- cbind(pos, poscereal)
 pos$cereal <- NA
 
 for (i in 1:nrow(pos)){
-  pos[i, 25] <- pos[i, which(colnames(pos) == pos$Year[i])]
+  pos[i, 26] <- pos[i, which(colnames(pos) == pos$Year[i])]
 }
 
 # Check: clean columns
-pos <- pos[,c(1:9, 20:25)]
-positions_cereal <- pos[ ,c(1:11,15)]
+pos <- pos[,c(1:9, 20:26)]
+
+# Save data frame
+setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
+write.csv(pos, "positions_cereal.csv")
+
+# Load 
+
+setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
+pos <- read.csv("positions_cereal.csv")
+positions_cereal <- pos[ ,c(2:12,17)]
+
 
 # Create date column
 positions_cereal$date <- paste(positions_cereal$Month,"/",positions_cereal$Day, sep = "")
@@ -128,6 +139,24 @@ abline(v = 202.3, lwd = 2)
 mtext(dates, side = 1, line = 0.5, at = coordx, las = 2)
 
 dev.off()
+
+# Add in this figure a polygon with the dates for which there is NDVI in 2017: Feb[59] - Abril[132]
+
+par(mfrow = c(2,1))
+
+setwd("D:/PhD/Fourth chapter/Results/Preliminar results")
+pdf("posiciones_cereal_dataNDVI.pdf",9,5)
+barplot(per_cereal$per ~ per_cereal$date, ylab = "% Posiciones en cereal", xlab = "", xaxt = "n", las = 2) # Use vector "names" as well for xlabs 
+abline(v = 108.7, lwd = 2)
+abline(v = 202.3, lwd = 2)
+mtext(dates, side = 1, line = 0.5, at = coordx, las = 2)
+polcoord <- cbind(c(59, 59, 132, 132), c(0,43, 43, 0))
+polygon(polcoord[,1], polcoord[,2], col = NA, border = "red", lwd = 1.5)
+
+dev.off()
+
+
+
 
 
 # IMPRIMIR DOS PLOTS JUNTOS

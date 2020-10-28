@@ -3,12 +3,15 @@ rm(list=ls())
 
 library(raster)
 library(lubridate)
+library(rgdal)
 
 # Load data and set it into format for function
 setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
-pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
+#pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
 
 pos <- readOGR("XYD_gangas_no_regadio_ETRS89_tot.shp")
+pos <- pos[-which(pos$Year == 2016), ] 
+pos$ID_pos <- seq(1,nrow(pos))
 
 pos <- pos[which(pos$Year == 2017), ] # try with ndvi 2017
 pos <- pos[which(pos$Month == 2 | pos$Month == 3 | pos$Month == 4), ] # 
@@ -58,8 +61,14 @@ positions_extract <- assign.closest(data_positions = pos2, int = mat)
 
 pos@data <- cbind(pos@data, positions_extract$closest_date)
 
-pos@data <- pos@data[,c(1,8,9,20,22,23)]
-colnames(pos@data)[6] <- "closest_date"
+pos@data <- pos@data[,c(1,8,9,20,22,23,24)]
+colnames(pos@data)[7] <- "closest_date"
+
+# DATA in the limits (before 15 feb, after 16 ab)
+# There is no data for "2017-04-30" so for the data from the day 16, substitute closest date by "2017-04-16"
+pos@data$closest_date[pos@data$closest_date == "2017-04-30"] <- "2017-04-16"
+# There is no data for "2017-02-01" so for the data before the day 15, substitute closest date by "2017-02-15"
+pos@data$closest_date[pos@data$closest_date == "2017-02-01"] <- "2017-02-15"
 
 # Change CRS
 
@@ -74,7 +83,6 @@ crs(pos3)
 plot(check)
 points(pos3)
 
-
 pos3$ndvi <- NA
 
 for (i in 1:length(allrasters)){
@@ -88,7 +96,6 @@ for (i in 1:length(allrasters)){
   pos3$ndvi[which(pos3$closest_date == alldates[[i]])] <- positions_extract_ndvi
 }
 
-pos3@data
 
 setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
 

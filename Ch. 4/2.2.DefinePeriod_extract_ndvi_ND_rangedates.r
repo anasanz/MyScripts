@@ -8,6 +8,7 @@ setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
 pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
 pos <- pos[-which(pos$Year == 2016), ] #♠?? preguntar rocío
 pos$ndvi <- NA
+pos$ID_pos <- seq(1,nrow(pos))
 
 # Load all rasters
 rastlist <- list.files(path = "D:/PhD/Fourth chapter/GIS/NDVI/Marc/NDVI_DN/Todas", pattern='.tiff$', 
