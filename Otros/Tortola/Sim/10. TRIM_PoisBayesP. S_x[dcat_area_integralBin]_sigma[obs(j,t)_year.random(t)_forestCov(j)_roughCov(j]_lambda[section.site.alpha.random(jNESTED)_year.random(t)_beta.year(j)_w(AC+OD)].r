@@ -6,7 +6,7 @@ library(jagsUI)
 library(plyr)
 
 
-set.seed(2013)
+#set.seed(2013)
 
 # ---- Data simulation ----
 
@@ -354,7 +354,7 @@ cat("model{
     for(j in 1:SiteSection){ 
     
     sigma[j,1] <- exp(sig.obs[ob[j,1]] + bforest.sig*forestCov[j,1] + bRough.sig*roughCov[j,1] + log.sigma.year[year_index[1]])
-    
+
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
@@ -394,7 +394,7 @@ cat("model{
     for (t in 2:nyears){
     
     sigma[j,t] <- exp(sig.obs[ob[j,t]] + bforest.sig*forestCov[j,t] + bRough.sig*roughCov[j,t] + log.sigma.year[year_index[t]])
-    
+
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
     for(k in 1:nG){ 
@@ -456,7 +456,7 @@ cat("model{
 Nst <- y.sum + 1
 inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
                          mu.site = runif(1), sig.site = 0.2, sig.section = runif(1),
-                         sig.lam.year = 0.3, bYear.lam = runif(1), bRough.sig = runif(1),
+                         sig.lam.year = 0.3, bYear.lam = runif(1),
                          N = Nst)} 
 
 # Params
@@ -483,12 +483,12 @@ save(out, file = "6.TRIM.RData") # 60000 iter, 4 thining
 load("6.TRIM.RData")
 
 out$summary
-data_comp <- list(lam.tot = lam.tot, 
+data_comp <- list(lam.tot = lam.tot, # This is pop.index in the model
                   mu.sig.obs = mu.sig.obs, sig.sig.obs = sig.sig.obs,
                   bforest.sig = bforest.sig, 
-                  mu.lam.alpha.site = mu.lam.alpha.site,
-                  sig.lam.alpha.site = sig.lam.alpha.site,
-                  sig.lam.year = sig.lam.year,
+                  bRough.sig = bRough.sig, 
+                  mu.site = mu.site,
+                  sig.site = sig.site,
+                  sig.alpha.section = sig.alpha.section,
                   b.lam.year = b.lam.year,
                   rho = rho, sig.lam.eps = sig.lam.eps)
-
