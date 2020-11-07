@@ -8,7 +8,7 @@ library(ggeffects)
 
 #######
 
-setwd("S:/PhD/Fourth chapter/Data")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
@@ -25,7 +25,7 @@ data[ ,c(8:18)] <- scale(data[ ,c(8:18)], center = TRUE, scale = TRUE)
 #####
 # For the GLM, scale differently the variables to plot them unscaled
 
-setwd("S:/PhD/Fourth chapter/Data")
+#setwd("S:/PhD/Fourth chapter/Data")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
@@ -56,7 +56,7 @@ data_f_p2 <- data_f[which(data_f$ID_p %in% ID_p[grep("p2", ID_p)]), ]
 data_f_p3 <- data_f[which(data_f$ID_p %in% ID_p[grep("p3", ID_p)]), ]
 
 # UNSCALED
-data_p1 <- data[which(data$ID_p %in% ID_p[grep("p1", ID_p)]), ]
+data_p1 <- data[which(data$ID_p %in% data$ID_p[grep("p1", data$ID_p)]), ]
 data_p2 <- data[which(data$ID_p %in% ID_p[grep("p2", ID_p)]), ]
 data_p3 <- data[which(data$ID_p %in% ID_p[grep("p3", ID_p)]), ]
 
@@ -72,6 +72,16 @@ p1 <- glm(used ~ dist_caminos + dist_carreteras + pendiente +
               ,family = binomial (link = "logit"),
               data = data_f_p1) # DATA SCALED
 
+data_p1 <- data_p1[,colnames(data_p1) %in% c("dist_caminos","dist_carreteras","pendiente",     
+                                               "pastos", "forestal","cereal","barbecho" ,"herb_secano", 
+                                               "herb_regadio","frut_regadio","frut_secano" )]
+
+p1 <- glm(used ~ dist_caminos + dist_carreteras + pendiente +     
+            pastos + forestal + cereal + barbecho + herb_secano + 
+            herb_regadio + frut_regadio + frut_secano 
+          ,family = binomial (link = "logit"),
+          data = data_p1) # DATA SCALED
+summary(p1)
 
 # Model selection
 

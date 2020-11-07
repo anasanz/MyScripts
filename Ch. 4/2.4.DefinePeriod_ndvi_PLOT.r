@@ -19,6 +19,18 @@ pos_cereal_dic <- positions_cereal[grep("12/", as.character(positions_cereal$dat
 positions_cereal <- positions_cereal[-grep("12/", as.character(positions_cereal$date)), ]
 positions_cereal <- rbind(pos_cereal_dic, positions_cereal)
 
+# Add dates manually where there are no observations (1 row with NA per observation)
+
+missing_dates <- c("12/28", "12/29", "12/30", "12/31","2/15", "2/16", "2/17", "2/18", "2/19", "2/20", "2/21", "2/22",
+                   "2/23", "2/24", "2/25", "2/26", "2/27", "2/28", "3/1")
+
+df <- as.data.frame(matrix(NA, nrow = 19, ncol = 13))
+df[,13] <- missing_dates
+colnames(df) <- colnames(positions_cereal)
+
+positions_cereal <- rbind(positions_cereal[1:519,],df[1:4, ],positions_cereal[-(1:519),]) # Insert-December (after 519)
+positions_cereal <- rbind(positions_cereal[1:1694,],df[5:19, ],positions_cereal[-(1:1694),])# Insert-Febrero 
+
 # Plot
 
 positions_cereal$date <- factor(positions_cereal$date, levels = unique(positions_cereal$date)) # change factor to sort factor levels
@@ -26,12 +38,11 @@ positions_cereal$date <- factor(positions_cereal$date, levels = unique(positions
 # Create vector for names x axes
 dates <- c("1-Dic", "18-Ene", "20-Mar", "28-Ab", "6-Jun", "18-Jul", "29-Agos")
 res <- barplot(table(positions_cereal$date), xaxs="i",xaxt="n") # To get midpoints
-coordx <- res[c(1, 45, 91, 130, 169, 211, 253)]
+coordx <- res[c(1, 49, 110, 149, 188, 230, 272)]
 # Get coordinates division lines
 f <- table(positions_cereal$date)
 names(f)
-res[59] #1feb
-res[132] #1feb
+
 # Percentage of positions in cereal per day
 
 positions_cereal$cereal <- as.factor(positions_cereal$cereal) # Need to be factor to not drop levels with empty observations (keep the 0 where there is no positions in cereal)
@@ -49,16 +60,20 @@ per_cereal <- per_cereal[which(per_cereal$cereal == 1), ]
 per_cereal$date <- factor(per_cereal$date, levels = unique(per_cereal$date)) # change factor to sort factor levels
 
 
+# Add also possible division dates (accordying to max ndvi = green; and to growing cereal = blue (1Marzo))
+
 setwd("D:/PhD/Fourth chapter/Results/Preliminar results")
-pdf("posiciones_cereal_dataNDVI.pdf")
+pdf("posiciones_cereal_dataNDVI3.pdf")
 
 par(mfrow = c(2,1))
 barplot(per_cereal$per ~ per_cereal$date, ylab = "% Posiciones en cereal", xlab = "", xaxt = "n", las = 2, main = "2017-2019") # Use vector "names" as well for xlabs 
-abline(v = 108.7, lwd = 2)
-abline(v = 202.3, lwd = 2)
+abline(v = 131.5, lwd = 2)
+abline(v = 225.1, lwd = 2)
 mtext(dates, side = 1, line = 0.5, at = coordx, las = 2)
-polcoord <- cbind(c(70.3, 70.3, 157.9, 157.9), c(0,43, 43, 0))
+polcoord <- cbind(c(res[77], res[77], res[137], res[137]), c(0,43, 43, 0))
 polygon(polcoord[,1], polcoord[,2], col = NA, border = "red", lwd = 1.5)
+abline(v = res[91], lwd = 2, col = "blue") # 1 Marzo 
+abline(v = res[97], lwd = 2, col = "magenta") # 7 Marzo
 
 
 ########################
@@ -122,14 +137,15 @@ ndvi_date <- c %>%
 
 plot(ndvi_date$`mean(ndvi)` ~ ndvi_date$date, ylim = c(0.37, 0.9), type = "p", las = 2, xlab = "Fecha", ylab = "NDVI en cereal", main = "2017", border = 1)
 lines(ndvi_date$date, ndvi_date$`mean(ndvi)`, type="l")
-abline(h = 0.8, lty = 2)
+# abline(h = 0.8, lty = 2)
 abline(v = 33.1, lwd = 2) # A ojo...20Marzo (División anterior)
-abline(v = 45.1, lty = 2) # A ojo...1Abril
-
+# abline(v = 45.1, lty = 2) # A ojo...1Abril
 points(37, 0.8796296, type='p', pch = 8, cex = 1.7)
+abline(v = 37, lwd = 2, col = "orange") # 24 Marzo, Máximo valor NDVI
 box(which = "plot", lty = "solid", col = "red", lwd = 2)
 dev.off()
 
 
 hist(c$ndvi)
+nrow(c[which(c$ndvi > 0.8), ])/nrow(c)
 
