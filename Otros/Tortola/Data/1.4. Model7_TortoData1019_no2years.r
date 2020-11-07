@@ -391,7 +391,7 @@ load("7tor_1.4.RData")
 
 summary <- as.data.frame(as.matrix(out$summary))
 
-## ---- POPULATION TREND PLOT ---- ##
+# ---- POPULATION TREND PLOT ---- 
 
 # Based on expected N
 
@@ -452,7 +452,7 @@ points(yrs2, out$summary[grep("popindex", rownames(out$summary)),1], pch = 19)
 
 text(4,100, paste("b = ",round(summary[rownames(summary) %in% "bYear.lam", 1], 3), "[", round(summary[rownames(summary) %in% "bYear.lam", 3], 3), "-", round(summary[rownames(summary) %in% "bYear.lam", 7], 3), "]"), cex = 1)
 
-## ---- PROBABILITY OF TREND PLOT ---- ##
+# ---- PROBABILITY OF TREND PLOT ---- 
 
 # Probability of decline
 
@@ -479,3 +479,28 @@ mtext(paste("PD =", round(prob_declining,2)), side = 3, line = -1.5, cex = 1, ad
 mtext("Population trend 2010-2019", side = 3, line = -3, cex = 1, outer = TRUE)
 
 dev.off()
+
+# ---- OBSERVER EFFECT ----
+
+# Plot MEAN sigma effect of different observers
+
+x <- c(1:135)
+lci <- summary[grep("sig.obs", rownames(summary)), 3]
+uci <- summary[grep("sig.obs", rownames(summary)), 7]
+
+plot(-21, xlim = c(1,135), ylim = c(min(lci),max(uci)), ylab = "sigma", xlab = "Observer")
+points(summary[grep("sig.obs", rownames(summary)), 1], pch = 16)
+arrows(x,lci,x,uci, code=3, angle=90, length=0.04)
+mtext(s_good[i], side = 3, line = 1, cex = 0.8)
+
+# Plot SD (overall variability in observers)
+
+outall <- do.call(rbind,out$samples) # 3 chains together
+
+dens_obs <- density(outall[ ,which(colnames(outall) == "sig.sig")]) # Density of iterations for sig.obs
+mode_obs <- dens_obs$x[dens_obs$y == max(dens_obs$y)]
+mean_obs <- mean(outall[ ,which(colnames(outall) == "sig.sig")])
+
+plot(dens_obs, xlim = c(0, 2), xlab = " ", ylab = " ", main = "STTUR") # POSTERIOR (x_lim is third quantile)
+abline( v = mode_obs, col = "blue", lwd = 1.2)
+abline( v = mean_obs, col = "red", lwd = 1.2)

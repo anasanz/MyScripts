@@ -87,6 +87,15 @@ freq_obs <- arrange(data_obs, n_transects)
 freq_obs$Observer <- factor(freq_obs$Observer, levels = freq_obs$Observer)
 
 barplot(freq_obs$n_transects ~ freq_obs$Observer, las = 2)
+abline(h = 10)
+
+data_obs <- dat %>%
+  group_by(Observer) %>%
+  summarise(n_transects = n_distinct(site_year))
+
+d <- dat[which(dat$Observer == "1180"), ]
+d <- arrange(d, site_sec)
+k <- unique(d$site_year)
 
 # Select observers that did less than 5 census
 obs_less5 <- freq_obs[which(freq_obs$n_transects < 5), ]
