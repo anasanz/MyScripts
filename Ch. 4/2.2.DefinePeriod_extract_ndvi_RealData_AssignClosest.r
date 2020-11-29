@@ -6,7 +6,7 @@ library(lubridate)
 library(rgdal)
 
 # Load data and set it into format for function
-setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
+setwd("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/GPS")
 #pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
 
 pos <- readOGR("XYD_gangas_no_regadio_ETRS89_tot.shp")

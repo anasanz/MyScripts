@@ -65,7 +65,7 @@ AIC <- numeric()
 for (i in 1:n.loop){
   RSF <- rspf(STATUS ~ as.factor(barbecho) + as.factor(cereal) + as.factor(olivo) + 
                 as.factor(almendro) + as.factor(frutreg) + as.factor(herreg) + 
-                as.factor(otherhersec) + as.factor(forestal) + caminos.st + slope.st + 
+                as.factor(otherhersec) + as.factor(vegnat) + caminos.st + slope.st + 
                 carreteras.st, data = datos.rspf, m = match.use.avai)
   summ.RSF <- summary(RSF)
   RSF.pval[, i] <- summ.RSF$coefficients[, 4]
@@ -81,14 +81,16 @@ names(RSF.pval.mean) <- rownames(summ.RSF$coefficients)
 RSF.SE.mean <- round(apply(RSF.SE, 1, mean), 3)
 names(RSF.SE.mean) <- rownames(summ.RSF$coefficients)
 
+RSF.Est.mean <- round(apply(RSF.Est, 1, mean), 3)
+names(RSF.Est.mean) <- rownames(summ.RSF$coefficients)
 round(RSF.Est[, 1], 3)
 
-AIC
+AIC.mean <- mean(AIC)
 
-setwd(" ")
+setwd("D:/Ana/Results/chapter4")
 
-save(RSF.pval, "RSF.pval.prerep.RData")
-save(RSF.SE, "RSF.SE.prerep.RData")
-save(RSF.Est, "RSF.Est.prerep.RData")
-save(AIC, "AIC.prerep.RData")
 
+write.csv(RSF.pval.mean, file = "RSF.pval.prerep.forest.csv")
+write.csv(RSF.SE.mean, file = "RSF.SE.prerep.forest.csv")
+write.csv(RSF.Est.mean, file = "RSF.Est.prerep.forest.csv")
+write.csv(AIC.mean, file = "AIC.prerep.forest.csv")

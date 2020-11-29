@@ -93,9 +93,6 @@ data_obs <- dat %>%
   group_by(Observer) %>%
   summarise(n_transects = n_distinct(site_year))
 
-d <- dat[which(dat$Observer == "1180"), ]
-d <- arrange(d, site_sec)
-k <- unique(d$site_year)
 
 # Select observers that did less than 5 census
 obs_less5 <- freq_obs[which(freq_obs$n_transects < 5), ]
@@ -104,8 +101,13 @@ dat_less5 <- dat[which(dat$Observer %in% obs_less5), ] #
 dat_less5_detect <- dat_less5[which(dat_less5$count == 1), ]  # Perdemos 915 observaciones (pero solo 2015 detecciones), pero para meter observador como variable es necesario
 # PROBAMOS CON 4
 # Remove
-dat <- dat[-which(dat$Observer %in% obs_less5), ] 
+#dat <- dat[-which(dat$Observer %in% obs_less5), ] 
 length(unique(dat$site_year)) 
+
+# Re-assign to one cathegory
+dat$Observer[which(dat$Observer %in% obs_less5)] <- 2828
+dat[which(dat$Observer %in% 2828), ]
+
 
 dat <- arrange(dat, Site, Year, Section)
 
@@ -128,6 +130,53 @@ dat2 <- left_join(dat, var2)
 colnames(dat2)[15] <- "Forest"
 
 setwd("D:/PhD/Otros/Tórtola/Data")
-write.csv(dat2, "tortola_ds_ready.csv")
+# write.csv(dat2, "tortola_ds_ready.csv")  # Removing transects with less than 5 obervers
+# write.csv(dat2, "tortola_ds_ready_reobs.csv") # Observers with less than 5 reassigned to one category
 
+# For analysis (try to solve error in the model):
+# Remove years 2002-2004
+dat2 <- dat2[-which(dat2$Year %in% c("2002", "2003", "2004")), ]
+dat2$X <- "STTUR"
+
+####♥  Remove transects that were not done more than 3 years ####
+
+yrs <- unique(dat2$Year) 
+nyrs <- length(yrs)
+
+# Format
+all.sites <- unique(dat2$site_sec)
+max.sites <- length(all.sites)
+sites <- unique(dat2$Site)
+
+m <- data.frame(matrix(NA, nrow = length(all.sites), ncol = nyrs))
+rownames(m) <- all.sites
+colnames(m) <- yrs
+colsites <- rep(sites,each = 6)
+m$sites <- colsites
+
+# Add counts > 0
+tor_yes <- dat2[which(dat2$count == 1), ]
+count <- aggregate(X ~ Year + site_sec, FUN = length, data = tor_yes)
+
+for (i in 1:nrow(count)){
+  m[which(rownames(m) %in% count$site_sec[i]), which(colnames(m) %in% count$Year[i])] <- count$X[i]
+}
+
+# Add absences (0)
+tor_no <- dat2[which(dat2$count == 0), ]
+for (i in 1:nrow(tor_no)){
+  m[which(rownames(m) %in% tor_no$site_sec[i]), which(colnames(m) %in% tor_no$Year[i])] <- tor_no$count[i]
+}
+
+# Identify sites that I want to delete
+
+delete_sites <- m$sites[which(rowSums(is.na(m)) > 11)] # 15 years - 11 = 4 years
+unique(delete_sites)
+
+# Delete these sites from raw data and create new data frame
+
+dat2 <- dat2[-which(dat2$Site %in% delete_sites), ]
+
+setwd("D:/PhD/Otros/Tórtola/Data")
+write.csv(dat2, "tortola_ds_ready_reobs_0519_no4years.csv") 
 

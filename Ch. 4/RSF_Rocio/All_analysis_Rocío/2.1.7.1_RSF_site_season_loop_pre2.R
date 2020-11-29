@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------------------
 #                     RESOURCE SELECTION PROBABILITY FUNCTIONS
-#                   PERIODO REP (10 DE JUNIO HASTA FIN DE AGOSTO)
+#                         PERIODO PRE (HASTA 25 DE FEBRERO)
 #                              ROCIO TARJUELO
 #-----------------------------------------------------------------------------------------
 
@@ -20,12 +20,12 @@ library(ResourceSelection)
 
 # Load data-------------------------------------------------------------------------------
 
-datos <- read.table("D:/PhD/Fourth chapter/Data/2_matrix_RSPF.txt", header = T, dec = ",")
+datos <- read.table("data/2_matrix_RSPF.txt", header = T, dec = ",")
 
-# Seleccionar s?lo los datos para el periodo rep
-datos.rspf <- subset(datos, periodo%in%"Rep")
+# Seleccionar sólo los datos para el periodo pre
+datos.rspf <- subset(datos, periodo%in%"Pre")
 
-# Par?metros para la RSPF ----------------------------------------------------------------
+# Parámetros para la RSPF ----------------------------------------------------------------
 # Loops para la RSPF
 # Number of boostrapping = 100
 n.B <- 100
@@ -34,7 +34,7 @@ n.loop <- 50
 # Number of explanatory variables
 n.var <- 11
 
-# Analisis teniendo en cuenta los a?os y los individuos para la disponibilidad,
+# Analisis teniendo en cuenta los años y los individuos para la disponibilidad,
 # donde los puntos aleatorios solo pueden caer en el del individuo MCP -------------------
 n.year.id <- table(list(datos.rspf[datos.rspf$STATUS == 1, "year"], 
                         datos.rspf[datos.rspf$STATUS == 1, "Logger_ID"]))
@@ -44,8 +44,10 @@ n2019.id <- n.year.id[3, ]
 
 n.id <- 1:length(levels(datos[datos.rspf$STATUS == 1, "Logger_ID"]))
 
-# Aqu? no hay que "desordenar" la matriz de puntos aleatorios, ya que est? construida 
-# ordenada por a?o y logger_id para observaciones y en los aleatorios por a?o y puntos
+unique(datos[datos.rspf$STATUS == 1, "Logger_ID"]) == colnames(n.year.id)  #No mismo orden
+
+# Aquí no hay que "desordenar" la matriz de puntos aleatorios, ya que está construida 
+# ordenada por año y logger_id para observaciones y en los aleatorios por año y puntos
 # que caen en los MCPs de cada individuo. Es decir, es igual a la estructura indicada
 # el siguiente objeto: match.use.avai
 
@@ -64,7 +66,7 @@ AIC <- numeric()
 for (i in 1:n.loop){
   RSF <- rspf(STATUS ~ as.factor(barbecho) + as.factor(cereal) + as.factor(olivo) + 
                 as.factor(almendro) + as.factor(frutreg) + as.factor(herreg) + 
-                as.factor(otherhersec) + as.factor(forestal) + caminos.st + slope.st + 
+                as.factor(vegnat) + as.factor(forestal) + caminos.st + slope.st + 
                 carreteras.st, data = datos.rspf, m = match.use.avai)
   summ.RSF <- summary(RSF)
   RSF.pval[, i] <- summ.RSF$coefficients[, 4]
@@ -84,9 +86,3 @@ round(RSF.Est[, 1], 3)
 
 AIC
 
-setwd(" ")
-
-save(RSF.pval, "RSF.pval.rep.RData")
-save(RSF.SE, "RSF.SE.rep.RData")
-save(RSF.Est, "RSF.Est.rep.RData")
-save(AIC, "AIC.rep.RData")

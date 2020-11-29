@@ -10,9 +10,9 @@ set.seed(2013)
 
 # ---- Data simulation ----
 
-# Model 11: SIMPLIFY to be able to run all years --> Same than 7.1 but remove observer from detection and 15 years
+# Model 12. SIMPLIFY to run in all years --> Same than 7.1 but removing random year effect from detection
 # Abundance: random intercept in site, random effect in year, trend and overdispersion
-# Detection: , random year effect, forest covariate 
+# Detection: random intercept in observer, random year effect, forest covariate 
 
 # 9 years of data
 # Balanced number of transects per year (NA in not sampled ones)
@@ -20,7 +20,7 @@ set.seed(2013)
 # Model:
 
 # y[jt] ~ bin(p(sigma),N[jt])
-# Sigma[jt] <- obs[jt] + year [t] + forest[jt] 
+# Sigma[jt] <- obs[jt] + forest[jt] 
 
 # N[jt] ~ Pois(lambda[jt])
 # log(lambda[jt]) <- site_sec.alpha.ran[j] + year.ran[t] + beta*yr[t-1] + W
@@ -54,11 +54,16 @@ nG <- length(dist.breaks)-1
 ###
 # ---- Detection component ----
 
-# YEAR EFFECT IN SIGMA (RANDOM INTERCEPT)
-sig.sig.year <- 0.25		
-mu.sig.year <- log(50)
-# Year effect in sigma
-sig.year <- rnorm(nyrs, mu.sig.year, sig.sig.year) 
+# RANDOM EFFECT IN OBSERVER
+obs <- 1:9
+nobs <- length(obs)
+mu.sig.obs <- log(50)
+sig.sig.obs <- 0.25
+# Observer effect in sigma
+sig.obs <- rnorm(length(obs), mu.sig.obs, sig.sig.obs) 
+# Observer covariate
+ob.id <- matrix(sample(1:9, SiteSection*nyrs, replace = TRUE), nrow = SiteSection, ncol = nyrs) # Matix with IDs
+ob <- matrix(sig.obs[ob.id],  nrow = SiteSection, ncol = nyrs) # Matrix with intercept for simulating data
 
 
 # FOREST COVARIATE
@@ -69,9 +74,9 @@ forest_mean <- mean(forest)
 forest_sd <- sd(forest)
 forest_sc <- (forest - forest_mean) / forest_sd
 
+
 #SIGMA
-sigma <- exp( matrix(rep(sig.year, each = SiteSection), nrow = SiteSection, ncol = nyrs) + 
-                bforest.sig * forest_sc )
+sigma <- exp(ob + bforest.sig * forest_sc)
 
 #####
 # ----  Abundance component: Site effect, Year effect and Year trend
@@ -205,7 +210,7 @@ y.sum # Matrix with counts
 # Co-variates
 
 forest_sc
-
+ob.id # Matrix with observers
 year_number # Vector with year variable
 
 site <- c(1:max.sites)
@@ -255,7 +260,7 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 
 data1 <- list(nyears = nyrs, SiteSection = SiteSection,  nsites = max.sites, nSection = nSection, sections = sections, sitessections = sitessections, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
               year.dclass = year.dclass, site.dclass = site.dclass, y = y.sum, nind=nind, dclass=dclass,
-              forestCov = forest_sc, year1 = year_number, site = site, year_index = yrs)
+              forestCov = forest_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
 
 # ---- JAGS model ----
 
@@ -300,14 +305,15 @@ cat("model{
     # PRIORS FOR SIGMA
     bforest.sig ~ dnorm(0, 0.001)
     
-    # Random effects for sigma per year
-    mu.sig.year ~ dunif(-10, 10) # Random effects for sigma per observer
-    sig.sig.year ~ dunif(0, 10) 
-    tau.sig.year <- 1/(sig.sig.year*sig.sig.year)
+    mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
+    sig.sig ~ dunif(0, 10)
+    tau.sig <- 1/(sig.sig*sig.sig)
     
-    for (t in 1:nyears){
-    sig.year[t] ~ dnorm(mu.sig.year, tau.sig.year)
+    # Random observer effect for sigma
+    for (o in 1:nobs){
+    sig.obs[o] ~ dnorm(mu.sig, tau.sig)
     }
+    
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
@@ -326,7 +332,7 @@ cat("model{
     # FIRST YEAR
     for(j in 1:SiteSection){ 
     
-    sigma[j,1] <- exp(sig.year[year_index[1]] + bforest.sig*forestCov[j,1])
+    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bforest.sig*forestCov[j,1])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -366,7 +372,7 @@ cat("model{
     for(j in 1:SiteSection){ 
     for (t in 2:nyears){
     
-    sigma[j,t] <- exp(sig.year[year_index[t]] + bforest.sig*forestCov[j,t])
+    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bforest.sig*forestCov[j,t])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -422,19 +428,18 @@ cat("model{
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "model11.txt")
+    }",fill=TRUE, file = "model12.txt")
 
 
 # Inits
 Nst <- y.sum + 1
-inits <- function(){list(mu.sig.year = runif(1, log(30), log(50)), sig.sig.year = runif(1),
-                        #mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
+inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
                          mu.site = runif(1), sig.site = 0.2, sig.section = runif(1),
                          sig.lam.year = 0.3, bYear.lam = runif(1),
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig.year", "sig.sig.year", "bforest.sig", # Save also observer effect
+params <- c( "mu.sig", "sig.sig", "bforest.sig", "sig.obs", # Save also observer effect
              "mu.site", "sig.site", "sig.section", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
              "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
 )
@@ -445,7 +450,7 @@ nc <- 3 ; ni <- 70000 ; nb <- 3000 ; nt <- 5
 
 # With jagsUI 
 # With jagsUI 
-out <- jags(data1, inits, params, "model11.txt", n.chain = nc,
+out <- jags(data1, inits, params, "model12.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 summary <- out$summary
 print(out)

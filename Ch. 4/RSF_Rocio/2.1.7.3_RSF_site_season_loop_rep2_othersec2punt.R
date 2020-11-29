@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------------------
 #                     RESOURCE SELECTION PROBABILITY FUNCTIONS
-#                         PERIODO PRE (HASTA 25 DE FEBRERO)
+#                   PERIODO REP (10 DE JUNIO HASTA FIN DE AGOSTO)
 #                              ROCIO TARJUELO
 #-----------------------------------------------------------------------------------------
 
@@ -8,8 +8,6 @@
 library(ResourceSelection)
 #library(gstat)
 #library(sp)
-
-rm(list = ls())
 
 # FUNCTIONS-------------------------------------------------------------------------------
 # methods(summary)
@@ -22,10 +20,10 @@ rm(list = ls())
 
 # Load data-------------------------------------------------------------------------------
 
-datos <- read.table("D:/PhD/Fourth chapter/Data/2_matrix_RSPF.txt", header = T, dec = ",")
+datos <- read.table("D:/PhD/Fourth chapter/Data/2_matrix_RSPF_punt2.txt", header = T, dec = ",")
 
-# Seleccionar s?lo los datos para el periodo pre
-datos.rspf <- subset(datos, periodo%in%"Pre")
+# Seleccionar s?lo los datos para el periodo rep
+datos.rspf <- subset(datos, periodo%in%"Rep")
 
 # Par?metros para la RSPF ----------------------------------------------------------------
 # Loops para la RSPF
@@ -45,8 +43,6 @@ n2018.id <- n.year.id[2, ]
 n2019.id <- n.year.id[3, ]
 
 n.id <- 1:length(levels(datos[datos.rspf$STATUS == 1, "Logger_ID"]))
-
-unique(datos[datos.rspf$STATUS == 1, "Logger_ID"]) == colnames(n.year.id)  #No mismo orden
 
 # Aqu? no hay que "desordenar" la matriz de puntos aleatorios, ya que est? construida 
 # ordenada por a?o y logger_id para observaciones y en los aleatorios por a?o y puntos
@@ -68,7 +64,7 @@ AIC <- numeric()
 for (i in 1:n.loop){
   RSF <- rspf(STATUS ~ as.factor(barbecho) + as.factor(cereal) + as.factor(olivo) + 
                 as.factor(almendro) + as.factor(frutreg) + as.factor(herreg) + 
-                as.factor(otherhersec) + as.factor(forestal) + caminos.st + slope.st + 
+                as.factor(forestal) + as.factor(vegnat) + caminos.st + slope.st + 
                 carreteras.st, data = datos.rspf, m = match.use.avai)
   summ.RSF <- summary(RSF)
   RSF.pval[, i] <- summ.RSF$coefficients[, 4]
@@ -84,13 +80,17 @@ names(RSF.pval.mean) <- rownames(summ.RSF$coefficients)
 RSF.SE.mean <- round(apply(RSF.SE, 1, mean), 3)
 names(RSF.SE.mean) <- rownames(summ.RSF$coefficients)
 
+RSF.Est.mean <- round(apply(RSF.Est, 1, mean), 3)
+names(RSF.Est.mean) <- rownames(summ.RSF$coefficients)
 round(RSF.Est[, 1], 3)
 
-AIC
+AIC.mean <- mean(AIC)
 
-setwd(" ")
+setwd("D:/Ana/Results/chapter4")
 
-save(RSF.pval, "RSF.pval.pre.RData")
-save(RSF.SE, "RSF.SE.pre.RData")
-save(RSF.Est, "RSF.Est.pre.RData")
-save(AIC, "AIC.pre.RData")
+write.csv(RSF.pval.mean, file = "RSF.pval.rep.othersec2punt.csv")
+write.csv(RSF.SE.mean, file = "RSF.SE.rep.othersec2punt.csv")
+write.csv(RSF.Est.mean, file = "RSF.Est.rep.othersec2punt.csv")
+write.csv(AIC.mean, file = "AIC.rep.othersec2punt.csv")
+
+
