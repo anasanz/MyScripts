@@ -1,0 +1,24 @@
+
+model {
+  # Prior y restricciones
+  N.est[1] ~ dunif(0, 200)      # Prior para el tama?o de poblaci?n inicial
+  mean.lambda ~ dunif(0, 10)    # Prior para lambda
+  sigma.proc ~ dunif(0, 10) 
+  sigma2.proc <- pow(sigma.proc,2)
+  tau.proc <-pow(sigma.proc,-2)
+  sigma.obs ~ dunif(0, 100)  # Prior para sd del proceso de observaci?n
+  sigma2.obs <- pow(sigma.obs, 2)
+  tau.obs <- pow(sigma.obs, -2)
+
+  # Probabilidad
+  # Proceso de estado (situaci?n real)
+  for (t in 1:(T-1)){
+    lambda[t]~dnorm(mean.lambda,tau.proc)
+    N.est[t+1] <- N.est[t]*lambda[t]
+  }
+  # Proceso de observaci?n
+  for (t in 1:T) {
+    y[t] ~ dnorm(N.est[t], tau.obs)
+  }
+}
+
