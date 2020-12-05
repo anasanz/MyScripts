@@ -7,7 +7,7 @@ library(ggeffects)
 
 # Run GLMM
 
-setwd("C:/Users/Ana/Documents/PhD/PhD_12_Nov/Fourth chapter/Data")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
@@ -60,7 +60,7 @@ lines(newx, lch, col = "red")
 m <- ggpredict(avg_p1, "cereal", type = "fe")
 
 # Period 2
-setwd("C:/Users/ana.sanz/Documents/PhD_20_sept/Fourth chapter/Data/Results")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO/Results")
 
 load("dredge_p2.RData")
 topmodels_p2 <- get.models(models_p2,subset = delta < 2)

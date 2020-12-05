@@ -6,7 +6,7 @@ library(MuMIn)
 
 # Run GLMM
 
-setwd("D:/PhD/Fourth chapter/Data")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO")
 data <- read.csv ("covariates.csv", header = TRUE)
 
 # Check correlation
@@ -201,7 +201,7 @@ summary(avg_p3)
 # Results model averaging in a table
 # Take the conditional average (only averages among the models where the parameter appears)
 
-setwd("S:/PhD/Fourth chapter/Data/Results")
+setwd("D:/PhD/Fourth chapter/Congreso SEO/Data_SEO/Results")
 
 results <- as.data.frame(matrix(NA, nrow = 9*3, ncol = 5))
 colnames(results) <- c("Period", "Variable", "Estimate", "SE", "Pvalue")
@@ -270,6 +270,9 @@ write.csv(results_wide, "coefficients.csv")
 
 #### PLOT ####
 
+setwd('D:/PhD/Fourth chapter/Congreso SEO/Data_SEO/Results')
+c <- read.csv('coefficients.csv')
+
 # Unscale values ????????????????????????
 library(DMwR)
 
@@ -301,6 +304,7 @@ segments(x0=c(1:6),
 # Predict values of model 1
 
 # Period 1
+setwd('D:/PhD/Fourth chapter/Congreso SEO/Data_SEO/Results')
 
 load("dredge_p1.RData")
 

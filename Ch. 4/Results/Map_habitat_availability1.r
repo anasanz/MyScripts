@@ -10,6 +10,7 @@ library(rgdal)
 library(raster)
 library(dplyr)
 library(sp)
+library(rgeos)
 
 # ---- LOAD USOS ----
 
@@ -95,8 +96,6 @@ for (i in 1:length(maps)){
 
 
 ## ---- Calculate surface under red and blue every year and period ----
-i = 1
-j = 1
 
 # Change colnames periods in new data to join with maps
 periods2 <- periods
@@ -111,17 +110,27 @@ for (i in 1:length(maps)){
   }}
 
 # In each layer, calculate area of red and blue
+ # Modify map layers in new object
+col <- c("blue", "red")
+
+data_allyears <- list()
+data <- data.frame(Select = c(NA,NA,NA), Avoid = c(NA,NA,NA))
+
 for (i in 1:length(maps)){
-  for (j in 1:length(periods2)){
-    # First find how select the column "color period"
-    maps[[i]] <- maps[[i]][which(maps[[i]]$)] # Subset of the polygons to calculate the area after (e.g., red)
-    # Calculate area
-    # Store it
   
-}}
+  for (j in 1:length(periods2)){
+    maps2 <- maps # To get back all the columns again in every loop
+    column_period <- paste("colour",periods2[[j]]$period[1], sep = "_") 
+    maps2[[i]]@data <- maps2[[i]]@data[ ,which(colnames(maps2[[i]]@data) %in% c("uso_mapa", column_period))] # Select the column "color period"
+    
+    for (c in 1:length(col)){
+      area <- gArea(maps2[[i]][which(maps2[[i]]@data[,2] == col[c]), ])/10000 # Calculate area of a given color
+      data[j,c] <- area # Store it
+      }}
+  data_allyears[[i]] <- data
+  }
 
 
-head(maps[[i]]@data)
 
 #  ---- Plot by year and period ----
 
@@ -130,6 +139,7 @@ head(maps[[i]]@data)
 ## ------------------------------------------------- 
 
 # All together
+
 
 setwd("D:/PhD/Fourth chapter/Results/Figures")
 pdf("maps17_noborder2.pdf",9, 2)
@@ -157,7 +167,7 @@ maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
 plot(maps2[[1]], col = maps2[[1]]$colour, border = maps2[[1]]$colour, axes = TRUE, xlim = c(ext@xmin + 400, ext@xmax - 400), ylim = c(ext@ymin + 400 , ext@ymax - 400))
 
 
-ext <- extent(maps2[[1]])
+
 
 ext@xmin + 1000
 
@@ -165,12 +175,16 @@ ext@xmin + 1000
 ##                    VERTICAL
 ## ------------------------------------------------- 
 
+# 2017
+
 setwd("D:/PhD/Fourth chapter/Results/Figures")
 pdf("maps17_noborder2_vert.pdf",4, 8)
 
 par(mfrow = c(3,1),
     mar = c(0,0,0,0),
     oma = c(0,0,0,0))
+
+ext <- extent(maps2[[1]])
 
 for (i in 1:length(periods)) {
   
@@ -182,8 +196,45 @@ for (i in 1:length(periods)) {
 
 dev.off()
 
+# 2018 (FOR SM)
 
+setwd("D:/PhD/Fourth chapter/Results/Figures")
+pdf("maps18_noborder2_vert.pdf",4, 8)
 
+par(mfrow = c(3,1),
+    mar = c(0,0,0,0),
+    oma = c(0,0,0,0))
+
+for (i in 1:length(periods)) {
+  
+  maps2 <- maps
+  ext <- extent(maps2[[2]])
+  maps2[[2]]@data <- left_join(maps2[[2]]@data, periods[[i]], by = "uso_mapa")
+  plot(maps2[[2]], col = maps2[[2]]$colour, border = NA, xlim = c(ext@xmin + 400, ext@xmax - 400), ylim = c(ext@ymin + 400 , ext@ymax - 400)) # I think is better with no border (dif tries with p2)
+  #box(which = "plot", lty = "solid")
+} 
+
+dev.off()
+
+# 2019 (FOR SM)
+
+setwd("D:/PhD/Fourth chapter/Results/Figures")
+pdf("maps19_noborder2_vert.pdf",4, 8)
+
+par(mfrow = c(3,1),
+    mar = c(0,0,0,0),
+    oma = c(0,0,0,0))
+
+for (i in 1:length(periods)) {
+  
+  maps2 <- maps
+  ext <- extent(maps2[[3]])
+  maps2[[3]]@data <- left_join(maps2[[3]]@data, periods[[i]], by = "uso_mapa")
+  plot(maps2[[3]], col = maps2[[3]]$colour, border = NA, xlim = c(ext@xmin + 400, ext@xmax - 400), ylim = c(ext@ymin + 400 , ext@ymax - 400)) # I think is better with no border (dif tries with p2)
+  #box(which = "plot", lty = "solid")
+} 
+
+dev.off()
 
 
 
