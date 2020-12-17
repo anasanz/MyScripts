@@ -115,15 +115,15 @@ for (i in 1:length(Logger_ID)){
       # 2 modes to create random points: Proportional to number of used locations or proportional to MCP area (comment out rdm.sp depending on mode)
       
       # Mode 1: Multiplying number of used locations* 1, 2, 3....
-      # rdm.sp <- spsample(mcpid2, nlocs_sim*3, type = "random") # Simulate random points for 1 period, year and ID and year (A1, single available points)
+      #rdm.sp <- spsample(mcpid2, nlocs_sim, type = "random") # Simulate random points for 1 period, year and ID and year (A1, single available points)
       
       # Mode 2: Number of locations proportional to the size of the home range
       area.mcp <- gArea(mcpid, byid = F)/1000000 # km2
-      n.puntos <- round(area.mcp *100 , 0) # 100 points per km2
+      n.puntos <- round(area.mcp *25 , 0) # 25/50/100/200 points per km2
       
       rdm.sp <- spsample(mcpid2, n.puntos, type = "random")
       
-      setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/Availability/Aprop1") # Save to see distribution and density of points
+      setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/Availability/Aprop0.25") # Save to see distribution and density of points
       pdf(paste(Logger_ID[i],"_",years[t], "_", periods[p],".pdf", sep = ""))
       plot(mcpid2, main = paste(Logger_ID[i],"_",years[t], "_", periods[p], sep = ""), col = "lightgrey")
       points(rdm.sp, pch = 18)
@@ -148,12 +148,12 @@ random_loc <- random_loc[complete.cases(random_loc), ] # Same number of rows tha
 nrow(random_loc[which(random_loc$Logger_ID == "PIC17" & random_loc$year == 2018 & random_loc$periodo == "Pre"), ])
 
 
-setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1")
-write.csv(random_loc, "random_loc_Aprop1.csv")
+setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/random_loc")
+write.csv(random_loc, "random_loc_Aprop0.25.csv")
 
 # Save also used locs without old random points
 setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1")
-write.csv(data, "used_loc.csv")
+#write.csv(data, "used_loc.csv")
 
 
 

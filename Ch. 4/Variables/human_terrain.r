@@ -58,10 +58,21 @@ setwd("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326/clips")
 writeRaster(slope, filename = 'clip_slope_4326', format = 'GTiff')
 
 ### Calculate distance to the closest primary (asphalted) road ####
-autop <- raster("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326/clips/clip_autop_4326.tif")
-autov <- raster("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326/clips/clip_autov_4326.tif")
-car2 <- raster("S:/PhD/Fourth chapter/GIS/Capas_variables/EPSG_4326/clips/clip_car2_4326.tif")
+autop <- raster("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/human_terrain/clip_autop_4326.tif")
+autov <- raster("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/human_terrain/clip_autov_4326.tif")
+car2 <- raster("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/human_terrain/clip_car2_4326.tif")
 
 asph <- brick(autop, autov, car2)
 dist_asphalted <- calc(asph, function(x){min(x)})
 writeRaster(dist_asphalted, filename = 'clip_asp_4326', format = 'GTiff')
+
+### Calculate distance to the closest primary (asphalted) or secondary (gravel) road -> ANALYSIS 2 ####
+
+cam <- raster("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/human_terrain/clip_camin_4326.tif")
+asp <- raster("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/human_terrain/clip_asp_4326.tif")
+
+all_linear <- brick(cam, asp)
+dist_all_linear <- calc(all_linear, function(x){min(x)})
+
+setwd("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/human_terrain")
+writeRaster(dist_all_linear, filename = 'clip_lin_4326', format = 'GTiff')
