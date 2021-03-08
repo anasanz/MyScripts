@@ -18,8 +18,7 @@ temp <- setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/results_rspf")
 temp <- list.files(pattern = "*.csv")
 data <- lapply(temp, read.csv, sep = ";")
 
-#for(xxx in 1:length(avail)){ 
-xxx = 1
+for(xxx in 1:length(avail)){ 
 
 file <- grep(avail[xxx], temp) # Files with one type of availability sampling
 d <- data[file]
@@ -50,10 +49,6 @@ colnames(p3)[1] <- "X"
 allperiods <- rbind(p1,p2,p3)
 colnames(allperiods) <- c("X", "Estimate", "SE", "p", "period")
 p <- c("p1","p2","p3")
-
-# Save for paper
-setwd("D:/PhD/Fourth chapter/Results/Figures_Tables")
-write.csv(allperiods, file = "bottleneck_betacoef.csv")
 
 # Calculate Confint
 allperiods$lower <- NA

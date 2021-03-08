@@ -34,6 +34,7 @@ allperiods <- rbind(p1,p2,p3)
 colnames(allperiods) <- c("X", "Estimate", "SE", "p", "period")
 p <- c("p1","p2","p3")
 
+
 # Calculate Confint
 allperiods$lower <- NA
 allperiods$upper <- NA
