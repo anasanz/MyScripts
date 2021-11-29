@@ -299,3 +299,145 @@ all <- cbind(all_data_pre, all_data_prerep,all_data_rep)
 setwd("D:/PhD/Fourth chapter/Results/Figures_Tables")
 write.csv(all, file = "MCP_selected_avoided_all_uses.csv")
 
+
+## ---- TFM and CFM ----
+
+# With % of each use in each period
+
+mcp.hab <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/MCP_indiv_hab_avai.txt", header = T, dec = ",",
+                      sep = "\t")
+
+
+# Periodo pre
+# Habitat seleccionado son fallow, cereal, natveg (column 5, 6, 12)
+# H?bitat evitado son olive, fruiirri, herbirri, forest (column 7, 8, 9, 11)
+
+mcp.hab.pre <- subset(mcp.hab, Period%in%"Pre")
+
+all_data_pre <- as.data.frame(matrix(nrow = length(unique(mcp.hab$Bird.ID)), ncol = 2))
+rownames(all_data_pre) <- unique(mcp.hab$Bird.ID)
+colnames(all_data_pre) <- c("TFM", "CFM")
+
+
+pre_each_use <- mcp.hab.pre %>%
+  group_by(Bird.ID) %>%
+  summarise(
+    TFM = mean(SI, na.rm = TRUE),
+    CFM = mean(NO, na.rm = TRUE)
+  )
+pre_each_use <- as.data.frame(pre_each_use)
+
+# Fill in overall data frame
+pre_id <- unique(pre_each_use$Bird.ID)
+for (i in 1:length(pre_id)){
+  all_data_pre[rownames(all_data_pre) %in% pre_id[i], ] <-  pre_each_use[pre_each_use$Bird.ID %in% pre_id[i], 2:3]
+}
+
+all_data_pre <- round(all_data_pre,2)
+
+# Add mean + sd per use
+
+all_data_pre[nrow(all_data_pre) + 1, ] <- round(apply(all_data_pre,2,mean,na.rm = TRUE),2)
+rownames(all_data_pre)[13] <- "mean"
+
+all_data_pre[nrow(all_data_pre) + 1, ] <- round(apply(all_data_pre,2,sd,na.rm = TRUE),2)
+rownames(all_data_pre)[14] <- "sd"
+
+all_data_pre[is.na(all_data_pre)] <- "-"
+
+all_data_pre[nrow(all_data_pre) + 1, ] <- paste(all_data_pre[13, ],"(",all_data_pre[14, ],")", sep = "")
+rownames(all_data_pre)[15] <- "Mean(SD)"
+
+###############################################################
+
+# Periodo prerep
+# Habitat seleccionado son fallow, natveg (column 5, 12)
+# H?bitat evitado son cereal, olive, fruiirri, (column 6, 7, 9)
+
+mcp.hab.prerep <- subset(mcp.hab, Period%in%"PreRep")
+
+all_data_prerep <- as.data.frame(matrix(nrow = length(unique(mcp.hab$Bird.ID)), ncol = 2))
+rownames(all_data_prerep) <- unique(mcp.hab$Bird.ID)
+colnames(all_data_prerep) <- c("TFM", "CFM")
+
+
+prerep_each_use <- mcp.hab.prerep %>%
+  group_by(Bird.ID) %>%
+  summarise(
+    TFM = mean(SI, na.rm = TRUE),
+    CFM = mean(NO, na.rm = TRUE)
+  )
+prerep_each_use <- as.data.frame(prerep_each_use)
+
+# Fill in overall data frame
+prerep_id <- unique(prerep_each_use$Bird.ID)
+for (i in 1:length(prerep_id)){
+  all_data_prerep[rownames(all_data_prerep) %in% prerep_id[i], ] <-  prerep_each_use[prerep_each_use$Bird.ID %in% prerep_id[i], 2:3]
+}
+
+all_data_prerep <- round(all_data_prerep,2)
+
+# Add mean + sd per use
+
+all_data_prerep[nrow(all_data_prerep) + 1, ] <- round(apply(all_data_prerep,2,mean,na.rm = TRUE),2)
+rownames(all_data_prerep)[13] <- "mean"
+
+all_data_prerep[nrow(all_data_prerep) + 1, ] <- round(apply(all_data_prerep,2,sd,na.rm = TRUE),2)
+rownames(all_data_prerep)[14] <- "sd"
+
+all_data_prerep[is.na(all_data_prerep)] <- "-"
+
+all_data_prerep[nrow(all_data_prerep) + 1, ] <- paste(all_data_prerep[13, ],"(",all_data_prerep[14, ],")", sep = "")
+rownames(all_data_prerep)[15] <- "Mean(SD)"
+
+############################################################
+
+# Periodo Rep
+# Habitat seleccionado son fallow, olive, almond, natveg (column 5, 12)
+# H?bitat evitado ninguno
+
+mcp.hab.rep <- subset(mcp.hab, Period%in%"Rep")
+
+all_data_rep <- as.data.frame(matrix(nrow = length(unique(mcp.hab$Bird.ID)), ncol = 2))
+rownames(all_data_rep) <- unique(mcp.hab$Bird.ID)
+colnames(all_data_rep) <- c("TFM", "CFM")
+
+
+rep_each_use <- mcp.hab.rep %>%
+  group_by(Bird.ID) %>%
+  summarise(
+    TFM = mean(SI, na.rm = TRUE),
+    CFM = mean(NO, na.rm = TRUE)
+  )
+rep_each_use <- as.data.frame(rep_each_use)
+
+# Fill in overall data frame
+rep_id <- unique(rep_each_use$Bird.ID)
+for (i in 1:length(rep_id)){
+  all_data_rep[rownames(all_data_rep) %in% rep_id[i], ] <-  rep_each_use[rep_each_use$Bird.ID %in% rep_id[i], 2:3]
+}
+
+all_data_rep <- round(all_data_rep,2)
+
+# Add mean + sd per use
+
+all_data_rep[nrow(all_data_rep) + 1, ] <- round(apply(all_data_rep,2,mean,na.rm = TRUE),2)
+rownames(all_data_rep)[13] <- "mean"
+
+all_data_rep[nrow(all_data_rep) + 1, ] <- round(apply(all_data_rep,2,sd,na.rm = TRUE),2)
+rownames(all_data_rep)[14] <- "sd"
+
+all_data_rep[is.na(all_data_rep)] <- "-"
+
+all_data_rep[nrow(all_data_rep) + 1, ] <- paste(all_data_rep[13, ],"(",all_data_rep[14, ],")", sep = "")
+rownames(all_data_rep)[15] <- "Mean(SD)"
+
+##################################################################
+# JOIN ALL
+
+all <- cbind(all_data_pre, all_data_prerep,all_data_rep)
+
+setwd("D:/PhD/Fourth chapter/Results/Figures_Tables")
+write.csv(all, file = "MCP_TFM_CFM.csv")
+
+

@@ -10,7 +10,7 @@ library(rtrim)
 
 setwd("D:/Ana/Data/Otros/Tortola")
 
-tor <- read.csv("tortola_ds_ready_reobs_0519_no4years.csv", sep = ",")
+tor <- read.csv("tortola_ds_ready.csv", sep = ",")
 tor[,1] <- "STTUR"
 ###################################################################
 ##                       HDS ANALYSIS                           ###
@@ -323,14 +323,16 @@ inits <- function(){list(mu.sig.year = runif(1, log(30), log(50)), sig.sig.year 
 
 # Params
 params <- c( "mu.sig.year", "sig.sig.year", "bforest.sig", 
-             "mu.site", "sig.site", "sig.section", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
-             "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
+             "mu.site", "sig.site", "sig.section", "sig.lam.year", "bYear.lam", 
+             "sd", "rho", 
+             'Bp.Obs', 'Bp.N'
+             #"log.lambda.year","popindex"
 )
 
 
 # MCMC settings
 #nc <- 3 ; ni <- 400000 ; nb <- 10000 ; nt <- 10
-nc <- 3 ; ni <- 2000 ; nb <- 500 ; nt <- 10
+nc <- 3 ; ni <- 300000 ; nb <- 5000 ; nt <- 10
 # With jagsUI 
 out <- jags(data1, inits, params, "model11.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
@@ -339,5 +341,5 @@ print(out)
 
 
 setwd("D:/Ana/Results/Otros/Tortola")
-save(out, file = "Model11tor_2.RData")
+save(out, file = "2.1.Model11tor.RData")
 

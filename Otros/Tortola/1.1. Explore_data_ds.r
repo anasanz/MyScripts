@@ -15,10 +15,10 @@ library(splitstackshape)
 # --- Localización espacial de transectos ---- #
 
 # Todos los transectos
-tr_all <- readOGR("D:/PhD/Otros/Tórtola/Data", layer = "SOCC_2020_v4")
+tr_all <- readOGR("D:/Otros/Tórtola/Data", layer = "SOCC_2020_v4")
 
 # Base de datos socc ampliado (con distance sampling)
-setwd("D:/PhD/Otros/Tórtola/Data")
+setwd("D:/Otros/Tórtola/Data")
 ds <- read.csv("2020_04.csv", sep = ";")
 colnames(ds)[1] <- "Itinerari"
 id_itinerari <- unique(ds$Itinerari)
@@ -44,6 +44,8 @@ mean(farm2$Count)
 
 # Proporción escuchadas/vistas
 nrow(farm[which(farm$Obs_type == "V"), ])/nrow(farm)
+
+hist(farm2$Banda)
 
 # El tamaño medio de grupo detectado en farmdindis no es muy alto.
 # No podremos estimar abundancias, y violar la asumcion de datos independencia

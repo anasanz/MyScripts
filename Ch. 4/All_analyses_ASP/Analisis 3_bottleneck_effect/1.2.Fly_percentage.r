@@ -8,6 +8,7 @@ library(tidyr)
 setwd("D:/PhD/Fourth chapter/GPS Cataluña/Ganga/Updated_24-2-2020")
 d <- readOGR("D:/PhD/Fourth chapter/GPS Cataluña/Ganga/Updated_24-2-2020", "XYgps_positions_with_flying_no_regadio")
 d <- d@data
+write.csv(d, file = )
 
 ## ---- Divide periods ----
 

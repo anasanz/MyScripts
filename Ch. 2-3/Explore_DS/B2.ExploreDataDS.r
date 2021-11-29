@@ -129,18 +129,18 @@ library(rgdal)
 library(dplyr)
 library(tidyr)
 library(sp)
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data")
-dat <- read.csv("DataDS_ready.csv")
+setwd("D:/PhD/Second chapter/Data")
+dat <- read.csv("DataDS_ready_1017.csv")
 dat$Species <- as.character(dat$Species) # Data species counts
 esp <- read.csv("Tespecies.csv", sep = ";") # Classifications all species grouped by community
 
-setwd("C:/Users/Ana/Documents/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies")
-cat<- readOGR("C:/Users/Ana/Documents/PhD/GIS Ana/Capes GIS/Carto_general/CAT_30N/Provincies", "Provincies") # Load map study area
+setwd("D:/PhD/GIS Ana_14_Mayo/Capes GIS/Carto_general/CAT_30N/Provincies")
+cat<- readOGR("D:/PhD/GIS Ana_14_Mayo/Capes GIS/Carto_general/CAT_30N/Provincies", "Provincies") # Load map study area
 
-setwd("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS")
-red<- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Data/GIS", "clip_natura2000") # Load rednatura
+setwd("D:/PhD/Second chapter/Data/GIS")
+red<- readOGR("D:/PhD/Second chapter/Data/GIS", "clip_natura2000") # Load rednatura
 
-cen <- readOGR("C:/Users/Ana/Documents/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2017") # Contains transects sampled each year (1/0)
+cen <- readOGR("D:/PhD/Second chapter/Farmdindis/Maps/transectes", "Centroide_2017") # Contains transects sampled each year (1/0)
 
 cen_10 <- cen[which(cen@data$FETS2010 == 1), ] # One layer for transects sampled each year only
 cen_11 <- cen[which(cen@data$FETS2011 == 1), ]
@@ -173,7 +173,7 @@ write.csv(freq, "freq_species.csv")
 library(devtools)
 library(animation)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/All")
+setwd("D:/PhD/Second chapter/Data/Explore_species_occurrence/All/gif")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
 sp <- unique(dat$Species)
@@ -199,8 +199,10 @@ for (j in 1:length(sp)){
       # 2. Linked to the spatial layer (centroid)
       count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
       
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      # Actually dont do the log, just plot the counts even if its big
+      #count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
+      #count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      count_year@data$sp[is.na(count_year@data$sp)] <- 0 # FOR ABUNDANCE: Set na's to 0 
       presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
       
       par(mfrow = c(1,2))
@@ -216,7 +218,7 @@ for (j in 1:length(sp)){
       plot(cat, # Use points "Count_year"
            xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
       plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
+      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$sp)
       mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
       
       
@@ -224,9 +226,10 @@ for (j in 1:length(sp)){
     }, 
     movie.name = paste("",sp[j],".gif"),
     ani.width = 900, ani.heigth = 500,
-    interval = 1.5
+    interval = 2
   ) 
 }
+
 #  ----- Only farmland ---- 
 farm <- as.character(esp$codiEspecie[which(esp$Farmland == 1)]) # Vector selecting farmland species
 
@@ -238,7 +241,7 @@ xtabs(~Species + Year, farm) # See species detected more times. Take MECAL as ex
 library(devtools)
 library(animation)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Farmland2")
+setwd("D:/PhD/Second chapter/Data/Explore_species_occurrence/All/Farmland2")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
 sp <- unique(farm$Species)
@@ -264,8 +267,10 @@ for (j in 1:length(sp)){
       # 2. Linked to the spatial layer (centroid)
       count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
       
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      # Actually dont do the log, just plot the counts even if its big
+      #count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
+      #count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      count_year@data$sp[is.na(count_year@data$sp)] <- 0 # FOR ABUNDANCE: Set na's to 0 
       presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
       
       par(mfrow = c(1,2))
@@ -281,7 +286,7 @@ for (j in 1:length(sp)){
       plot(cat, # Use points "Count_year"
            xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
       plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
+      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$sp)
       mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
       
       
@@ -289,7 +294,7 @@ for (j in 1:length(sp)){
     }, 
     movie.name = paste("",sp[j],".gif"),
     ani.width = 900, ani.heigth = 500,
-    interval = 1.5
+    interval = 2
   ) 
 }
 
@@ -311,7 +316,7 @@ xtabs(~Species, step)
 library(devtools)
 library(animation)
 
-setwd("C:/Users/ana.sanz/OneDrive/PhD/Second chapter/Data/Explore_species_occurrence/Steppe")
+setwd("D:/PhD/Second chapter/Data/Explore_species_occurrence/All/steppe")
 
 Year <- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017)
 sp <- unique(step$Species)
@@ -337,8 +342,10 @@ for (j in 1:length(sp)){
       # 2. Linked to the spatial layer (centroid)
       count_year <- merge(cen[[i]], sum_year, by = "Codi", all.x = TRUE) # Join spatial location of transects to counts
       
-      count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
-      count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      # Actually dont do the log, just plot the counts even if its big
+      #count_year@data$sp[is.na(count_year@data$sp)] <- 0.1 # FOR ABUNDANCE: Set na's to 0.1 to change it to log scale and plot it in different sizes
+      #count_year@data$log_sp <- log(count_year@data$sp) #FOR ABUNDANCE:Log scale to plot it in different sizes
+      count_year@data$sp[is.na(count_year@data$sp)] <- 0 # FOR ABUNDANCE: Set na's to 0 
       presence_year <- count_year[which(count_year@data$sp > 0.1), ] #FOR PRESENCE: Only fields where is present
       
       par(mfrow = c(1,2))
@@ -354,7 +361,7 @@ for (j in 1:length(sp)){
       plot(cat, # Use points "Count_year"
            xlim = c(min(red@bbox[1,1]), max(red@bbox[1,2])), ylim = c(min(red@bbox[2,1]), max(red@bbox[2,2])) )
       plot(red, col = adjustcolor("lightgrey",alpha.f = 0.3), border = adjustcolor("lightgrey",alpha.f = 0.5), add = TRUE)
-      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$log_sp)
+      points(count_year, pch=21, bg = adjustcolor("red",alpha.f = 0.5), lwd = 0.4, cex = count_year@data$sp)
       mtext("Counts", side = 3, line = -2, cex = 1.5, adj = 0.5)
       
       
@@ -362,7 +369,7 @@ for (j in 1:length(sp)){
     }, 
     movie.name = paste("",sp[j],".gif"),
     ani.width = 900, ani.heigth = 500,
-    interval = 1.5
+    interval = 2
   ) 
 }
 

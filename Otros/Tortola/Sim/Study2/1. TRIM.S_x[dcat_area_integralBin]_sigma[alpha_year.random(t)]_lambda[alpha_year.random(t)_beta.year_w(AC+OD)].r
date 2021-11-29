@@ -1,4 +1,3 @@
-
 rm(list=ls())
 
 library(rjags)
@@ -10,19 +9,17 @@ set.seed(2013)
 
 # ---- Data simulation ----
 
-# Abundance: random intercept in site, random effect in year, trend and overdispersion
-# Detection: random intercept in observer, random year effect, temperature covariate 
+# Model for only one transect transect, to get the independent trend at each transect: 15 years of data
 
-# 9 years of data
-# Balanced number of transects per year (NA in not sampled ones)
-# OVERDISPERSION AND SERIAL AUTOCORRELATION: W
-# Model:
+# Abundance: random effect in year, trend and overdispersion
+#     Every year the baseline abundance is different, but the same baseline for every section
+# Detection: random year effect, temperature
 
-# y[jt] ~ bin(p(sigma),N[jt])
-# Sigma[jt] <- obs[jt] + year [t] + temp[jt] 
+# y[t] ~ bin(p(sigma),N[t])
+# Sigma[t] <- year.ran[t] + temp[t] 
 
-# N[jt] ~ Pois(lambda[jt])
-# log(lambda[jt]) <- site_sec.alpha.ran[j] + year.ran[t] + beta*yr[t-1] + W
+# N[t] ~ Pois(lambda[t])
+# log(lambda[t]) <- year.ran[t] + beta*yr[t-1] + W
 
 #####
 # ---- Distance sampling data ----
@@ -30,13 +27,14 @@ set.seed(2013)
 # Half-normal detection function
 g <- function(x, sig) exp(-x^2/(2*sig^2))
 
-# Number of transects per year (unbalanced)
-nSites <- rep(20,9)			# Same number of transects by year
-max.sites <- max(nSites)            # Maximun number of sites is the last year
+# Year effect 
+yrs <- 1:15 
+nyrs <- length(yrs)
+year_number <- 0:14 # (RS: start from 0)
+
+# 1 transect and 6 sections per year 
 nSection <- 6
 sec <- c(1,2,3,4,5,6)
-SiteSection <- max.sites*nSection
-nSitesSection <- nSites*nSection
 
 strip.width <- 200 				# strip half-width, w (in this example only one side of the line transect is surveyed)
 dist.breaks <- c(0,25,50,100,200)
@@ -44,129 +42,89 @@ int.w <- diff(dist.breaks) # width of distance categories (v)
 midpt <- diff(dist.breaks)/2+dist.breaks[-5]
 nG <- length(dist.breaks)-1	
 
-# Year effect 
-yrs <- 1:9 
-nyrs <- length(yrs)
-year_number <- 0:8 # (RS: start from 0)
 
 ###
 # ---- Detection component ----
 
-# RANDOM EFFECT IN OBSERVER
-obs <- 1:9
-nobs <- length(obs)
-mu.sig.obs <- log(50)
-sig.sig.obs <- 0.25
-# Observer effect in sigma
-sig.obs <- rnorm(length(obs), mu.sig.obs, sig.sig.obs) 
-# Observer covariate
-ob.id <- matrix(sample(1:9, SiteSection*nyrs, replace = TRUE), nrow = SiteSection, ncol = nyrs) # Matix with IDs
-ob <- matrix(sig.obs[ob.id],  nrow = SiteSection, ncol = nyrs) # Matrix with intercept for simulating data
-
-# YEAR EFFECT IN SIGMA (RANDOM)
-sig.sig.year <- 1		
-sig.year <- rnorm(nyrs, 0, sig.sig.year) 
+# YEAR EFFECT IN SIGMA (RANDOM INTERCEPT)
+sig.sig.year <- 0.25		
+mu.sig.year <- log(50)
+# Year effect in sigma
+sig.year <- rnorm(nyrs, mu.sig.year, sig.sig.year) 
 
 # TEMPERATURE COVARIATE
 bTemp.sig <- 0.5
-temp <- matrix(rnorm(SiteSection*nyrs, 50, 7), nrow = SiteSection, ncol = nyrs)
-#SCALED
-temp_mean <- mean(temp)
-temp_sd <- sd(temp)
-temp_sc <- (temp - temp_mean) / temp_sd
-
+temp <- matrix(rep(sample(1:4, nyrs, replace = TRUE), each = nSection) , nrow = nSection, ncol = nyrs)
 
 #SIGMA
-sigma <- exp(ob + bTemp.sig * temp_sc + 
-               matrix(rep(sig.year, each = SiteSection), nrow = SiteSection, ncol = nyrs))
+sigma <- exp(matrix(rep(sig.year, each = nSection), nrow = nSection, ncol = nyrs) + 
+               bTemp.sig * temp)
 
 #####
-# ----  Abundance component: Site effect, Year effect and Year trend
+# ----  Abundance component: Year effect and Year trend        
 
-# Site effect: Nested random effect of section within site
-
-mu.site <- 0.2				
-sig.site <- 0.5				
-mu.lam.alpha.site <- rnorm(max.sites, mu.site, sig.site) # One different value per site
-
-sig.alpha.section <- 0.8
-lam.alpha.section <- matrix(NA, max.sites, nSection)
-for(j in 1:max.sites){
-  lam.alpha.section[j, ] <- rnorm(nSection, mu.lam.alpha.site[j], sig.alpha.section)
-}
-
-# All in one vector: Format site-section
-lam.alpha.section <- as.vector(t(lam.alpha.section))
-
-
-# Year effect (RANDOM)
-sig.lam.year <- 0.7			
-lam.year <- rnorm(nyrs, 0, sig.lam.year) 
-
+# YEAR EFFECT IN LAMBDA (RANDOM INTERCEPT)
+sig.lam.year <- 0.1		
+mu.lam.year <- 0.2
+# Year effect in sigma
+lam.year <- rnorm(nyrs, mu.lam.year, sig.lam.year) 
 
 #TIME CO-VARIATE (YEAR)
-
-b.lam.year <- 0.3
-year <- matrix(NA,nrow = SiteSection, ncol = nyrs)
+b.lam.year <- 0.2
+year <- matrix(NA,nrow = nSection, ncol = nyrs)
 colnames(year) <- yrs
 for (i in 0:nyrs){
-  year[ ,yrs[i]] <- rep(year_number[i], SiteSection)
+  year[ ,yrs[i]] <- rep(year_number[i], nSection)
 }
 
 # AUTOCORRELATION AND OVERDISPERSION TERM
-
 rho <- 0.5 # Autoregressive parameter
 
 sig.lam.eps <- 0.2 
-eps <- matrix(NA,nrow = SiteSection, ncol = nyrs) # Unstructured random variation for overdispersion
-for (j in 1:SiteSection){
+eps <- matrix(NA,nrow = nSection, ncol = nyrs) # Unstructured random variation for overdispersion
+for (j in 1:nSection){
   for (t in 1:nyrs){
     eps[j,t] <- rnorm(1,0,sig.lam.eps)
   }
 }
 
-w <- matrix(NA,nrow = SiteSection, ncol = nyrs)
-lam <- matrix(NA,nrow = SiteSection, ncol = nyrs) 
+w <- matrix(NA,nrow = nSection, ncol = nyrs)
+lam <- matrix(NA,nrow = nSection, ncol = nyrs) 
 
 # First year
-for(j in 1:SiteSection){
+for(j in 1:nSection){
   w[j,1] <- eps[j,1] / sqrt(1 - rho * rho)
-  lam[j,1] <- exp(lam.alpha.section[j] + 
-                    lam.year[1] + 
+  lam[j,1] <- exp(lam.year[1] + 
                     b.lam.year*year[j,1] +
                     w[j,1])
 }
 
 # Later years
-for (j in 1:SiteSection){
+for (j in 1:nSection){
   for (t in 2:nyrs){
     w[j,t] <- rho * w[j,t-1] + eps[j,t]
-    lam[j,t] <- exp(lam.alpha.section[j] + 
-                      lam.year[t] + 
+    lam[j,t] <- exp(lam.year[t] + 
                       b.lam.year*year[j,t] +
                       w[j,t])
   }
 }
 
-lam.tot <- colSums(lam)
-
-
 ######
 # ---- Generate ABUNDANCE per site and year ----
 
 # Abundance
-N <- matrix(NA,nrow = SiteSection, ncol = nyrs) 
-for (j in 1:SiteSection){
+N <- matrix(NA,nrow = nSection, ncol = nyrs) 
+for (j in 1:nSection){
   for (t in 1:nyrs){
     N[j,t] <- rpois(1,lam[j,t])
   }}
 
 N.tot <- colSums(N)
 
-# Introduce NA (not sampled)
-vec <- seq(1,length(N))
-na <- sample(vec, 100)
-N[na]<-NA
+# Introduce NA (not sampled a given year)
+vec <- seq(1, nyrs)
+na <- sample(vec, 2)
+N[,na]<-NA
 
 
 
@@ -176,11 +134,11 @@ N[na]<-NA
 # Nc = count of individuals detected in each distance interval
 yList <- list()
 for (i in 1:nyrs){
-  yList[[i]] <- array(0, c(nSitesSection[i], length(dist.breaks)-1))
+  yList[[i]] <- array(0, c(nSection, length(dist.breaks)-1))
 }
 
 for (t in 1:nyrs){
-  for(j in 1:SiteSection) {
+  for(j in 1:nSection) {
     if(N[j,t] == 0 | is.na(N[j,t]))
       next
     # Distance from observer to the individual
@@ -198,10 +156,8 @@ for (t in 1:nyrs){
 y.sum.sites <- lapply(yList, function(x) rowSums(x)) # Total count per site each year
 y.sum.sites2 <- ldply(y.sum.sites,rbind)
 y.sum <- t(y.sum.sites2) # y per site and year stored in a matrix with columns
-y.sum[na] <- NA # Add what are real NA generated from Na in N (not 0)
+y.sum[,na] <- NA # Add what are real NA generated from Na in N (not 0)
 
-
-####
 # ---- Convert data to JAGS format ----
 
 nind.year <- lapply(yList,sum)
@@ -211,27 +167,19 @@ y.sum # Matrix with counts
 
 # Co-variates
 
-temp_sc
-ob.id # Matrix with observers
+temp
 year_number # Vector with year variable
 
-site <- c(1:max.sites)
+section <- c(1:nSection)
 year <- c(1:nyrs)
-
-# Create 2 vectors to index the sitesection random effect
-
-sections <- rep(sec,max.sites)
-sites <- 1:20
-sitessections <- rep(sites, each = nSection)
-
 
 # Get one long vector with years, distance category and site
 
 #site <- dclass <- year <- NULL
-dclass <- site.dclass <- year.dclass <- NULL # Fixed index to map dclass onto site and year 
+dclass <- section.dclass <- year.dclass <- NULL # Fixed index to map dclass onto site and year 
 
 for (t in 1:nyrs){
-  for(j in 1:SiteSection){
+  for(j in 1:nSection){
     if (y.sum[j,t] == 0 | is.na(y.sum[j,t])) 
       next
     #site <- c(site, rep(j, y.sum[j,t])) # site index: repeat the site as many times as counts in that site (for multi model??)
@@ -242,7 +190,7 @@ for (t in 1:nyrs){
       if (yList[[t]][j,k] == 0) # Refers for the ditance classes to the list with years and bins
         next 
       dclass <- c(dclass, rep(k, yList[[t]][j,k]))	# Distance category index
-      site.dclass <- c(site.dclass, rep(j, yList[[t]][j,k]))
+      section.dclass <- c(section.dclass, rep(j, yList[[t]][j,k]))
       year.dclass <- c(year.dclass, rep(t, yList[[t]][j,k]))
     }}
 }
@@ -251,7 +199,7 @@ for (t in 1:nyrs){
 
 allyears <- NULL 
 for (i in 1:nyrs){
-  allyears <- c(allyears,rep(yrs[i],nSitesSection[i]))
+  allyears <- c(allyears,rep(yrs[i],nSection))
 }
 m <- data.frame(allyears = allyears)
 m$allyears <- as.factor(m$allyears)
@@ -260,13 +208,13 @@ indexYears <- model.matrix(~ allyears-1, data = m)
 ####
 # ---- Compile data for JAGS model ----
 
-data1 <- list(nyears = nyrs, SiteSection = SiteSection,  nsites = max.sites, nSection = nSection, sections = sections, sitessections = sitessections, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
-              year.dclass = year.dclass, site.dclass = site.dclass, y = y.sum, nind=nind, dclass=dclass,
-              tempCov = temp_sc, ob = ob.id, nobs = nobs, year1 = year_number, site = site, year_index = yrs)
+data1 <- list(nyears = nyrs, nsection = nSection, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
+              year.dclass = year.dclass, section.dclass = section.dclass, y = y.sum, nind=nind, dclass=dclass,
+              tempCov = temp, year1 = year_number, section = section, year_index = yrs)
 
 # ---- JAGS model ----
 
-setwd("D:/PhD/Otros/Tórtola/Model")
+setwd("D:/Otros/Tórtola/Model")
 cat("model{
     
     # PRIORS
@@ -278,60 +226,37 @@ cat("model{
     
     bYear.lam ~ dnorm(0, 0.001) # Prior for the trend
     
-    # Random effects for lambda per section nested in site
-    # Piors random effect
-    mu.site ~ dunif(-10, 10) 
-    sig.site ~ dunif(0, 10)
-    tau.site <- 1/(sig.site*sig.site)
-
-    tau.section <- 1/(sig.section*sig.section) # Hyperparameters for variation WITHIN transect per section: Level 2 of ranfom effect (NESTED)
-    sig.section ~ dunif(0,500)  
-    
-    for (j in 1:nsites){
-    mu.lambda.site[j] ~ dnorm(mu.site, tau.site)      # Level 1: One mean per transect (site)
-    for (s in 1:nSection){
-    lam.section[j,s] ~ dnorm(mu.lambda.site[j],tau.section)  # Level 2: Section variation within transect (nested)
-    }    
-}
-    
     # Random effects for lambda per year
-    sig.lam.year ~ dunif(0, 10) 
+    mu.lam.year ~ dunif(-10, 10) 
+    sig.lam.year ~ dunif(0, 10)
     tau.lam.year <- 1/(sig.lam.year*sig.lam.year)
     
     log.lambda.year[1] <- 0
     for (t in 2:nyears){
-    log.lambda.year[t] ~ dnorm(0, tau.lam.year)
+    log.lambda.year[t] ~ dnorm(mu.lam.year, tau.lam.year)
     }
     
     
     # PRIORS FOR SIGMA
     bTemp.sig ~ dnorm(0, 0.001)
     
-    mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
-    sig.sig ~ dunif(0, 10)
-    tau.sig <- 1/(sig.sig*sig.sig)
-    
-    # Random observer effect for sigma
-    for (o in 1:nobs){
-    sig.obs[o] ~ dnorm(mu.sig, tau.sig)
-    }
-    
-    # Random effects for sigma per year
-    sig.sig.year ~ dunif(0, 10) 
+    mu.sig.year ~ dunif(-10, 10) # Random effects for sigma per observer
+    sig.sig.year ~ dunif(0, 10)
     tau.sig.year <- 1/(sig.sig.year*sig.sig.year)
     
+    # Random observer effect for sigma
     for (t in 1:nyears){
-    log.sigma.year[t] ~ dnorm(0, tau.sig.year)
+    log.sigma.year[t] ~ dnorm(mu.sig.year, tau.sig.year)
     }
     
     for(i in 1:nind){
-    dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
+    dclass[i] ~ dcat(fct[section.dclass[i], year.dclass[i], 1:nG]) 
     
     # Bayesian p-value for detection component (Bp.Obs)
     
-    dclassnew[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) # generate new observations
-    Tobsp[i]<- pow(1- sqrt(fct[site.dclass[i], year.dclass[i],dclass[i]]),2) # Test for observed data
-    Tobspnew[i]<- pow(1- sqrt(fct[site.dclass[i], year.dclass[i],dclassnew[i]]),2) # Test for new data
+    dclassnew[i] ~ dcat(fct[section.dclass[i], year.dclass[i], 1:nG]) # generate new observations
+    Tobsp[i]<- pow(1- sqrt(fct[section.dclass[i], year.dclass[i],dclass[i]]),2) # Test for observed data
+    Tobspnew[i]<- pow(1- sqrt(fct[section.dclass[i], year.dclass[i],dclassnew[i]]),2) # Test for new data
     }
     
     Bp.Obs <- sum(Tobspnew[1:nind]) > sum(Tobsp[1:nind])
@@ -339,9 +264,9 @@ cat("model{
     # LIKELIHOOD
     
     # FIRST YEAR
-    for(j in 1:SiteSection){ 
+    for(j in 1:nsection){ 
     
-    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bTemp.sig*tempCov[j,1] + log.sigma.year[year_index[1]])
+    sigma[j,1] <- exp(log.sigma.year[year_index[1]] + bTemp.sig*tempCov[j,1])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -364,7 +289,7 @@ cat("model{
     y[j,1] ~ dbin(pcap[j,1], N[j,1]) 
     N[j,1] ~ dpois(lambda[j,1]) 
     
-    lambda[j,1] <- exp(lam.section[sitessections[j], sections[j]] + log.lambda.year[year_index[1]] + bYear.lam*year1[1] + w[j,1]) # year1 is t-1; year_index is t (to index properly the random effect)
+    lambda[j,1] <- exp(log.lambda.year[year_index[1]] + bYear.lam*year1[1] + w[j,1]) # year1 is t-1; year_index is t (to index properly the random effect)
     w[j,1] <- eps[j,1] / sqrt(1 - rho * rho)
     eps[j,1] ~ dnorm(0, tau)
     
@@ -378,10 +303,10 @@ cat("model{
     
     #############
     # LATER YEARS
-    for(j in 1:SiteSection){ 
+    for(j in 1:nsection){ 
     for (t in 2:nyears){
     
-    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bTemp.sig*tempCov[j,t] + log.sigma.year[year_index[t]])
+    sigma[j,t] <- exp(log.sigma.year[year_index[t]] + bTemp.sig*tempCov[j,t])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -404,7 +329,7 @@ cat("model{
     y[j,t] ~ dbin(pcap[j,t], N[j,t]) 
     N[j,t] ~ dpois(lambda[j,t]) 
     
-    lambda[j,t] <- exp(lam.section[sitessections[j], sections[j]] + log.lambda.year[year_index[t]] + bYear.lam*year1[t] + w[j,t])
+    lambda[j,t] <- exp(log.lambda.year[year_index[t]] + bYear.lam*year1[t] + w[j,t])
     w[j,t] <- rho * w[j,t-1] + eps[j,t]
     eps[j,t] ~ dnorm(0, tau)
     
@@ -417,8 +342,8 @@ cat("model{
     }
     }
     
-    T1p <- sum(FT1[1:SiteSection,1:nyears]) #Sum of squared residuals for actual data set (RSS test)
-    T1newp <- sum(FT1new[1:SiteSection,1:nyears]) # Sum of squared residuals for new data set (RSS test)
+    T1p <- sum(FT1[1:nsection,1:nyears]) #Sum of squared residuals for actual data set (RSS test)
+    T1newp <- sum(FT1new[1:nsection,1:nyears]) # Sum of squared residuals for new data set (RSS test)
     
     # Bayesian p-value
     Bp.N <- T1newp > T1p
@@ -437,19 +362,16 @@ cat("model{
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "model7.txt")
-
+    }",fill=TRUE, file = "Model1_study2.txt")
 
 # Inits
 Nst <- y.sum + 1
-inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
-                         mu.site = runif(1), sig.site = 0.2, sig.section = runif(1),
-                         sig.lam.year = 0.3, bYear.lam = runif(1),
+inits <- function(){list(mu.lam.year = runif(1), sig.lam.year = runif(1), bYear.lam = runif(1),
+                        mu.sig.year = runif(1, log(30), log(50)), sig.sig.year = runif(1), bTemp.sig = runif(1),
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig", "sig.sig", "bTemp.sig", "sig.obs", "log.sigma.year", # Save also observer effect
-             "mu.site", "sig.site", "sig.section", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
+params <- c( "mu.lam.year", "sig.lam.year", "bYear.lam", "mu.sig.year", "sig.sig.year", "bTemp.sig", 
              "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
 )
 
@@ -459,15 +381,16 @@ nc <- 3 ; ni <- 70000 ; nb <- 3000 ; nt <- 5
 
 # With jagsUI 
 # With jagsUI 
-out <- jags(data1, inits, params, "model7.txt", n.chain = nc,
+out <- jags(data1, inits, params, "Model1_study2.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 summary <- out$summary
 print(out)
 
 
-setwd("D:/Otros/Tórtola/Results/Model_results")
+setwd("S:/PhD/Second chapter/Data/Results/TRIM")
+save(out, file = "6.TRIM.RData") # 60000 iter, 4 thining
 
-load("7.RData")
+load("6.TRIM.RData")
 
 out$summary
 data_comp <- list(lam.tot = lam.tot, 
@@ -478,4 +401,7 @@ data_comp <- list(lam.tot = lam.tot,
                   sig.lam.year = sig.lam.year,
                   b.lam.year = b.lam.year,
                   rho = rho, sig.lam.eps = sig.lam.eps)
+
+
+
 

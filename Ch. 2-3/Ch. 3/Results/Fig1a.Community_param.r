@@ -85,3 +85,78 @@ points(table_mu$est, y_at[-6], pch = 19 , col = "black", cex = 0.6, bg = "white"
 
 
 dev.off()
+
+
+## -------------------------------------------------
+##    Community mean for graphical abstract
+## ------------------------------------------------- 
+
+var_mu <- c("mu_a1", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
+
+x <- out$sims.list[names(out$sims.list) %in% var_mu]
+x2 <- do.call(cbind,x)
+
+setwd("D:/PhD/Third chapter/Data/Results/Version 4")
+
+pdf("com_par_violins.pdf")
+
+plot(10, ylim = c(0.5, length(var_mu) + 0.5), 
+     xlim = c(-0.6,0.4), 
+     type ="n", yaxt="n", xlab = " ", ylab = "", main = "Community mean",
+     axes = FALSE)
+axis(1, cex.axis = 1.5)
+
+for(i in 1:length(var_mu)){
+  plot.violins3(list(x2[ ,i]),
+                x = i,
+                at = i,
+                violin.width = 0.3,
+                plot.ci = 0.95,
+                col =  adjustcolor("grey52",alpha.f = 0.4),
+                add = T,
+                alpha = 1,
+                scale.width = FALSE,
+                border.col = "black",
+                lwd.CI = 1,
+                horizontal = TRUE,
+                median = TRUE)
+}
+segments(0, -1, 0, 38.4, col = "black")
+
+dev.off()
+
+
+var_mu <- c("mu_a1", "mu_a2", "mu_a3", "mu_cd", "mu_fs")
+
+x <- out$sims.list[names(out$sims.list) %in% var_mu]
+x2 <- do.call(cbind,x)
+
+setwd("D:/PhD/Third chapter/Data/Results/Version 4")
+
+pdf("com_par_violins.pdf")
+
+plot(10, ylim = c(0.5, length(var_mu) + 0.5), 
+     xlim = c(-0.6,0.4), 
+     type ="n", yaxt="n", xlab = " ", ylab = "", main = "Community mean",
+     axes = FALSE)
+axis(1, cex.axis = 1.5)
+
+for(i in 1:length(var_mu)){
+  plot.violins3(list(x2[ ,i]),
+                x = i,
+                at = i,
+                violin.width = 0.3,
+                plot.ci = 0.95,
+                col =  adjustcolor("grey52",alpha.f = 0.4),
+                add = T,
+                alpha = 1,
+                scale.width = FALSE,
+                border.col = "black",
+                lwd.CI = 1,
+                horizontal = TRUE,
+                median = TRUE)
+}
+segments(0, -1, 0, 38.4, col = "black")
+
+dev.off()
+

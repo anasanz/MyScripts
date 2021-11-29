@@ -65,6 +65,17 @@ for (i in 1:nyrs){
   year[ ,which(colnames(year) %in% yrs[i])] <- rep(yrs2[i], max.sites)
 }
 
+# Observer 
+# Format
+obs <- matrix(NA, nrow = max.sites, ncol = nyrs)
+rownames(obs) <- all.sites
+colnames(obs) <- yrs
+
+# Add observers for transects DONE
+for (i in 1:nrow(tor)){
+  obs[which(rownames(obs) %in% tor$site_sec[i]), which(colnames(obs) %in% tor$Year[i])] <- tor$Observer[i]
+}
+
 # Forest
 
 setwd("D:/Ana/Data/Otros/Tortola")
@@ -98,6 +109,13 @@ m  # Counts per year and site
 yrs <- 1:nyrs
 year_number <- yrs2
 
+# Matrix with observers
+ob <- matrix(as.numeric(factor(obs)), nrow = max.sites, ncol = nyrs) # JAGS doesn't accept categorical variables
+unique(factor(ob))
+obs_id <- unique(factor(ob))[-2]
+ob[which(is.na(ob))] <- sample(obs_id, length(which(is.na(ob))), replace = TRUE) # No NA in covariate
+
+nobs <- length(unique(factor(ob)))
 
 # Matrix with forest (put random values where NA)
 unique(factor(forest))
@@ -143,7 +161,7 @@ for (t in 1:nyrs){ # sites has to be nested on years because dclass first indexe
 data1 <- list(nyears = nyrs, SiteSection = max.sites,  nsites = nsites, nSection = nSection, sections = sections, 
               sitessections = sitessections, nG=nG, int.w=int.w, strip.width = strip.width, midpt = midpt, db = dist.breaks,
               year.dclass = year.dclass, site.dclass = site.dclass, y = m, nind=nind, dclass=dclass,
-              forestCov = forest_sc, year1 = year_number, year_index = yrs)
+              forestCov = forest_sc, ob = ob, nobs = nobs, year1 = year_number, year_index = yrs)
 
 
 # ---- JAGS model ----
@@ -189,14 +207,15 @@ cat("model{
     # PRIORS FOR SIGMA
     bforest.sig ~ dnorm(0, 0.001)
     
-    # Random effects for sigma per year
-    mu.sig.year ~ dunif(-10, 10) # Random effects for sigma per observer
-    sig.sig.year ~ dunif(0, 10) 
-    tau.sig.year <- 1/(sig.sig.year*sig.sig.year)
+    mu.sig ~ dunif(-10, 10) # Random effects for sigma per observer
+    sig.sig ~ dunif(0, 10)
+    tau.sig <- 1/(sig.sig*sig.sig)
     
-    for (t in 1:nyears){
-    sig.year[t] ~ dnorm(mu.sig.year, tau.sig.year)
+    # Random observer effect for sigma
+    for (o in 1:nobs){
+    sig.obs[o] ~ dnorm(mu.sig, tau.sig)
     }
+    
     
     for(i in 1:nind){
     dclass[i] ~ dcat(fct[site.dclass[i], year.dclass[i], 1:nG]) 
@@ -215,7 +234,7 @@ cat("model{
     # FIRST YEAR
     for(j in 1:SiteSection){ 
     
-    sigma[j,1] <- exp(sig.year[year_index[1]] + bforest.sig*forestCov[j,1])
+    sigma[j,1] <- exp(sig.obs[ob[j,1]] + bforest.sig*forestCov[j,1])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -255,7 +274,7 @@ cat("model{
     for(j in 1:SiteSection){ 
     for (t in 2:nyears){
     
-    sigma[j,t] <- exp(sig.year[year_index[t]] + bforest.sig*forestCov[j,t])
+    sigma[j,t] <- exp(sig.obs[ob[j,t]] + bforest.sig*forestCov[j,t])
     
     # Construct cell probabilities for nG multinomial cells (distance categories) PER SITE
     
@@ -311,33 +330,34 @@ cat("model{
     exp(bYear.lam)}
     
     
-    }",fill=TRUE, file = "model11.txt")
+    }",fill=TRUE, file = "model12.txt")
 
 
 # Inits
 Nst <- m_index + 1
-inits <- function(){list(mu.sig.year = runif(1, log(30), log(50)), sig.sig.year = runif(1),
+inits <- function(){list(mu.sig = runif(1, log(30), log(50)), sig.sig = runif(1),
                          mu.site = runif(1), sig.site = 0.2, sig.section = runif(1), bforest.sig = runif(1),
                          sig.lam.year = 0.3, bYear.lam = runif(1),
                          N = Nst)} 
 
 # Params
-params <- c( "mu.sig.year", "sig.sig.year", "bforest.sig", 
+params <- c( "mu.sig", "sig.sig", "bforest.sig", "sig.obs",   # Save also observer effect
              "mu.site", "sig.site", "sig.section", "sig.lam.year", "bYear.lam", "log.lambda.year", # Save year effect
              "popindex", "sd", "rho", "lam.tot",'Bp.Obs', 'Bp.N'
 )
 
 
 # MCMC settings
-#nc <- 3 ; ni <- 400000 ; nb <- 10000 ; nt <- 10
-nc <- 3 ; ni <- 2000 ; nb <- 500 ; nt <- 10
+nc <- 3 ; ni <- 400000 ; nb <- 10000 ; nt <- 10
+
 # With jagsUI 
-out <- jags(data1, inits, params, "model11.txt", n.chain = nc,
+# With jagsUI 
+out <- jags(data1, inits, params, "model12.txt", n.chain = nc,
             n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 summary <- out$summary
 print(out)
 
 
 setwd("D:/Ana/Results/Otros/Tortola")
-save(out, file = "Model11tor_2.RData")
+save(out, file = "Model12tor_3.1.RData")
 
