@@ -9,13 +9,13 @@ library(dplyr)
 
 #### Check effect of temperature for species where it is significant for m6
 
-setwd("S:/PhD/Second chapter/Data")
+setwd("D:/PhD/Second chapter/Data")
 s <- read.csv("sp_trend_dg.csv", sep = ";")
 s_good <- as.vector(s$Species[which(s$include_samplesize == 1)])
 remove_6 <- c("CACHL", "CAINA", "CIJUN", "COCOT", "COLIV", "LUARB", "LUMEG", "MIMIG", "OEHIS", "ORORI", "PIVIR", "PYRAX", "STUNI", "STVUL", "TUMER", "TUVIS")
 s_good <- s_good[-which(s_good %in% remove_6)] # SPECIES THAT CONVERGE FOR MODEL 6
 
-setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")
+setwd("D:/PhD/Second chapter/Data/Results/TRIM/6temp")
 load("spConvergence_light.RData")
 
 temp <- data.frame(matrix(NA,ncol = 5,nrow = length(s_good)))
@@ -44,7 +44,7 @@ par(mfrow = c(2,1),
 
 for (xxx in 1:2){
   xxx = 1
-setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")
+setwd("D:/PhD/Second chapter/Data/Results/TRIM/6temp")
 load(paste("HDS_",s_temp[xxx],".RData", sep = ""))
 
 # 1. Predictions of the model Sigma ~ Temperature
@@ -187,7 +187,7 @@ par(mfrow = c(4,2),
 
 for (xxx in 1:7){
 
-  setwd("S:/PhD/Second chapter/Data/Results/TRIM/6temp")
+  setwd("D:/PhD/Second chapter/Data/Results/TRIM/6temp")
   load(paste("HDS_",s_temp[xxx],".RData", sep = ""))
   
   # 1. Predictions of the model Sigma ~ Temperature

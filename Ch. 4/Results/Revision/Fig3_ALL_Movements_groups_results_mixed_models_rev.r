@@ -5,13 +5,15 @@ library(dplyr)
 library(rgdal)
 library(tidyr)
 library(emmeans)
+library(nlme)
+library(stringr)
 
 stderr <- function(x, na.rm=FALSE) {
   if (na.rm) x <- na.omit(x)
   sqrt(var(x)/length(x))
 }
 
-setwd("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect")
+setwd("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/Revision")
 
 ## -------------------------------------------------
 ##                FIGURE MOVEMENTS
@@ -21,7 +23,17 @@ setwd("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect")
 ##     Distance between consecutive positions
 ## ------------------------------------------------- 
 
-eudist <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/Euclidean_distances.txt", header = T, dec = ",", sep = "\t")
+eudist <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/Revision/Euclidean_distances.txt", header = T, dec = ",", sep = "\t")
+
+eudist$Period <- str_sub(eudist$Period,1,nchar(eudist$Period)-5)
+
+##REV: Interested in year2, which is the "dun year" or "academic year"
+eudist[which(eudist$Year != eudist$Year2), ]
+
+eudist <- eudist[,-c(4:6)]
+eudist <- eudist[,c(1,4,2,3)]
+colnames(eudist)[2] <- "Year"
+
 
 # Summary statistics
 
@@ -36,17 +48,17 @@ mean_dist <- eudist %>%
 
 mean_dist <- as.data.frame(mean_dist)
 
-setwd("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect")
+setwd("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/Revision")
 pdf("Fig_movements_lmm_groups.pdf", 8, 6)
 par(mfrow = c(2,2),
     mar = c(2,2,2,0),
     oma = c(3,3,2,2))
 
-plot(mean_dist$mean, ylim = c(200,400), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
+plot(mean_dist$mean, ylim = c(200,350), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("Euclidean distance (m)", side = 2, line = 1, cex = 0.8)
+mtext("Euclidean distance (m)", side = 2, line = 0.5, cex = 1)
 x <- c(1,2,3)
 segments(x, mean_dist$mean - mean_dist$se * 2, 
          x, mean_dist$mean + mean_dist$se * 2, 
@@ -76,10 +88,14 @@ emmeans(m2, list(pairwise ~ Period), adjust = "tukey")
 AIC(m1,m2)
 
 # ---- Add signigfficant catgegories
-pos_letter <- mean_dist$mean + mean_dist$se * 2 + 15
-text(x = 1, y = pos_letter[1],labels = "A", cex = 1.5, col = "black")
-text(x = 2, y = pos_letter[2],labels = "B", cex = 1.5, col = "black")
-text(x = 3, y = pos_letter[3],labels = "B", cex = 1.5, col = "black")
+#pos_letter <- mean_dist$mean + mean_dist$se * 2 + 15
+#text(x = 1, y = pos_letter[1],labels = "A", cex = 1.5, col = "black")
+#(x = 2, y = pos_letter[2],labels = "B", cex = 1.5, col = "black")
+
+##REV: THERE ARE NO SIGNIFICANT CATEGORIES
+#text(x = 1, y = 390,labels = "A", cex = 1, col = "black")
+#text(x = 2, y = 390,labels = "B", cex = 1, col = "black")
+#text(x = 3, y = 390,labels = "B", cex = 1, col = "black")
 
 
 
@@ -87,7 +103,13 @@ text(x = 3, y = pos_letter[3],labels = "B", cex = 1.5, col = "black")
 ##         Proportion of change of field 
 ## ------------------------------------------------- 
 
-campos <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/uso_campos.txt", header = T, dec = ",", sep = "\t")
+campos <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/Revision/uso_campos.txt", header = T, dec = ",", sep = "\t")
+
+##REV:
+campos$Period <- str_sub(campos$Period,1,nchar(campos$Period)-5)
+
+campos <- campos[,-c(2)]
+colnames(campos)[2] <- "Year"
 
 # Summary statistics
 
@@ -104,7 +126,7 @@ plot(change_loc$mean, ylim = c(0,1), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("Field change rate (%)", side = 2, line = 1, cex = 0.8)
+mtext("Field change rate (%)", side = 2, line = 0.5, cex = 1)
 x <- c(1,2,3)
 segments(x, change_loc$mean - change_loc$se * 2, 
          x, change_loc$mean + change_loc$se * 2, 
@@ -133,68 +155,93 @@ emmeans(m2, list(pairwise ~ Period), adjust = "tukey")
 AIC(m1,m2)
 
 # ---- Add signigfficant catgegories
-pos_letter <- change_loc$mean + change_loc$se * 2 + 0.10
-text(x = 1, y = pos_letter[1],labels = "A", cex = 1.5, col = "black")
-text(x = 2, y = pos_letter[2],labels = "A", cex = 1.5, col = "black")
-text(x = 3, y = pos_letter[3],labels = "B", cex = 1.5, col = "black")
+#pos_letter <- change_loc$mean + change_loc$se * 2 + 0.10
+text(x = 1, y = 0.95,labels = "A", cex = 1, col = "black")
+text(x = 2, y = 0.95,labels = "A", cex = 1, col = "black")
+text(x = 3, y = 0.87,labels = "B", cex = 1, col = "black")
 
-pos_letter2 <- change_loc$mean + change_loc$se * 2 + 0.20
-text(x = 2, y = pos_letter2[2],labels = "B", cex = 1.5, col = "black")
-
-
+#pos_letter2 <- change_loc$mean + change_loc$se * 2 + 0.20
+text(x = 2, y = 0.87, labels = "B", cex = 1, col = "black")
 
 ## -------------------------------------------------
-##                        MCP 
+##                        KDE 
 ## ------------------------------------------------- 
 
-mcp.hab <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/MCP_indiv_hab_avai.txt", header = T, dec = ",",
-                      sep = "\t")
-mcp.hab$MCP.area_ha <- mcp.hab$MCP.area/10000
+
+dat <- read.table("D:/PhD/Fourth chapter/Data/kernel_homerange_analyisis3/1_kernels_periodo_reddata.txt", header = T, dec = ",")
+
+id <- data.frame(do.call('rbind', strsplit(as.character(dat$IND),'.',fixed=TRUE)))
+kde <- cbind(dat,id)
+colnames(kde)[c(8:10)] <- c("ID", "Period", "Year")
+kde$Period <- as.factor(kde$Period)
+
+# Transform to same units (The ones in ha to km2)
+
+kde_units <- kde
+
+kde_units[which(kde_units$unidades == "area (hectares)"), c(1,2,3)] <- kde_units[which(kde_units$unidades == "area (hectares)"), c(1,2,3)]/100
+kde_units$unidades <- "area (square kilometers)"
+
+kde50 <- kde_units[which(kde_units$vol == 0.50), ] # Area en km2
 
 # Summary statistics
 
-mcp <- mcp.hab %>%
+kde50$low <- kde50$low*100
+kde50$est <- kde50$est*100
+kde50$high <- kde50$high*100
+
+
+k <- kde50 %>%
   group_by(Period) %>%
   summarise(
-    mean = mean(MCP.area_ha, na.rm = TRUE),
-    sd = sd(MCP.area_ha, na.rm = TRUE),
-    se = stderr(MCP.area_ha, na.rm = TRUE))
+    mean = mean(est),
+    sd = sd(est),
+    se = stderr(est))
 
-mcp <- as.data.frame(mcp)
+k <- as.data.frame(k)
 
-plot(mcp$mean, ylim = c(0,1900), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
+plot(k$mean, ylim = c(0,500), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("MCP area (ha)", side = 2, line = 1, cex = 0.8)
+mtext("Core area (km2)", side = 2, line = 1, cex = 1)
 mtext("Period", side = 1, line = 2.5, cex = 0.8)
 
 x <- c(1,2,3)
-segments(x, mcp$mean - mcp$se * 2, 
-         x, mcp$mean + mcp$se * 2, 
+segments(x, k$mean - k$se * 2, 
+         x, k$mean + k$se * 2, 
          lwd = 1.5)
-arrows(x, mcp$mean - mcp$se * 2, 
-       x, mcp$mean + mcp$se * 2, 
+arrows(x, k$mean - k$se * 2, 
+       x, k$mean + k$se * 2, 
        lwd = 1.5, angle = 90, code = 3, length = 0.05)
 
-lines(mcp$mean, col = "blue")
+lines(k$mean, col = "blue")
 
 ## ---- Anova ----
 
 # Random ID
 
-m1 <- lme(MCP.area ~ Period, random = ~ 1|Bird.ID,
-          data = mcp.hab)
+m1 <- lme(est ~ Period, random = ~ 1|ID,
+          data = kde50)
 anova(m1)
-emmeans(m1, list(pairwise ~ Period), adjust = "tukey")
-
+x <- emmeans(m1, list(pairwise ~ Period), adjust = "tukey")
+pairs(x)
 # Random year and ID
-m2 <- lme(MCP.area ~ Period, random = list(Bird.ID = ~ 1, Year = ~ 1),
-          data = mcp.hab)
+m2 <- lme(est ~ Period, random = list(ID = ~ 1, Year = ~ 1),
+          data = kde50)
 anova(m2)
 emmeans(m2, list(pairwise ~ Period), adjust = "tukey")
 
 AIC(m1,m2)
+
+# ---- Add signigfficant catgegories
+#pos_letter <- change_loc$mean + change_loc$se * 2 + 0.10
+text(x = 1, y = 480,labels = "A", cex = 1, col = "black")
+text(x = 2, y = 480,labels = "A", cex = 1, col = "black")
+text(x = 3, y = 440,labels = "B", cex = 1, col = "black")
+text(x = 1, y = 440,labels = "B", cex = 1, col = "black")
+
+
 
 ## -------------------------------------------------
 ##                        Flying  
@@ -245,7 +292,7 @@ plot(m_fly, ylim = c(0,6.5), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("Flying positions (%)", side = 2, line = 1, cex = 0.8)
+mtext("Flying positions (%)", side = 2, line = 0.5, cex = 1)
 mtext("Period", side = 1, line = 2.5, cex = 0.8)
 
 

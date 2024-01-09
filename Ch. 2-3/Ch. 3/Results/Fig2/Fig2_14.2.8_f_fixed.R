@@ -11,9 +11,9 @@ library(rjags)
 library(jagsUI)
 library(dplyr)
 
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins3.r")
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/DoScale.r")
+source("D:/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
+source("D:/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/plot.violins3.r")
+source("D:/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/DoScale.r")
 
 # Load species analyzed in the model
 
@@ -46,7 +46,7 @@ out.list[[3]] <- as.mcmc(out$samples[[3]][subs,b])
 
 out.list <- as.mcmc.list(out.list)
 
-source("D:/PhD/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
+source("D:/MyScripts/Ch. 2-3/Ch. 3/Results/Functions/ProcessCodaOutput.R")
 
 out <- ProcessCodaOutput(out.list)
 outall <- out$sims.list # 3 chains together 

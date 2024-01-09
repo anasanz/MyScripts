@@ -1,17 +1,16 @@
 
 ## -------------------------------------------------
-##                RSPF - Three periods
+##            RSPF - Three periods
+##  used ~ no_manag + si_manag*linear.st + slope.st 
 ## ------------------------------------------------- 
 
 rm(list = ls())
 
 library(ResourceSelection)
 
-temp <- setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/data_matrix")
+temp <- setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 2/data_matrix")
 temp <- list.files(pattern = "*.csv")
 data <- lapply(temp, read.csv, sep = ",")
-
-f <- data[[1]]
 
 # Loop for different sets of random locations
 
@@ -20,14 +19,8 @@ for(xxx in 1:length(temp)){
   datos <- data[[xxx]]
   periods <- c("Pre", "PreRep", "Rep")
   
-  d <- datos[ ,c(10,20)] # Remove NA
-  datos <- datos[complete.cases(d), ]
-  
-  x <- datos[which(datos$STATUS == 1), ] # Just to check number of obs
-  
-  # Check correlation
-  correlation <- cor(datos[ ,c(10:21)]) 
-  which(correlation > 0.4 & correlation < 1)
+  d <- datos[ ,c(10,18)] # Remove NA
+  datos <- datos[complete.cases(d), ] # No habia
   
   for (p in 1:length(periods)){
 
@@ -42,6 +35,10 @@ for(xxx in 1:length(temp)){
   mean.cam <- mean(datos.rspf$caminos)
   sd.cam <- sd(datos.rspf$caminos)
   datos.rspf$caminos.st <- (datos.rspf$caminos - mean.cam) / sd.cam
+  
+  mean.lin <- mean(datos.rspf$linear)
+  sd.lin <- sd(datos.rspf$linear)
+  datos.rspf$linear.st <- (datos.rspf$linear - mean.lin) / sd.lin
   
   mean.slop <- mean(datos.rspf$Slope)
   sd.slop <- sd(datos.rspf$Slope)
@@ -63,10 +60,7 @@ for(xxx in 1:length(temp)){
   AIC <- numeric()
   
     for (i in 1:n.loop){
-      RSF <- rspf(STATUS ~ as.factor(barbecho) + as.factor(cereal) + as.factor(olivo) + 
-                    as.factor(almendro) + as.factor(frutreg) + as.factor(herreg) + 
-                    as.factor(forestal) + as.factor(vegnat) + caminos.st + slope.st + 
-                    carreteras.st, data = datos.rspf, m = match.use.avai, B = n.B)
+      RSF <- rspf(STATUS ~ as.factor(no_manag) + as.factor(si_manag)*linear.st + linear.st + slope.st, data = datos.rspf, m = match.use.avai, B = n.B)
       summ.RSF <- summary(RSF)
       RSF.pval[, i] <- summ.RSF$coefficients[, 4]
       RSF.SE[,i] <- summ.RSF$coefficients[, 2]
@@ -91,9 +85,8 @@ for(xxx in 1:length(temp)){
   
   # Save
 
-  temp[xxx] <- substr(temp[xxx],1,nchar(temp[xxx])-4) # Name for saving
   setwd("D:/Ana/Results/chapter4/results_rspf")
-  write.csv(results, file = paste("Results_", periods[p],"_", temp[xxx], sep = ""))
+  write.csv(results, file = paste("FaResults_", periods[p],"_", temp[xxx], sep = ""))
   }
   
   }

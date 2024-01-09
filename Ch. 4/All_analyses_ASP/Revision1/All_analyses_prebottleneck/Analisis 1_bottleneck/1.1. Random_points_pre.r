@@ -2,6 +2,7 @@
 ## -------------------------------------------------
 ##              Generate random points for 
 ##                HABITAT AVAILABILITY
+##              REVISION 1 (ONLY PRE-BOTTLENECK)
 ## ------------------------------------------------- 
 
 rm(list=ls())
@@ -13,12 +14,10 @@ library(sp)
 library(raster)
 library(rgeos)
 
-## ---- Load data ----
+## ---- Load data and join ----
 
-# Load GPS locations
 
-data <- read.table("D:/PhD/Fourth chapter/Data/2_matrix_RSPF.txt", header = T, dec = ",")
-data <- data[data$STATUS == 1, c(2:20)]
+
 
 # Load MCP
 
@@ -32,9 +31,9 @@ names(MCP) <- Logger_ID
 
 # Load MAPS to restrict where random points are simulated
 
-map17 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP17_sigpacdun_WGS_1984_UTM_Zone_31N")
-map18 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP18_sigpacdun_WGS_1984_UTM_Zone_31N")
-map19 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP19_sigpacdun_WGS_1984_UTM_Zone_31N")
+map17 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_RocÃ­o/usos", "clipMCP17_sigpacdun_WGS_1984_UTM_Zone_31N")
+map18 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_RocÃ­o/usos", "clipMCP18_sigpacdun_WGS_1984_UTM_Zone_31N")
+map19 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_RocÃ­o/usos", "clipMCP19_sigpacdun_WGS_1984_UTM_Zone_31N")
 
 maps <- c(map17, map18, map19)
 

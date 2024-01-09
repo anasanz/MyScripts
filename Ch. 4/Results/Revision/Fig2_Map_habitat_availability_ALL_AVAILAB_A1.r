@@ -27,7 +27,8 @@ map19 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP19_
 
 # ---- LOAD RESULTS (By period, because I will plot by period) ----
 
-setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/results_rspf")
+##REV: LOAD A DIFFERENT ONE FOR FIRST PERIOD
+setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/results_rspf/Revision")
 
 p1 <- read.csv("Results_Pre_dm_random_loc_A1.csv", sep = ";")
 p1 <- p1[,-5]
@@ -36,6 +37,8 @@ p1 <- p1[nrow(p1):1, ]
 p1[,1] <- c("DistAsp", "Slope", "DistGrav", "NatVeg", "Forest", "Herb.irri", "Fruit.irri", "Almond", "Olive", "Cereal", "Fallow", "Intercept")
 colnames(p1) <- c("X", "Estimate", "SE", "p", "period")
 
+##REV: LOAD THE ORIGINAL ONES FOR TWO NEXT PERIODS
+setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/results_rspf")
 p2 <- read.csv("Results_PreRep_dm_random_loc_A1.csv", sep = ";")
 p2 <- p2[,-5]
 p2$period <- "p2"
@@ -59,10 +62,10 @@ for (j in 1:length(periods)){
   
   for (i in 1:nrow(p)){
     if (p$p[i] > 0.05) {p$colour[i] = "grey"} else {
-      p$colour[i] <- ifelse (p$Estimate[i] > 0, "blue", "red") 
+      p$colour[i] <- ifelse (p$Estimate[i] > 0, "cyan4", "darkred") 
     }}
   
-  p$colour[which(p$X == "DistGrav")] <- "red" # To plot roads in red (they select positively distance to roads)
+  p$colour[which(p$X == "DistGrav")] <- "darkred" # To plot roads in red (they select positively distance to roads)
   colnames(p)[colnames(p) == "X"] <- "uso_mapa"
   
   periods[[j]] <- p
@@ -109,7 +112,7 @@ for (i in 1:length(maps)){
 
 # In each layer, calculate area of red and blue
 # Modify map layers in new object
-col <- c("blue", "red")
+col <- c("cyan4", "darkred")
 
 data_allyears <- list()
 data <- data.frame(Select = c(NA,NA,NA), Avoid = c(NA,NA,NA))
@@ -128,55 +131,14 @@ for (i in 1:length(maps)){
   data_allyears[[i]] <- data
 }
 
-
-
-#  ---- Plot by year and period ----
-
-## -------------------------------------------------
-##                    HORIZONTAL
-## ------------------------------------------------- 
-
-# All together
-
-
-setwd("D:/PhD/Fourth chapter/Results/Figures")
-pdf("maps17_noborder2.pdf",9, 2)
-
-par(mfrow = c(1,3),
-    mar = c(0,0,0,0),
-    oma = c(0,0,0,0))
-
-for (i in 1:length(periods)) {
-  
-  maps2 <- maps
-  ext <- extent(maps2[[1]])
-  maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
-  plot(maps2[[1]], col = maps2[[1]]$colour, border = NA, xlim = c(ext@xmin + 400, ext@xmax - 400), ylim = c(ext@ymin + 400 , ext@ymax - 400)) # I think is better with no border (dif tries with p2)
-  box(which = "plot", lty = "solid")
-} 
-
-dev.off()
-
-
-par(mfrow = c(1,1))
-
-i = 2
-maps2 <- maps
-maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
-plot(maps2[[1]], col = maps2[[1]]$colour, border = maps2[[1]]$colour, axes = TRUE, xlim = c(ext@xmin + 400, ext@xmax - 400), ylim = c(ext@ymin + 400 , ext@ymax - 400))
-
-
-
-
-ext@xmin + 1000
-
+data_allyears[[3]]
 ## -------------------------------------------------
 ##                    VERTICAL
 ## ------------------------------------------------- 
 
 # 2017
 
-setwd("D:/PhD/Fourth chapter/Results/Figures/Fig1")
+setwd("D:/PhD/Fourth chapter/Results/Figures_Tables/Fig_bottleneck/Revision")
 pdf("maps17_noborder2_A1_vert.pdf",4, 8)
 
 par(mfrow = c(3,1),
@@ -197,7 +159,7 @@ dev.off()
 
 # 2018 (FOR SM)
 
-setwd("D:/PhD/Fourth chapter/Results/Figures/Fig1")
+setwd("D:/PhD/Fourth chapter/Results/Figures_Tables/Fig_bottleneck/Revision")
 pdf("maps18_noborder2_A1_vert.pdf",4, 8)
 
 par(mfrow = c(3,1),
@@ -217,7 +179,7 @@ dev.off()
 
 # 2019 (FOR SM)
 
-setwd("D:/PhD/Fourth chapter/Results/Figures/Fig1")
+setwd("D:/PhD/Fourth chapter/Results/Figures_Tables/Fig_bottleneck/Revision")
 pdf("maps19_noborder2_A1_vert.pdf",4, 8)
 
 par(mfrow = c(3,1),
@@ -234,74 +196,6 @@ for (i in 1:length(periods)) {
 } 
 
 dev.off()
-
-
-
-## -------------------------------------------------
-###           TRY BORDER/NO BORDER...
-## ------------------------------------------------- 
-
-# One by one (try p2)
-
-setwd("D:/PhD/Fourth chapter/Results/Figures")
-pdf("maps17_p2_normalborder.pdf")
-
-par(mfrow = c(1,1))
-
-i = 2
-maps2 <- maps
-maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
-plot(maps2[[1]], col = maps2[[1]]$colour, border = maps2[[1]]$colour)
-
-dev.off()
-
-
-setwd("D:/PhD/Fourth chapter/Results/Figures")
-pdf("maps17_p2_noborder.pdf")
-
-par(mfrow = c(1,1))
-
-i = 2
-maps2 <- maps
-maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
-plot(maps2[[1]], col = maps2[[1]]$colour, border = NA)
-
-dev.off() 
-
-
-setwd("D:/PhD/Fourth chapter/Results/Figures")
-pdf("maps17_p2_smallborder.pdf")
-
-par(mfrow = c(1,1))
-
-i = 2
-maps2 <- maps
-maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
-plot(maps2[[1]], col = maps2[[1]]$colour, border = maps2[[1]]$colour, lwd = 0.3)
-
-dev.off() 
-
-
-setwd("D:/PhD/Fourth chapter/Results/Figures")
-pdf("maps17_p2_blackborder.pdf")
-
-par(mfrow = c(1,1))
-
-i = 2
-maps2 <- maps
-maps2[[1]]@data <- left_join(maps2[[1]]@data, periods[[i]], by = "uso_mapa")
-plot(maps2[[1]], col = maps2[[1]]$colour, border = "black", lwd = 0.3)
-
-dev.off() 
-
-
-
-
-
-
-
-
-
 
 
 

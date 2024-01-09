@@ -11,8 +11,6 @@ temp <- setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/data_matrix")
 temp <- list.files(pattern = "*.csv")
 data <- lapply(temp, read.csv, sep = ",")
 
-f <- data[[1]]
-
 # Loop for different sets of random locations
 
 for(xxx in 1:length(temp)){

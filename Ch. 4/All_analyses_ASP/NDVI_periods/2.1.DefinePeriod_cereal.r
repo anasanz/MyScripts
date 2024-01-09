@@ -11,16 +11,16 @@ library(dplyr)
 
 # Posiciones GPS
 
-setwd("D:/PhD/Fourth chapter/GIS/Capas_Rocío/GPS")
+setwd("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/GPS")
 pos <- read.delim("D_gangas_no_regadio_ETRS89_tot.txt", dec = ",")
 pos <- pos[-which(pos$Year == 2016), ] #♠?? preguntar rocío
 pos$ID_pos <- seq(1,nrow(pos))
 
 # Capas DUN
 
-dun17 <- readOGR("D:/PhD/Fourth chapter/GIS/Capas_Rocío/usos", "clip_dun17_usos_4326")
-dun18 <- readOGR("D:/PhD/Fourth chapter/GIS/Capas_Rocío/usos", "clip_dun18_usos_4326")
-dun19 <- readOGR("D:/PhD/Fourth chapter/GIS/Capas_Rocío/usos", "clip_dun19_usos_4326")
+dun17 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clip_dun17_usos_4326")
+dun18 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clip_dun18_usos_4326")
+dun19 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clip_dun19_usos_4326")
 
 # Converted to raster in arcgis because it works better
 r17 <- raster("D:/PhD/Fourth chapter/GIS/Capas_Rocío/usos/clip_dun17_usos_4326.tif") # Cereal is value 5

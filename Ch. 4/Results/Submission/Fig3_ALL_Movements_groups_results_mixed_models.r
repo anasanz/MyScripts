@@ -5,6 +5,7 @@ library(dplyr)
 library(rgdal)
 library(tidyr)
 library(emmeans)
+library(nlme)
 
 stderr <- function(x, na.rm=FALSE) {
   if (na.rm) x <- na.omit(x)
@@ -46,7 +47,7 @@ plot(mean_dist$mean, ylim = c(200,400), xlim = c(0,4), axes = FALSE, xaxs="i", y
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("Euclidean distance (m)", side = 2, line = 1, cex = 0.8)
+mtext("Euclidean distance (m)", side = 2, line = 0.5, cex = 1)
 x <- c(1,2,3)
 segments(x, mean_dist$mean - mean_dist$se * 2, 
          x, mean_dist$mean + mean_dist$se * 2, 
@@ -76,10 +77,13 @@ emmeans(m2, list(pairwise ~ Period), adjust = "tukey")
 AIC(m1,m2)
 
 # ---- Add signigfficant catgegories
-pos_letter <- mean_dist$mean + mean_dist$se * 2 + 15
-text(x = 1, y = pos_letter[1],labels = "A", cex = 1.5, col = "black")
-text(x = 2, y = pos_letter[2],labels = "B", cex = 1.5, col = "black")
-text(x = 3, y = pos_letter[3],labels = "B", cex = 1.5, col = "black")
+#pos_letter <- mean_dist$mean + mean_dist$se * 2 + 15
+#text(x = 1, y = pos_letter[1],labels = "A", cex = 1.5, col = "black")
+#(x = 2, y = pos_letter[2],labels = "B", cex = 1.5, col = "black")
+
+text(x = 1, y = 390,labels = "A", cex = 1, col = "black")
+text(x = 2, y = 390,labels = "B", cex = 1, col = "black")
+text(x = 3, y = 390,labels = "B", cex = 1, col = "black")
 
 
 
@@ -104,7 +108,7 @@ plot(change_loc$mean, ylim = c(0,1), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("Field change rate (%)", side = 2, line = 1, cex = 0.8)
+mtext("Field change rate (%)", side = 2, line = 0.5, cex = 1)
 x <- c(1,2,3)
 segments(x, change_loc$mean - change_loc$se * 2, 
          x, change_loc$mean + change_loc$se * 2, 
@@ -133,68 +137,91 @@ emmeans(m2, list(pairwise ~ Period), adjust = "tukey")
 AIC(m1,m2)
 
 # ---- Add signigfficant catgegories
-pos_letter <- change_loc$mean + change_loc$se * 2 + 0.10
-text(x = 1, y = pos_letter[1],labels = "A", cex = 1.5, col = "black")
-text(x = 2, y = pos_letter[2],labels = "A", cex = 1.5, col = "black")
-text(x = 3, y = pos_letter[3],labels = "B", cex = 1.5, col = "black")
+#pos_letter <- change_loc$mean + change_loc$se * 2 + 0.10
+text(x = 1, y = 0.95,labels = "A", cex = 1, col = "black")
+text(x = 2, y = 0.95,labels = "A", cex = 1, col = "black")
+text(x = 3, y = 0.87,labels = "B", cex = 1, col = "black")
 
-pos_letter2 <- change_loc$mean + change_loc$se * 2 + 0.20
-text(x = 2, y = pos_letter2[2],labels = "B", cex = 1.5, col = "black")
-
-
+#pos_letter2 <- change_loc$mean + change_loc$se * 2 + 0.20
+text(x = 2, y = 0.87, labels = "B", cex = 1, col = "black")
 
 ## -------------------------------------------------
-##                        MCP 
+##                        KDE 
 ## ------------------------------------------------- 
 
-mcp.hab <- read.table("D:/PhD/Fourth chapter/Results/Analisis3_bottleneck_effect/MCP_indiv_hab_avai.txt", header = T, dec = ",",
-                      sep = "\t")
-mcp.hab$MCP.area_ha <- mcp.hab$MCP.area/10000
+
+dat <- read.table("D:/PhD/Fourth chapter/Data/kernel_homerange_analyisis3/1_kernels_periodo_reddata.txt", header = T, dec = ",")
+
+id <- data.frame(do.call('rbind', strsplit(as.character(dat$IND),'.',fixed=TRUE)))
+kde <- cbind(dat,id)
+colnames(kde)[c(8:10)] <- c("ID", "Period", "Year")
+kde$Period <- as.factor(kde$Period)
+
+# Transform to same units (The ones in ha to km2)
+
+kde_units <- kde
+
+kde_units[which(kde_units$unidades == "area (hectares)"), c(1,2,3)] <- kde_units[which(kde_units$unidades == "area (hectares)"), c(1,2,3)]/100
+kde_units$unidades <- "area (square kilometers)"
+
+kde50 <- kde_units[which(kde_units$vol == 0.50), ] # Area en km2
 
 # Summary statistics
 
-mcp <- mcp.hab %>%
+kde50$low <- kde50$low*100
+kde50$est <- kde50$est*100
+kde50$high <- kde50$high*100
+
+
+k <- kde50 %>%
   group_by(Period) %>%
   summarise(
-    mean = mean(MCP.area_ha, na.rm = TRUE),
-    sd = sd(MCP.area_ha, na.rm = TRUE),
-    se = stderr(MCP.area_ha, na.rm = TRUE))
+    mean = mean(est),
+    sd = sd(est),
+    se = stderr(est))
 
-mcp <- as.data.frame(mcp)
+k <- as.data.frame(k)
 
-plot(mcp$mean, ylim = c(0,1900), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
+plot(k$mean, ylim = c(0,500), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("MCP area (ha)", side = 2, line = 1, cex = 0.8)
+mtext("Core area (km2)", side = 2, line = 1, cex = 1)
 mtext("Period", side = 1, line = 2.5, cex = 0.8)
 
 x <- c(1,2,3)
-segments(x, mcp$mean - mcp$se * 2, 
-         x, mcp$mean + mcp$se * 2, 
+segments(x, k$mean - k$se * 2, 
+         x, k$mean + k$se * 2, 
          lwd = 1.5)
-arrows(x, mcp$mean - mcp$se * 2, 
-       x, mcp$mean + mcp$se * 2, 
+arrows(x, k$mean - k$se * 2, 
+       x, k$mean + k$se * 2, 
        lwd = 1.5, angle = 90, code = 3, length = 0.05)
 
-lines(mcp$mean, col = "blue")
+lines(k$mean, col = "blue")
 
 ## ---- Anova ----
 
 # Random ID
 
-m1 <- lme(MCP.area ~ Period, random = ~ 1|Bird.ID,
-          data = mcp.hab)
+m1 <- lme(est ~ Period, random = ~ 1|ID,
+          data = kde50)
 anova(m1)
-emmeans(m1, list(pairwise ~ Period), adjust = "tukey")
-
+x <- emmeans(m1, list(pairwise ~ Period), adjust = "tukey")
+pairs(x)
 # Random year and ID
-m2 <- lme(MCP.area ~ Period, random = list(Bird.ID = ~ 1, Year = ~ 1),
-          data = mcp.hab)
+m2 <- lme(est ~ Period, random = list(ID = ~ 1, Year = ~ 1),
+          data = kde50)
 anova(m2)
 emmeans(m2, list(pairwise ~ Period), adjust = "tukey")
 
 AIC(m1,m2)
+
+# ---- Add signigfficant catgegories
+#pos_letter <- change_loc$mean + change_loc$se * 2 + 0.10
+text(x = 1, y = 480,labels = "A", cex = 1, col = "black")
+text(x = 2, y = 480,labels = "A", cex = 1, col = "black")
+text(x = 3, y = 480,labels = "B", cex = 1, col = "black")
+
 
 ## -------------------------------------------------
 ##                        Flying  
@@ -245,7 +272,7 @@ plot(m_fly, ylim = c(0,6.5), xlim = c(0,4), axes = FALSE, xaxs="i", yaxs = "i",
      ylab = " ", xlab = " ", pch = 19)
 axis(1, labels = c(" ", "Short", "Tall", "Stubble"), at = c(0.5,1,2,3))
 axis(2, pos = 0.5)
-mtext("Flying positions (%)", side = 2, line = 1, cex = 0.8)
+mtext("Flying positions (%)", side = 2, line = 0.5, cex = 1)
 mtext("Period", side = 1, line = 2.5, cex = 0.8)
 
 

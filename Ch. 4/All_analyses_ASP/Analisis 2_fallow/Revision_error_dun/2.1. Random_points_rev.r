@@ -2,6 +2,7 @@
 ## -------------------------------------------------
 ##              Generate random points for 
 ##                HABITAT AVAILABILITY
+##        ANALISIS 2: COnstrain to BARBECHO y VEGNAT
 ## ------------------------------------------------- 
 
 rm(list=ls())
@@ -17,8 +18,11 @@ library(rgeos)
 
 # Load GPS locations
 
-data <- read.table("D:/PhD/Fourth chapter/Data/2_matrix_RSPF.txt", header = T, dec = ",")
-data <- data[data$STATUS == 1, c(2:20)]
+data <- read.table("D:/PhD/Fourth chapter/Data/Revision/2_matrix_RSPF_uselocations.txt", header = T, dec = ",")
+
+# Constrain to used positions in fallow and veg.nat
+
+data <- data[which(data$barbecho == 1 | data$vegnat == 1), ]
 
 # Load MCP
 
@@ -32,9 +36,9 @@ names(MCP) <- Logger_ID
 
 # Load MAPS to restrict where random points are simulated
 
-map17 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP17_sigpacdun_WGS_1984_UTM_Zone_31N")
-map18 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP18_sigpacdun_WGS_1984_UTM_Zone_31N")
-map19 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_Rocío/usos", "clipMCP19_sigpacdun_WGS_1984_UTM_Zone_31N")
+map17 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_RocÃ­o/usos", "clipMCP17_sigpacdun_WGS_1984_UTM_Zone_31N")
+map18 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_RocÃ­o/usos", "clipMCP18_sigpacdun_WGS_1984_UTM_Zone_31N")
+map19 <- readOGR("D:/PhD/Fourth chapter/Data/GIS/Capas_RocÃ­o/usos", "clipMCP19_sigpacdun_WGS_1984_UTM_Zone_31N")
 
 maps <- c(map17, map18, map19)
 
@@ -61,8 +65,7 @@ for (i in 1:length(maps)){
 
 # Constrain to select polygons where I want the GPS positions to fall
 
-constrain_random <- c("FRUTALES DE REGADIO", "CEREAL", "HERBACEOS DE REGADIO", "BARBECHO", "OTROS HERBACEOS DE SECANO",
-                      "OLIVO", "ALMENDRO", "PASTOS", "FORESTAL") 
+constrain_random <- c("BARBECHO", "PASTOS") 
 
 for (i in 1:length(maps)){ 
   maps[[i]] <- maps[[i]][which(maps[[i]]$uso_mapa %in% constrain_random), ]
@@ -71,6 +74,7 @@ for (i in 1:length(maps)){
 ## ----  Simulate random positions ----
 
 # Determine number of random locations to simulate 
+#REV: Here I have to take the variable year2 because it refers to the dun-year
 
 years <- c(2017,2018,2019)
 periods <- c("Pre", "PreRep", "Rep")
@@ -78,7 +82,7 @@ periods <- c("Pre", "PreRep", "Rep")
 loc_years <- list()
 
 for (t in 1:length(years)){
-  data_year <- data[data$year %in% years[t], ]
+  data_year <- data[data$year2 %in% years[t], ]
   
   locations_ID <- data.frame(matrix(0, ncol = length(periods), nrow = length(unique(data$Logger_ID))))
   colnames(locations_ID) <- periods
@@ -115,19 +119,19 @@ for (i in 1:length(Logger_ID)){
       # 2 modes to create random points: Proportional to number of used locations or proportional to MCP area (comment out rdm.sp depending on mode)
       
       # Mode 1: Multiplying number of used locations* 1, 2, 3....
-      #rdm.sp <- spsample(mcpid2, nlocs_sim, type = "random") # Simulate random points for 1 period, year and ID and year (A1, single available points)
+      rdm.sp <- spsample(mcpid2, nlocs_sim, type = "random") # Simulate random points for 1 period, year and ID and year (A1, single available points)
       
       # Mode 2: Number of locations proportional to the size of the home range
-      area.mcp <- gArea(mcpid, byid = F)/1000000 # km2
-      n.puntos <- round(area.mcp *25 , 0) # 25/50/100/200 points per km2
-      
-      rdm.sp <- spsample(mcpid2, n.puntos, type = "random")
-      
-      setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/Availability/Aprop0.25") # Save to see distribution and density of points
-      pdf(paste(Logger_ID[i],"_",years[t], "_", periods[p],".pdf", sep = ""))
-      plot(mcpid2, main = paste(Logger_ID[i],"_",years[t], "_", periods[p], sep = ""), col = "lightgrey")
-      points(rdm.sp, pch = 18)
-      dev.off()
+      #area.mcp <- gArea(mcpid, byid = F)/1000000 # km2
+      #n.puntos <- round(area.mcp *25 , 0) # 100/200 points per km2
+      #
+      #rdm.sp <- spsample(mcpid2, n.puntos, type = "random")
+      #
+      #setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 2/Availability/Aprop0.25") # Save to see distribution and density of points
+      #pdf(paste(Logger_ID[i],"_",years[t], "_", periods[p],".pdf", sep = ""))
+      #plot(mcpid2, main = paste(Logger_ID[i],"_",years[t], "_", periods[p], sep = ""), col = "lightgrey")
+      #points(rdm.sp, pch = 18, col = "red")
+      #dev.off()
       
       tmp.id.year.p <- rbind(tmp.id.year.p, data.frame( Logger_ID = Logger_ID[i]
                                              , year = years[t]
@@ -145,15 +149,15 @@ random_loc <- do.call(rbind.data.frame, tmp.id)
 random_loc <- random_loc[complete.cases(random_loc), ] # Same number of rows that data
 
 # Check that it fits with number locations from loc_years
-nrow(random_loc[which(random_loc$Logger_ID == "PIC17" & random_loc$year == 2018 & random_loc$periodo == "Pre"), ])
+nrow(random_loc[which(random_loc$Logger_ID == "PIC17" & random_loc$year == 2019 & random_loc$periodo == "Pre"), ])
 
 
-setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1/random_loc")
-write.csv(random_loc, "random_loc_Aprop0.25.csv")
+setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 2/random_loc/Revision")
+write.csv(random_loc, "random_loc_A1.csv")
 
-# Save also used locs without old random points
-setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 1")
-#write.csv(data, "used_loc.csv")
+# Save also used locs without old random points, only within fallows and veg.nat
+setwd("D:/PhD/Fourth chapter/Results/RSF_Ana/Analisis 2/Revision")
+write.csv(data, "used_loc.csv")
 
 
 

@@ -7,6 +7,8 @@ rm(list = ls())
 ##                  SupMaterial
 ## ------------------------------------------------- 
 
+library(tidyverse)
+
 ## -------------------------------------------------
 ##            GPS DATA - All (Si vale, con flying y NA)
 ## ------------------------------------------------- 
@@ -31,6 +33,20 @@ for (i in 1:length(periods)) {
   locations_ID[rownames(locations_ID) %in% names(n.id), colnames(locations_ID) %in% periods[i]] <- n.id
 }
 
+# Check start and end dates
+##rev: convert to date to order it
+
+datos$fecha <- as.Date(paste(datos$Day,datos$Month,datos$Year,sep = "/"), format = "%d/%m/%Y")
+datos$hora <- as.POSIXlt(paste(datos$Hour,datos$Minute,datos$Second,sep = ":"), format = "%H:%M:%OS")
+datos$hora <- format(datos$hora,"%H:%M:%OS")
+
+datos <- arrange(datos, fecha, hora)
+
+d <- datos[which(datos$Logger_ID == "PIC17"), ]
+d[1, 2:5]
+d[nrow(d), 2:5]
+
+
 setwd("D:/PhD/Fourth chapter/Results")
 write.csv(locations_ID, file = "SM_GPS_info_ALL.csv")
 sum(colSums(locations_ID))
@@ -38,7 +54,6 @@ sum(colSums(locations_ID))
 ## -------------------------------------------------
 ##        GPS DATA - Only used in RSPF (no vale)
 ## ------------------------------------------------- 
-
 
 datos <- read.table("D:/PhD/Fourth chapter/Data/2_matrix_RSPF.txt", header = T, dec = ",")
 
@@ -66,6 +81,10 @@ sum(colSums(locations_ID))
 # Check start and end dates
 
 d <- datos[which(datos$Logger_ID == "GUE05" & datos$STATUS == 1), ]
+d[1, 2:5]
+d[nrow(d), 2:5]
+
+d <- datos[which(datos$Logger_ID == "PIC17"& datos$STATUS == 1), ]
 d[1, 2:5]
 d[nrow(d), 2:5]
 
